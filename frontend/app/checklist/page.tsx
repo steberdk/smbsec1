@@ -17,7 +17,6 @@ export default function ChecklistPage() {
   }, []);
 
   const groups = useMemo(() => {
-    const byId = new Map(CHECKLIST.groups.map((g) => [g.id, g]));
     const sortedGroups = [...CHECKLIST.groups].sort((a, b) => a.order - b.order);
 
     return sortedGroups.map((g) => ({
@@ -25,6 +24,7 @@ export default function ChecklistPage() {
       items: CHECKLIST.items.filter((i) => i.groupId === g.id),
     }));
   }, []);
+
 
   const stats = useMemo(() => computeProgress(progress), [progress]);
 
