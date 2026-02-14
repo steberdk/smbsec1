@@ -5,16 +5,12 @@ import { CHECKLIST } from "@/lib/checklist/items";
 import { loadProgress, setItemStatus, saveProgress } from "@/lib/checklist/storage";
 import { ChecklistProgress, ChecklistStatus } from "@/lib/checklist/types";
 import { computeProgress, getStatus } from "@/lib/checklist/progress";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ProgressBar } from "@/components/ProgressBar";
 import { ChecklistItemCard } from "@/components/ChecklistItemCard";
 
 export default function ChecklistPage() {
-  const [progress, setProgress] = useState<ChecklistProgress>({});
-
-  useEffect(() => {
-    setProgress(loadProgress());
-  }, []);
+  const [progress, setProgress] = useState<ChecklistProgress>(() => loadProgress());
 
   const groups = useMemo(() => {
     const sortedGroups = [...CHECKLIST.groups].sort((a, b) => a.order - b.order);
