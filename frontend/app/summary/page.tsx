@@ -1,18 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CHECKLIST } from "@/lib/checklist/items";
 import { clearProgress, loadProgress } from "@/lib/checklist/storage";
 import { ChecklistProgress } from "@/lib/checklist/types";
 import { computeProgress, getStatus } from "@/lib/checklist/progress";
 
 export default function SummaryPage() {
-  const [progress, setProgress] = useState<ChecklistProgress>({});
-
-  useEffect(() => {
-    setProgress(loadProgress());
-  }, []);
+  const [progress, setProgress] = useState<ChecklistProgress>(() => loadProgress());
 
   const stats = useMemo(() => computeProgress(progress), [progress]);
 
