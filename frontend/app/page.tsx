@@ -12,18 +12,26 @@ export default function HomePage() {
           No enterprise complexity. Just the highest-impact steps.
         </p>
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Link
             href="/checklist"
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gray-900 text-white"
           >
             Start the checklist
           </Link>
+
           <Link
             href="/summary"
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300"
           >
             View summary
+          </Link>
+
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300"
+          >
+            Log in
           </Link>
         </div>
       </header>

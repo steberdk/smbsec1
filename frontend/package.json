@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint \"app/**/*.{js,jsx,ts,tsx}\" \"components/**/*.{js,jsx,ts,tsx}\" \"lib/**/*.{js,jsx,ts,tsx}\" --max-warnings=0",
@@ -12,6 +12,7 @@
     "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.96.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
@@ -28,4 +29,3 @@
     "typescript": "^5"
   }
 }
-
