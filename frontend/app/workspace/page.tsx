@@ -1,68 +1,77 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+
+type Status = "loading" | "authed" | "anon";
 
 export default function WorkspacePage() {
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const [status, setStatus] = useState<Status>("loading");
   const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    let alive = true;
+    // Only runs in the browser (because "use client")
+    const supabase = getSupabaseBrowserClient();
 
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (!alive) return;
+    let cancelled = false;
 
-      if (error || !data.user) {
-        window.location.href = "/login";
+    (async () => {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (cancelled) return;
+
+      if (error || !data?.user) {
+        setStatus("anon");
+        setEmail(null);
+        router.replace("/login");
         return;
       }
 
+      setStatus("authed");
       setEmail(data.user.email ?? null);
-      setLoading(false);
-    });
+    })();
 
     return () => {
-      alive = false;
+      cancelled = true;
     };
-  }, []);
+  }, [router]);
 
-  async function logout() {
+  async function onLogout() {
+    const supabase = getSupabaseBrowserClient();
     await supabase.auth.signOut();
-    window.location.href = "/";
-  }
-
-  if (loading) {
-    return <main className="max-w-2xl mx-auto px-4 py-10">Loading…</main>;
+    router.push("/login");
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold">Workspace</h1>
-      <p className="text-sm text-gray-700 mt-2">
-        Signed in as <span className="font-medium">{email}</span>
-      </p>
-
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Link className="px-4 py-2 rounded-lg border" href="/checklist">
-          Checklist
-        </Link>
-        <Link className="px-4 py-2 rounded-lg border" href="/summary">
-          Summary
-        </Link>
-        <button className="px-4 py-2 rounded-lg bg-gray-900 text-white" onClick={logout}>
-          Log out
-        </button>
+    <main className="max-w-3xl mx-auto p-6">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold">Workspace</h1>
+        <div className="flex items-center gap-3">
+          <Link className="underline" href="/checklist">
+            Checklist
+          </Link>
+          <button
+            onClick={onLogout}
+            className="px-3 py-2 rounded border hover:bg-gray-50"
+            type="button"
+          >
+            Log out
+          </button>
+        </div>
       </div>
 
-      <div className="mt-10 rounded-xl border p-4 bg-white">
-        <h2 className="font-semibold">Next (MVP1)</h2>
-        <ul className="list-disc pl-5 text-sm text-gray-700 mt-2 space-y-1">
-          <li>Create company record</li>
-          <li>Invite employees</li>
-          <li>Persist assessments in DB</li>
-        </ul>
+      <div className="mt-6 rounded border p-4">
+        {status === "loading" && <p>Loading…</p>}
+        {status === "authed" && (
+          <>
+            <p className="font-medium">Signed in</p>
+            <p className="text-sm text-gray-600">{email ?? "(no email)"}</p>
+          </>
+        )}
+        {status === "anon" && <p>Redirecting to login…</p>}
       </div>
     </main>
   );
