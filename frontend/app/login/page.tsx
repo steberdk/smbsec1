@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,6 +13,8 @@ export default function LoginPage() {
     e.preventDefault();
     setStatus("sending");
     setError(null);
+
+    const supabase = getSupabaseBrowserClient();
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
