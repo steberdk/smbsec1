@@ -205,3 +205,6 @@ npm run dev -- --turbo=false
 - Replace localStorage checklist with database persistence
 - Add company/workspace model
 - Add role-based access (later phase)
+
+
+# Silly Git check change.
