@@ -1,20 +1,39 @@
-# Standard Agent Output Format
+# Agent Output Format (Required)
 
-All agents must respond using:
+Every agent response MUST follow this structure:
 
-## 1. Summary
-What is being proposed in plain language.
+## 1) Summary (1–5 bullets)
+What you will do and why.
 
-## 2. Proposed Solution
-Detailed approach, structure, or code plan.
+## 2) Proposal
+### 2.1 Approach
+Step-by-step plan.
 
-## 3. Acceptance Criteria
-Clear conditions for success.
+### 2.2 Files to change
+List exact paths.
 
-## 4. Risks / Edge Cases
-What could go wrong or be confusing.
+### 2.3 Data model / permissions impact
+- Tables impacted
+- RLS/policies impacted
+- Any migration notes
 
-## 5. Alternatives (if relevant)
-Other approaches and why chosen one is best.
+### 2.4 UX impact
+- Screens impacted
+- Copy changes (if any)
 
-No direct implementation without proposal first.
+## 3) Risks / Edge cases
+- Security/privacy risks
+- GDPR deletion/export implications
+- Failure modes
+
+## 4) Alternatives considered
+List 1–3 options and why rejected.
+
+## 5) Recommendation
+One clear recommendation.
+
+## 6) Implementation checklist
+- [ ] Code changes
+- [ ] Tests (unit/e2e as relevant)
+- [ ] Docs updated
+- [ ] CI green

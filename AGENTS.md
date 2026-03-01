@@ -1,58 +1,46 @@
-# Agent Operating Guide (smbsec1)
+# AI Agents — Operating Contract (smbsec1)
 
-This document defines how AI agents (or automation) should work on this repo.
+This repo is designed for AI-assisted development. Agents are welcome, but must follow the contract below.
 
-## Hard rules
-- Do NOT commit secrets or `.env.local`
-- Do NOT use Supabase `service_role` key in frontend code
-- Use free-tier services only
-- Prefer small, scoped PRs
-- If a task is large: propose a plan first, then implement incrementally
-- Do not change architecture without an explicit decision note in `docs/DECISIONS.md` (create if missing)
+## Non-negotiables
+- **No secrets** in code, commits, logs, screenshots, or docs.
+- **No Supabase service_role key** anywhere except in Supabase SQL editor (manual) or secure server-only env (not used yet).
+- **Free tiers only** (Supabase/Vercel/GitHub). Do not introduce paid services or dependencies that require paid plans.
+- **Small PRs**: one goal per PR. Prefer incremental merges.
+- **Proposal-first**: agents must propose a plan before implementation.
+- **Docs are source of truth**: user journeys, permissions, GDPR map, and schema rules live in `/docs`.
 
-## Definition of Done
-A change is done only when all are true:
-- `cd frontend && npm run lint` passes
-- `cd frontend && npm run build` passes
-- `cd frontend && npm run test:e2e` passes
-- GitHub Actions CI is green
-- Change matches acceptance criteria in the work request
+## Repo layout (high level)
+- `frontend/` Next.js app (UI + API routes)
+- `docs/` product + architecture + policies + SQL
+- `docs/sql/` SQL migrations to apply manually in Supabase
+- `.github/workflows/` CI checks (lint/build/e2e)
 
-## Project commands
-All npm commands must run inside `frontend/`.
+## Required workflow
+1. **Open or select a Work Request** (use `/docs/WORK_REQUEST_TEMPLATE.md`)
+2. **Read relevant docs**:
+   - `/docs/20_user-journeys.md`
+   - `/docs/21_screen-flow.md`
+   - `/docs/30_domain-model.md`
+   - `/docs/31_permissions-model.md`
+   - `/docs/32_gdpr-data-map.md`
+   - `/docs/DECISIONS.md`
+3. **Write a proposal** using `/docs/agents/output_format.md`
+4. Wait for human approval (repo owner)
+5. Implement in a branch
+6. Ensure Definition of Done (see `/docs/agents/definition-of-done.md`)
+7. Open PR, CI must be green
 
-### Local (native)
-- Start dev: `cd frontend && npm run dev`
-- Lint: `cd frontend && npm run lint`
-- Build: `cd frontend && npm run build`
-- E2E: `cd frontend && npm run test:e2e`
+## Guardrails
+- Avoid large refactors without explicit approval.
+- Prefer simple solutions over “enterprise patterns”.
+- Keep UX calm, simple, non-scary. One primary action per screen.
+- GDPR features must remain possible: export, delete, transparency.
 
-### Docker (recommended)
-- Start: `docker compose up --build`
-- Stop: `Ctrl+C` then `docker compose down`
+## Environment rules
+- Run npm commands inside `frontend/` (not repo root).
+- Docker is supported; local Node is supported.
+- Any changes that affect env vars must update README + `.env.example`.
 
-## Branch / PR workflow
-- Create branch: `git checkout -b feat/short-name`
-- Commit small changes with clear messages
-- Push and open PR
-- Wait for CI green
-- Merge when ready (solo maintainer may merge without approvals)
-
-## Code style
-- Keep components small and readable
-- Avoid clever abstractions
-- Keep user-facing copy short and plain
-- Prefer explicit types over `any`
-- Avoid breaking import alias `@/`
-
-## Supabase usage notes
-- Use `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- Handle missing env vars gracefully (do not hard-crash build)
-- Plan for RLS early (no table should be readable without policies)
-
-## Testing expectations
-Minimum Playwright coverage for any feature touching UX:
-- Page loads
-- Primary CTA works
-- Auth gate works if relevant
-- No console errors on main flows (optional but ideal)
+## If anything conflicts
+`/docs/DECISIONS.md` and `/docs/31_permissions-model.md` win.
