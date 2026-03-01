@@ -59,3 +59,23 @@
 - action (clicked | reported | ignored)
 - timestamp
 
+---
+
+# Assessment State Model (MVP)
+
+Allowed states:
+
+active → completed
+
+Rules:
+
+- Assessment is created in state = active.
+- Only one active assessment per org.
+- Assessment may transition from active → completed.
+- No cancellation, archive, or draft states in MVP.
+- State cannot revert from completed to active.
+
+This state machine must be enforced at:
+- Database level (unique index)
+- Backend logic
+
