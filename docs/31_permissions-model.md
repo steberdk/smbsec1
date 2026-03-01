@@ -90,3 +90,30 @@ Permissions must be enforced in:
 3. UI
 
 Database is canonical source of truth.
+
+---
+
+# Assessment Scope Enforcement Rule
+
+Assessment scope determines who is allowed to submit responses.
+
+Scope types:
+
+- org:
+  - Any org member may submit responses.
+
+- subtree:
+  - Only users within the subtree rooted at root_user_id may submit responses.
+
+Enforcement must validate:
+
+1. User belongs to the same org as assessment.
+2. If scope = subtree:
+   - User must be descendant (or equal to) root_user_id.
+
+Validation must occur:
+- In backend API
+- In database layer (RLS or function guard)
+
+Frontend checks are not sufficient.
+
