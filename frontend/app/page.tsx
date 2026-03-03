@@ -46,7 +46,7 @@ export default function HomePage() {
       </section>
 
       <section className="mt-10 space-y-2 text-sm text-gray-600">
-        <p>Privacy: MVP 0 stores progress only in your browser.</p>
+        <p>Privacy: Progress is stored in your browser. Sign in to sync across devices.</p>
       </section>
     </main>
   );
