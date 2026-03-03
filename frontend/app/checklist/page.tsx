@@ -40,25 +40,29 @@ export default function ChecklistPage() {
     let cancelled = false;
 
     async function checkAuth() {
-      const supabase = getSupabaseBrowserClient();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token ?? null;
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token ?? null;
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      if (!token) {
-        setViewMode("readonly");
-        return;
+        if (!token) {
+          setViewMode("readonly");
+          return;
+        }
+
+        accessTokenRef.current = token;
+
+        // Keep token updated on auth changes
+        supabase.auth.onAuthStateChange((_event, session) => {
+          accessTokenRef.current = session?.access_token ?? null;
+        });
+
+        setViewMode("interactive");
+      } catch {
+        if (!cancelled) setViewMode("readonly");
       }
-
-      accessTokenRef.current = token;
-
-      // Keep token updated on auth changes
-      supabase.auth.onAuthStateChange((_event, session) => {
-        accessTokenRef.current = session?.access_token ?? null;
-      });
-
-      setViewMode("interactive");
     }
 
     void checkAuth();

@@ -18,26 +18,30 @@ export default function SummaryPage() {
     let cancelled = false;
 
     async function init() {
-      const supabase = getSupabaseBrowserClient();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token ?? null;
-
-      if (cancelled) return;
-
-      if (!token) {
-        setViewMode("signin");
-        return;
-      }
-
       try {
-        const remote = await fetchRemoteProgress(token);
-        if (cancelled) return;
-        setProgress(remote.data ?? {});
-      } catch {
-        // Show summary with empty progress on fetch error
-      }
+        const supabase = getSupabaseBrowserClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token ?? null;
 
-      setViewMode("summary");
+        if (cancelled) return;
+
+        if (!token) {
+          setViewMode("signin");
+          return;
+        }
+
+        try {
+          const remote = await fetchRemoteProgress(token);
+          if (cancelled) return;
+          setProgress(remote.data ?? {});
+        } catch {
+          // Show summary with empty progress on fetch error
+        }
+
+        setViewMode("summary");
+      } catch {
+        if (!cancelled) setViewMode("signin");
+      }
     }
 
     void init();
