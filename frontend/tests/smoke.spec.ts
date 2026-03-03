@@ -1,36 +1,28 @@
 import { test, expect } from "@playwright/test";
 
-test("home loads and links to checklist", async ({ page }) => {
+test("home page loads and shows checklist CTA", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /fix the biggest cyber risks/i })).toBeVisible();
-
-  await page.getByRole("link", { name: /start the checklist/i }).click();
-  await expect(page).toHaveURL(/\/checklist$/);
-  await expect(page.getByRole("heading", { name: /security checklist/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /start the checklist/i })).toBeVisible();
 });
 
-test("can mark an item done and see progress change", async ({ page }) => {
+test("checklist page (anon) shows item titles but no status buttons", async ({ page }) => {
   await page.goto("/checklist");
 
-  // Click first "Done" button
-  const doneButtons = page.getByRole("button", { name: /done/i });
-  await expect(doneButtons.first()).toBeVisible();
-  await doneButtons.first().click();
+  // Wait for the readonly view to render (auth check completes)
+  await expect(page.getByRole("heading", { name: /security checklist/i })).toBeVisible();
 
-  // Go to summary
-  await page.getByRole("link", { name: /view summary/i }).click();
-  await expect(page).toHaveURL(/\/summary$/);
+  // At least one item title should be visible
+  await expect(page.locator("h3").first()).toBeVisible();
 
-  // We expect progress not to be 0%. (Text: "Progress: X%")
-  await expect(page.getByText(/progress:\s*[1-9]\d*%/i)).toBeVisible();
+  // No action buttons should be present
+  await expect(page.getByRole("button", { name: /done/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /not sure/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /skip/i })).toHaveCount(0);
 });
 
-test("summary clear progress works", async ({ page }) => {
+test("summary page (anon) shows sign-in prompt", async ({ page }) => {
   await page.goto("/summary");
 
-  // Clear progress
-  await page.getByRole("button", { name: /clear local progress/i }).click();
-
-  // Progress should become 0%
-  await expect(page.getByText(/progress:\s*0%/i)).toBeVisible();
+  await expect(page.getByText(/sign in to see your progress/i)).toBeVisible();
+  await expect(page.getByRole("link", { name: /sign in/i })).toBeVisible();
 });

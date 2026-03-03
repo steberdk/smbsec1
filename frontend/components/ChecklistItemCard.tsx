@@ -21,11 +21,13 @@ export function ChecklistItemCard({
   status,
   onSetStatus,
   onReset,
+  readOnly = false,
 }: {
   item: ChecklistItem;
   status: ChecklistStatus;
   onSetStatus: (s: ChecklistStatus) => void;
   onReset: () => void;
+  readOnly?: boolean;
 }) {
   return (
     <div className={`rounded-xl border p-4 bg-white ${statusStyles[status]}`}>
@@ -55,39 +57,41 @@ export function ChecklistItemCard({
         </div>
       </details>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          className="px-3 py-2 rounded-lg bg-gray-900 text-white text-sm"
-          onClick={() => onSetStatus("done")}
-          type="button"
-        >
-          ✅ Done
-        </button>
+      {!readOnly && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            className="px-3 py-2 rounded-lg bg-gray-900 text-white text-sm"
+            onClick={() => onSetStatus("done")}
+            type="button"
+          >
+            ✅ Done
+          </button>
 
-        <button
-          className="px-3 py-2 rounded-lg bg-amber-600 text-white text-sm"
-          onClick={() => onSetStatus("unsure")}
-          type="button"
-        >
-          ❓ Not sure
-        </button>
+          <button
+            className="px-3 py-2 rounded-lg bg-amber-600 text-white text-sm"
+            onClick={() => onSetStatus("unsure")}
+            type="button"
+          >
+            ❓ Not sure
+          </button>
 
-        <button
-          className="px-3 py-2 rounded-lg bg-slate-600 text-white text-sm"
-          onClick={() => onSetStatus("skipped")}
-          type="button"
-        >
-          ⏸ Skip
-        </button>
+          <button
+            className="px-3 py-2 rounded-lg bg-slate-600 text-white text-sm"
+            onClick={() => onSetStatus("skipped")}
+            type="button"
+          >
+            ⏸ Skip
+          </button>
 
-        <button
-          className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm"
-          onClick={onReset}
-          type="button"
-        >
-          ↩ Reset
-        </button>
-      </div>
+          <button
+            className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm"
+            onClick={onReset}
+            type="button"
+          >
+            ↩ Reset
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,37 +1,38 @@
-import { ChecklistProgress, ChecklistStatus } from "./types";
-import { CHECKLIST } from "./items";
+import { ChecklistProgress } from "./types";
 
-const STORAGE_KEY = `smbsec_checklist_v${CHECKLIST.version}`;
+/**
+ * Remote API helpers (only used when logged in)
+ */
+export async function fetchRemoteProgress(accessToken: string) {
+  const res = await fetch("/api/checklist", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
 
-export function loadProgress(): ChecklistProgress {
-  if (typeof window === "undefined") return {};
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as ChecklistProgress;
-    return parsed ?? {};
-  } catch {
-    return {};
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`GET /api/checklist failed (${res.status}): ${txt}`);
   }
+
+  return (await res.json()) as { data: ChecklistProgress | null; updated_at: string | null };
 }
 
-export function saveProgress(progress: ChecklistProgress) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-}
+export async function putRemoteProgress(accessToken: string, progress: ChecklistProgress) {
+  const res = await fetch("/api/checklist", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(progress),
+  });
 
-export function setItemStatus(
-  progress: ChecklistProgress,
-  itemId: string,
-  status: ChecklistStatus
-): ChecklistProgress {
-  const next = { ...progress, [itemId]: status };
-  saveProgress(next);
-  return next;
-}
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`PUT /api/checklist failed (${res.status}): ${txt}`);
+  }
 
-export function clearProgress() {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(STORAGE_KEY);
+  return (await res.json()) as { ok: true };
 }
