@@ -1,0 +1,9 @@
+# Conversation exports
+claude_conversation_*.txt
+
+# Claude Code settings (machine-local)
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
