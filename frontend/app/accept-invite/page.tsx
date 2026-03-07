@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/hooks/useSession";
@@ -8,6 +9,14 @@ import { apiFetch } from "@/lib/api/client";
 type Stage = "loading" | "accepting" | "success" | "error";
 
 export default function AcceptInvitePage() {
+  return (
+    <Suspense fallback={<main className="max-w-md mx-auto px-4 py-20 text-center"><p className="text-sm text-gray-600">Loading…</p></main>}>
+      <AcceptInviteInner />
+    </Suspense>
+  );
+}
+
+function AcceptInviteInner() {
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get("token");
