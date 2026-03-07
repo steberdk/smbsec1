@@ -7,10 +7,15 @@
 import { test, expect } from "@playwright/test";
 import {
   loginAsRole,
+  loginWithEmail,
   getAdminOrgId,
   getAdminUserId,
   startAssessment,
   completeAnyActiveAssessment,
+  createIsolatedOrg,
+  createTempUser,
+  addOrgMember,
+  getServiceClient,
 } from "./helpers/fixtures";
 
 // ---------------------------------------------------------------------------
@@ -19,14 +24,47 @@ import {
 //  per-role track filtering is a planned enhancement.)
 // ---------------------------------------------------------------------------
 
-test.skip("E2E-TRACK-01: IT Executor sees IT Baseline track", () => {
-  // Skipped: per-role track filtering (is_it_executor → IT Baseline only) is not
-  // yet implemented in the workspace checklist. All users see all tracks.
+test("E2E-TRACK-01: IT Executor sees IT Baseline track", async ({ page }) => {
+  const iso = await createIsolatedOrg("TRACK01 Org");
+  // createIsolatedOrg sets is_it_executor: true on the admin user
+  try {
+    await startAssessment(iso.orgId, iso.adminUser.id);
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.waitForURL(/\/workspace/);
+    await page.goto("/workspace/checklist");
+    await expect(
+      page.getByRole("heading", { name: /it baseline/i })
+    ).toBeVisible({ timeout: 10_000 });
+  } finally {
+    await iso.cleanup();
+  }
 });
 
-test.skip("E2E-TRACK-02: Regular employee does NOT see IT Baseline track", () => {
-  // Skipped: same reason as TRACK-01. When per-role filtering is implemented,
-  // re-enable and assert IT Baseline section is absent for non-IT-executor employees.
+test("E2E-TRACK-02: Regular employee does NOT see IT Baseline track", async ({ page }) => {
+  const iso = await createIsolatedOrg("TRACK02 Org");
+  const employee = await createTempUser("e2e-emp-track");
+  try {
+    await addOrgMember(iso.orgId, employee, "employee", {
+      managerUserId: iso.adminUser.id,
+      isItExecutor: false,
+    });
+    await startAssessment(iso.orgId, iso.adminUser.id);
+    await loginWithEmail(page, employee.email);
+    await page.waitForURL(/\/workspace/);
+    await page.goto("/workspace/checklist");
+
+    // Awareness track is visible
+    await expect(
+      page.getByRole("heading", { name: /security awareness/i })
+    ).toBeVisible({ timeout: 10_000 });
+    // IT Baseline is hidden for non-IT-executor
+    await expect(
+      page.getByRole("heading", { name: /it baseline/i })
+    ).not.toBeVisible();
+  } finally {
+    await employee.delete();
+    await iso.cleanup();
+  }
 });
 
 test("E2E-TRACK-03: All member roles see the Awareness track", async ({ page }) => {
@@ -156,4 +194,39 @@ test.describe.serial("Checklist item state", () => {
     // Users can change from one status to another but cannot clear a response.
     // Implement when a clear/undo action is added.
   });
+});
+
+test("E2E-ITEM-05: completion banner appears when all items are answered", async ({ page }) => {
+  const iso = await createIsolatedOrg("ITEM05 Org");
+  try {
+    const assessmentId = await startAssessment(iso.orgId, iso.adminUser.id);
+
+    // Pre-fill all responses via DB so the banner is visible on page load
+    const supabase = getServiceClient();
+    const { data: items } = await supabase
+      .from("assessment_items")
+      .select("id")
+      .eq("assessment_id", assessmentId);
+
+    if (items?.length) {
+      await supabase.from("assessment_responses").insert(
+        (items as { id: string }[]).map((item) => ({
+          assessment_id: assessmentId,
+          assessment_item_id: item.id,
+          user_id: iso.adminUser.id,
+          status: "done",
+        }))
+      );
+    }
+
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.waitForURL(/\/workspace/);
+    await page.goto("/workspace/checklist");
+
+    await expect(
+      page.getByText(/all items answered/i)
+    ).toBeVisible({ timeout: 10_000 });
+  } finally {
+    await iso.cleanup();
+  }
 });
