@@ -1,5 +1,19 @@
 # GDPR Data Map — smbsec1
 
+---
+
+# 0. Data Residency
+
+All data is stored in **Supabase (PostgreSQL), region: West EU — Ireland (AWS eu-west-1)**.
+No personal data leaves the EU.
+
+Infrastructure:
+- Database: Supabase managed Postgres, eu-west-1
+- Frontend/API: Vercel (serverless functions run in the region closest to the user; no persistent storage)
+- Email delivery: Resend (transactional only; no personal data stored by Resend beyond the email address in transit)
+
+---
+
 This document defines what personal and organizational data is stored,
 and how deletion/export is handled.
 
@@ -66,7 +80,25 @@ Deletion must:
 
 Deletion types:
 
-## Delete Employee
+## Delete Self (any user)
+
+Any authenticated user can delete their own account.
+
+Blockers (simple MVP rule):
+- Org admin with other members → must delete the organisation first
+- Manager with direct reports → must remove direct reports first
+
+On success, hard delete:
+- org_member row
+- assessment_responses
+- Supabase auth user record
+- Redirect to /
+
+Deferred (for later when real user volume warrants it):
+- Migrate direct reports to another manager on self-deletion
+- Transfer assessment history to another member
+
+## Delete Employee (by org admin)
 
 Hard delete:
 - org_member row
