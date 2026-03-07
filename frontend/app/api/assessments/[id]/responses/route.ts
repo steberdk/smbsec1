@@ -104,3 +104,45 @@ export async function PUT(
 
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
+  const { id: assessmentId } = await params;
+  const supabase = supabaseForRequest(req);
+
+  const user = await getUser(supabase);
+  if (!user) return apiError("Unauthorized", 401);
+
+  const membership = await getOrgMembership(supabase, user.id);
+  if (!membership) return apiError("Not a member of any organisation", 404);
+
+  type DeleteBody = { assessment_item_id: string };
+  const body: DeleteBody = await req.json().catch(() => null);
+  if (!body?.assessment_item_id) {
+    return apiError("assessment_item_id is required", 400);
+  }
+
+  // Confirm assessment is active and belongs to caller's org
+  const { data: assessment } = await supabase
+    .from("assessments")
+    .select("id, status")
+    .eq("id", assessmentId)
+    .eq("org_id", membership.org_id)
+    .maybeSingle();
+
+  if (!assessment) return apiError("Assessment not found", 404);
+  if (assessment.status !== "active") return apiError("Assessment is not active", 409);
+
+  const { error: deleteErr } = await supabase
+    .from("assessment_responses")
+    .delete()
+    .eq("assessment_id", assessmentId)
+    .eq("assessment_item_id", body.assessment_item_id)
+    .eq("user_id", user.id);
+
+  if (deleteErr) return apiError(deleteErr.message, 500);
+
+  return NextResponse.json({ ok: true });
+}

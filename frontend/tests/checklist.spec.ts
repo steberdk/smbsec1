@@ -189,10 +189,32 @@ test.describe.serial("Checklist item state", () => {
     expect(afterAnswered).toBeGreaterThanOrEqual(beforeAnswered);
   });
 
-  test.skip("E2E-ITEM-04: resetting an item returns it to uncompleted state", () => {
-    // Skipped: the current checklist UI has no "reset to unanswered" button.
-    // Users can change from one status to another but cannot clear a response.
-    // Implement when a clear/undo action is added.
+  test("E2E-ITEM-04: clicking the active button clears the item back to unanswered", async ({
+    page,
+  }) => {
+    await loginAsRole(page, "org_admin");
+    await page.goto("/workspace/checklist");
+
+    const doneBtn = page.getByRole("button", { name: /^done$/i }).first();
+    await expect(doneBtn).toBeVisible({ timeout: 10_000 });
+
+    // Mark Done and wait for save
+    const saveResp = page.waitForResponse(
+      (res) => res.url().includes("/responses") && res.request().method() === "PUT"
+    );
+    await doneBtn.click();
+    await expect(doneBtn).toHaveClass(/bg-green-700/, { timeout: 5_000 });
+    await saveResp;
+
+    // Click active Done button again — sends DELETE to clear it
+    const clearResp = page.waitForResponse(
+      (res) => res.url().includes("/responses") && res.request().method() === "DELETE"
+    );
+    await doneBtn.click();
+    await clearResp;
+
+    // Button returns to unselected style
+    await expect(doneBtn).not.toHaveClass(/bg-green-700/, { timeout: 5_000 });
   });
 });
 
