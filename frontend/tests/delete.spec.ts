@@ -1,7 +1,7 @@
 /**
- * Hard delete flows — member removal and organisation deletion.
+ * Hard delete flows — member removal, self-deletion, and organisation deletion.
  * Covers: AC-DEL-1 through AC-DEL-4
- * E2E scenarios: E2E-DEL-01 through E2E-DEL-05
+ * E2E scenarios: E2E-DEL-01 through E2E-DEL-06
  *
  * Notes:
  * - Member removal is on /workspace/settings/gdpr (GDPR page), not /workspace/team.
@@ -191,5 +191,39 @@ test("E2E-DEL-05: Org Admin deletes the organisation with name confirmation", as
   } finally {
     // iso.cleanup() would fail if org was already deleted — that's fine
     try { await iso.cleanup(); } catch { /* org already deleted by the test */ }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Self-deletion
+// ---------------------------------------------------------------------------
+
+test("E2E-DEL-06: user can delete their own account", async ({ page }) => {
+  const iso = await createIsolatedOrg("DEL06 Org");
+  const employee = await createTempUser("e2e-self-del");
+
+  try {
+    await addOrgMember(iso.orgId, employee, "employee", {
+      managerUserId: iso.adminUser.id,
+    });
+
+    await loginWithEmail(page, employee.email);
+    await page.waitForURL(/\/workspace/);
+    await page.goto("/workspace/settings/gdpr");
+
+    await expect(
+      page.getByRole("heading", { name: /delete my account/i })
+    ).toBeVisible({ timeout: 10_000 });
+
+    // Accept the browser confirm dialog and click delete
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: /delete my account permanently/i }).click();
+
+    // Redirected to landing page after deletion
+    await page.waitForURL(`${baseUrl()}/`, { timeout: 15_000 });
+  } finally {
+    // Auth user deleted by the action; DB cleanup only
+    try { await employee.delete(); } catch { /* already deleted */ }
+    await iso.cleanup();
   }
 });
