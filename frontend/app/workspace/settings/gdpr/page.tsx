@@ -15,6 +15,7 @@ type OrgMember = {
   user_id: string;
   role: string;
   is_it_executor: boolean;
+  manager_user_id: string | null;
 };
 
 export default function WorkspaceGdprPage() {
@@ -46,13 +47,13 @@ export default function WorkspaceGdprPage() {
 
   useEffect(() => {
     if (!token) return;
-    Promise.all([
-      apiFetch<OrgMe>("/api/orgs/me", token),
-      apiFetch<{ members: OrgMember[] }>("/api/orgs/members", token),
-    ])
-      .then(([me, { members: list }]) => {
+    apiFetch<OrgMe>("/api/orgs/me", token)
+      .then(async (me) => {
         setOrgMe(me);
-        setMembers(list);
+        if (me.membership.role === "org_admin") {
+          const { members: list } = await apiFetch<{ members: OrgMember[] }>("/api/orgs/members", token);
+          setMembers(list);
+        }
       })
       .catch((e: unknown) => {
         setLoadError(e instanceof Error ? e.message : "Failed to load.");
@@ -136,17 +137,29 @@ export default function WorkspaceGdprPage() {
 
   const isAdmin = orgMe.membership.role === "org_admin";
 
-  if (!isAdmin) {
-    return (
-      <PageShell>
-        <p className="text-sm text-gray-600">Only org admins can access this page.</p>
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell>
-      {/* Data export */}
+      {/* Data residency */}
+      <section className="mb-8 rounded-xl border border-gray-200 px-4 py-4">
+        <h2 className="text-base font-semibold mb-1">Data storage</h2>
+        <p className="text-sm text-gray-600">
+          All data is stored in the <strong>EU (West EU — Ireland, AWS eu-west-1)</strong> region via Supabase.
+          No personal data leaves the EU.
+        </p>
+      </section>
+
+      {/* Self-deletion */}
+      <SelfDeleteSection token={token!} userId={userId!} members={members} role={orgMe.membership.role} />
+
+      {!isAdmin && (
+        <p className="mt-4 text-sm text-gray-500">
+          Contact your org admin to export or manage other organisation data.
+        </p>
+      )}
+
+      {isAdmin && (
+        <>
+          {/* Data export */}
       <section className="mb-8">
         <h2 className="text-base font-semibold mb-1">Export data</h2>
         <p className="text-sm text-gray-500 mb-3">
@@ -209,44 +222,114 @@ export default function WorkspaceGdprPage() {
         )}
       </section>
 
-      {/* Delete organisation */}
-      <section className="rounded-xl border border-red-200 p-4">
-        <h2 className="text-base font-semibold text-red-800 mb-1">Delete organisation</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          This permanently deletes the organisation, all members, assessments, and responses.
-          This cannot be undone.
-        </p>
+          {/* Delete organisation */}
+          <section className="rounded-xl border border-red-200 p-4">
+            <h2 className="text-base font-semibold text-red-800 mb-1">Delete organisation</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              This permanently deletes the organisation, all members, assessments, and responses.
+              This cannot be undone.
+            </p>
 
-        <form onSubmit={handleDeleteOrg} className="space-y-3">
-          <div className="space-y-1">
-            <label className="block text-xs text-gray-600">
-              Type <strong>{orgMe.org.name}</strong> to confirm
-            </label>
-            <input
-              type="text"
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-              value={deleteConfirm}
-              onChange={(e) => setDeleteConfirm(e.target.value)}
-              placeholder={orgMe.org.name}
-            />
-          </div>
+            <form onSubmit={handleDeleteOrg} className="space-y-3">
+              <div className="space-y-1">
+                <label className="block text-xs text-gray-600">
+                  Type <strong>{orgMe.org.name}</strong> to confirm
+                </label>
+                <input
+                  type="text"
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder={orgMe.org.name}
+                />
+              </div>
 
-          {deleteError && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2">
-              <p className="text-sm text-red-800">{deleteError}</p>
-            </div>
-          )}
+              {deleteError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+                  <p className="text-sm text-red-800">{deleteError}</p>
+                </div>
+              )}
 
-          <button
-            type="submit"
-            disabled={deleting || deleteConfirm !== orgMe.org.name}
-            className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-40"
-          >
-            {deleting ? "Deleting…" : "Delete organisation permanently"}
-          </button>
-        </form>
-      </section>
+              <button
+                type="submit"
+                disabled={deleting || deleteConfirm !== orgMe.org.name}
+                className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-40"
+              >
+                {deleting ? "Deleting…" : "Delete organisation permanently"}
+              </button>
+            </form>
+          </section>
+        </>
+      )}
     </PageShell>
+  );
+}
+
+function SelfDeleteSection({
+  token,
+  userId,
+  members,
+  role,
+}: {
+  token: string;
+  userId: string;
+  members: OrgMember[];
+  role: string;
+}) {
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const hasDirectReports = members.some((m) => m.manager_user_id === userId);
+  const isAdmin = role === "org_admin";
+  const otherMembers = members.filter((m) => m.user_id !== userId);
+
+  async function handleDeleteSelf() {
+    if (!confirm("Permanently delete your account and all your data? This cannot be undone.")) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await apiFetch("/api/gdpr/me", token, { method: "DELETE" });
+      router.replace("/");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete account.");
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <section className="mb-8 rounded-xl border border-red-200 p-4">
+      <h2 className="text-base font-semibold text-red-800 mb-1">Delete my account</h2>
+      <p className="text-sm text-gray-600 mb-4">
+        Permanently removes your membership, assessment responses, and login.
+        This cannot be undone.
+      </p>
+
+      {isAdmin && otherMembers.length > 0 && (
+        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+          You are the org admin and other members exist. Delete the organisation first.
+        </p>
+      )}
+      {hasDirectReports && (
+        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+          You have direct reports. Remove them before deleting your account.
+        </p>
+      )}
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 mb-3">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
+
+      <button
+        onClick={handleDeleteSelf}
+        disabled={deleting || (isAdmin && otherMembers.length > 0) || hasDirectReports}
+        className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-40"
+      >
+        {deleting ? "Deleting…" : "Delete my account permanently"}
+      </button>
+    </section>
   );
 }
 

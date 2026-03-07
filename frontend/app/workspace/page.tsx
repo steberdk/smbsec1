@@ -111,13 +111,11 @@ export default function WorkspacePage() {
             description="Start, view, and complete security assessments."
           />
         )}
-        {isAdmin && (
-          <WorkspaceCard
-            href="/workspace/settings/gdpr"
-            title="Settings & data"
-            description="Export org data or delete the organisation."
-          />
-        )}
+        <WorkspaceCard
+          href="/workspace/settings/gdpr"
+          title="Settings & data"
+          description={isAdmin ? "Export org data, manage members, or delete the organisation." : "View data storage info or delete your account."}
+        />
       </nav>
     </main>
   );
