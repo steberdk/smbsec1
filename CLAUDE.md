@@ -2,6 +2,67 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## System Overview
+
+### Runtime architecture
+
+```
+Browser (Next.js client components)
+  │  magic-link auth via Supabase JS SDK (implicit flow)
+  │  session stored in localStorage, read via useSession() hook
+  │
+  ▼
+Next.js App Router (Vercel)
+  │  /app/**          — pages (all "use client" for authenticated views)
+  │  /app/api/**      — API routes (Node.js runtime, server-only)
+  │
+  ▼
+Supabase
+  ├─ Auth            — email magic-link, JWT issued per session
+  ├─ PostgreSQL DB   — org model, assessments, responses, invites
+  └─ RLS             — row-level security on all tables (defence-in-depth)
+```
+
+### External services
+
+| Service | Purpose | Key | Free tier |
+|---|---|---|---|
+| Supabase | Auth + DB + RLS | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Yes |
+| Vercel | Hosting + CI/CD | — | Yes (Hobby) |
+| Resend | Invite emails | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (opt), `NEXT_PUBLIC_APP_URL` | Yes (100/day) |
+
+### Server-side auth pattern
+
+All API routes use `supabaseForRequest(req)` (`lib/supabase/server.ts`):
+- Creates a **service-role** Supabase client for DB writes (bypasses RLS for inserts the user cannot do themselves, e.g. accepting an invite)
+- Patches `auth.getUser` to validate the **caller's JWT** via a separate anon-key client
+- Every route calls `getUser()` → `getOrgMembership()` before touching the DB
+- RLS remains enabled on all tables as a defence-in-depth layer
+
+### API conventions
+
+- All routes under `/app/api/` use `export const runtime = "nodejs"`
+- Auth: `Authorization: Bearer <token>` header (set by `apiFetch` in `lib/api/client.ts`)
+- Errors: `{ error: string }` JSON body with appropriate HTTP status
+- No `service_role` key ever appears in `NEXT_PUBLIC_*` env vars
+
+### Database tables (active)
+
+| Table | Purpose |
+|---|---|
+| `orgs` | Organisation record |
+| `org_members` | Adjacency-list org tree (role, manager_user_id) |
+| `assessments` | One active per org (enforced by partial unique index) |
+| `assessment_items` | Immutable snapshot of checklist items per assessment |
+| `assessment_responses` | Per-user responses (done / unsure / skipped) |
+| `invites` | Pending invites with token, role, expiry |
+| `checklist_items` | Master list of security controls (seeded manually) |
+| `user_checklists` | Legacy localStorage-sync table — do not extend |
+
+SQL migrations are applied manually in the Supabase SQL editor. Files live in `docs/sql/`.
+
+---
+
 ## Commands
 
 All npm commands must be run inside `frontend/` (not repo root):
@@ -105,7 +166,15 @@ Create `frontend/.env.local`:
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Resend invite emails (optional locally — invites still created without it)
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=          # defaults to onboarding@resend.dev
+NEXT_PUBLIC_APP_URL=        # defaults to http://localhost:3000
 ```
+
+Vercel production env vars required: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `NEXT_PUBLIC_APP_URL`.
 
 ## Agent Workflow
 

@@ -1,28 +1,34 @@
 # Product Backlog
 
-## MVP 0 — Public checklist
+## Done — MVP (Iteration 1, 2026-03-06)
 
-1. Public landing explanation
-2. Checklist grouped by risk area
-3. Progress bar / completion %
-4. Guidance per checklist item
-5. Local save of progress
+- Free signup / magic-link login (Supabase)
+- Create organisation (onboarding)
+- Role hierarchy: org_admin > manager > employee
+- Invite team members (record created, link copyable)
+- Accept invite via token URL
+- One active assessment per org (start / complete)
+- Subtree assessment scope for managers
+- Per-user checklist with Done / Unsure / Skipped responses
+- Team dashboard with progress stats
+- GDPR: data export (JSON), remove member, delete org
+- 40 Playwright E2E tests passing
 
-## MVP 1 — Accounts
+## Done — Iteration 2: Team & Content (2026-03-07)
 
-6. Free signup/login
-7. Save progress in cloud
-8. Resume checklist
+- Invite email delivery via Resend (non-fatal fallback to copy-link)
+- Copy invite link button on team page (manual fallback)
+- Friendlier first-login message when no active assessment
+- Checklist seed data ready (SQL in docs/sql/006_checklist_master.sql — apply in Supabase)
 
-## MVP 2 — Teams
+## Deferred — v1.1 candidates
 
-9. Invite employees
-10. Assign checklist items
-11. View team progress
-
-## V1 Platform
-
-12. Reassessments & reminders
-13. Evidence uploads
-14. GDPR export & deletion
-15. Phishing simulations
+- Per-role track filtering (IT Baseline only for is_it_executor)
+- Platform-specific checklist step content (Google Workspace / M365)
+- Branch delete UI (manager + all direct reports in one action)
+- Post-assessment completion screen with .ics calendar download
+- Overdue review indicator on dashboard (last assessment > 90 days ago)
+- Reset checklist item to unanswered state
+- Phishing simulations
+- Evidence uploads
+- Reassessment reminders / calendar integration

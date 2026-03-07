@@ -11,6 +11,7 @@ import {
   getOrgMembership,
   hasRole,
 } from "../../../lib/api/helpers";
+import { sendInviteEmail } from "../../../lib/email/sendInvite";
 
 export const runtime = "nodejs";
 
@@ -29,7 +30,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   let query = supabase
     .from("invites")
     .select(
-      "id, org_id, invited_by, email, role, manager_user_id, is_it_executor, created_at, expires_at, accepted_at"
+      "id, token, org_id, invited_by, email, role, manager_user_id, is_it_executor, created_at, expires_at, accepted_at"
     )
     .eq("org_id", membership.org_id)
     .is("accepted_at", null) // pending only
@@ -106,7 +107,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       is_it_executor: body.is_it_executor ?? false,
     })
     .select(
-      "id, org_id, invited_by, email, role, manager_user_id, is_it_executor, created_at, expires_at"
+      "id, token, org_id, invited_by, email, role, manager_user_id, is_it_executor, created_at, expires_at"
     )
     .single();
 
@@ -118,6 +119,26 @@ export async function POST(req: Request): Promise<NextResponse> {
     return apiError(inviteErr.message, 500);
   }
 
-  // TODO: send invite email (future — for now return invite details including token for dev use)
+  // Fetch org name for the email
+  const { data: org } = await supabase
+    .from("orgs")
+    .select("name")
+    .eq("id", membership.org_id)
+    .single();
+
+  // Send invite email — non-fatal if it fails
+  const inviteRow = invite as unknown as {
+    token: string; expires_at: string; role: string; is_it_executor: boolean;
+  };
+  await sendInviteEmail({
+    toEmail: email,
+    inviterEmail: user.email ?? "your admin",
+    orgName: (org as { name: string } | null)?.name ?? "your organisation",
+    role: inviteRow.role,
+    isItExecutor: inviteRow.is_it_executor,
+    inviteToken: inviteRow.token,
+    expiresAt: inviteRow.expires_at,
+  });
+
   return NextResponse.json({ invite }, { status: 201 });
 }
