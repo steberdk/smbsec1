@@ -36,6 +36,7 @@ export default function WorkspaceChecklistPage() {
   const [saving, setSaving] = useState<Set<string>>(new Set());
   const [loadError, setLoadError] = useState<string | null>(null);
   const [noAssessment, setNoAssessment] = useState(false);
+  const [isItExecutor, setIsItExecutor] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -48,8 +49,12 @@ export default function WorkspaceChecklistPage() {
   useEffect(() => {
     if (!token) return;
 
-    apiFetch<{ assessments: Assessment[] }>("/api/assessments", token)
-      .then(async ({ assessments }) => {
+    Promise.all([
+      apiFetch<{ assessments: Assessment[] }>("/api/assessments", token),
+      apiFetch<{ membership: { is_it_executor: boolean } }>("/api/orgs/me", token),
+    ])
+      .then(async ([{ assessments }, { membership }]) => {
+        setIsItExecutor(membership.is_it_executor);
         const active = assessments.find((a) => a.status === "active");
         if (!active) {
           setNoAssessment(true);
@@ -121,11 +126,6 @@ export default function WorkspaceChecklistPage() {
           <p className="text-sm font-medium text-gray-800">No active assessment yet</p>
           <p className="mt-1 text-sm text-gray-500">
             Your checklist will appear here once an assessment is started.
-            If you manage your team, you can{" "}
-            <Link href="/workspace/assessments" className="underline">
-              start one now
-            </Link>
-            .
           </p>
         </div>
       </PageShell>
@@ -136,16 +136,44 @@ export default function WorkspaceChecklistPage() {
     return <PageShell><p className="text-sm text-gray-600">Loading…</p></PageShell>;
   }
 
-  const answered = Object.keys(responses).length;
-  const total = items.length;
+  // Non-IT-executors only see the awareness track
+  const visibleItems = isItExecutor ? items : items.filter((i) => i.track === "awareness");
+  const answered = visibleItems.filter((i) => responses[i.id] !== undefined).length;
+  const total = visibleItems.length;
   const pct = total === 0 ? 0 : Math.round((answered / total) * 100);
+  const allAnswered = total > 0 && answered >= total;
+
+  const doneCount = visibleItems.filter((i) => responses[i.id] === "done").length;
+  const unsureCount = visibleItems.filter((i) => responses[i.id] === "unsure").length;
+  const skippedCount = visibleItems.filter((i) => responses[i.id] === "skipped").length;
 
   // Group items by track
-  const itItems = items.filter((i) => i.track === "it_baseline");
-  const awarenessItems = items.filter((i) => i.track === "awareness");
+  const itItems = visibleItems.filter((i) => i.track === "it_baseline");
+  const awarenessItems = visibleItems.filter((i) => i.track === "awareness");
 
   return (
     <PageShell>
+      {/* Completion banner */}
+      {allAnswered && (
+        <div className="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-5">
+          <p className="text-sm font-semibold text-green-800">All items answered — great work!</p>
+          <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-lg bg-white border border-green-100 py-2">
+              <p className="text-lg font-bold text-green-700">{doneCount}</p>
+              <p className="text-xs text-gray-500">Done</p>
+            </div>
+            <div className="rounded-lg bg-white border border-green-100 py-2">
+              <p className="text-lg font-bold text-amber-700">{unsureCount}</p>
+              <p className="text-xs text-gray-500">Unsure</p>
+            </div>
+            <div className="rounded-lg bg-white border border-green-100 py-2">
+              <p className="text-lg font-bold text-gray-500">{skippedCount}</p>
+              <p className="text-xs text-gray-500">Skipped</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Progress bar */}
       <div className="mb-6">
         <div className="flex justify-between text-xs text-gray-500 mb-1">
