@@ -27,6 +27,11 @@ Every PR must pass before merge:
 1. `npm run lint` — zero warnings
 2. `npm run build` — TypeScript + build must pass
 3. `npm run test:e2e` — E2E must pass for any changed user flows
+4. **Docs updated** — before a feature is considered complete, update the relevant docs:
+   - `docs/DECISIONS.md` — any new architectural or product decisions made during implementation
+   - `docs/20_user-journeys.md` — if a journey changes or a new one is added
+   - `docs/40_acceptance-criteria.md` — mark completed ACs, add new ones for the feature
+   - `docs/product/backlog.md` — move delivered items from backlog to done
 
 New user-facing flows require at least one Playwright happy-path test.
 
