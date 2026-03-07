@@ -189,10 +189,18 @@ test.describe.serial("Checklist item state", () => {
     expect(afterAnswered).toBeGreaterThanOrEqual(beforeAnswered);
   });
 
-  test("E2E-ITEM-04: clicking the active button clears the item back to unanswered", async ({
-    page,
-  }) => {
-    await loginAsRole(page, "org_admin");
+  test.skip("E2E-ITEM-04: placeholder — tested outside serial block below", () => {});
+});
+
+test("E2E-ITEM-04: clicking the active button clears the item back to unanswered", async ({
+  page,
+}) => {
+  // Uses isolated org to guarantee a clean (unanswered) state
+  const iso = await createIsolatedOrg("ITEM04 Org");
+  try {
+    await startAssessment(iso.orgId, iso.adminUser.id);
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.waitForURL(/\/workspace/);
     await page.goto("/workspace/checklist");
 
     const doneBtn = page.getByRole("button", { name: /^done$/i }).first();
@@ -215,7 +223,9 @@ test.describe.serial("Checklist item state", () => {
 
     // Button returns to unselected style
     await expect(doneBtn).not.toHaveClass(/bg-green-700/, { timeout: 5_000 });
-  });
+  } finally {
+    await iso.cleanup();
+  }
 });
 
 test("E2E-ITEM-05: completion banner appears when all items are answered", async ({ page }) => {

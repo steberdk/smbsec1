@@ -36,7 +36,17 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   if (orgErr || !org) return apiError("Organisation not found", 404);
 
-  return NextResponse.json({ org, membership });
+  // Check if this user has any direct reports (needed for self-deletion blocker)
+  const { count: directReportCount } = await supabase
+    .from("org_members")
+    .select("user_id", { count: "exact", head: true })
+    .eq("org_id", membership.org_id)
+    .eq("manager_user_id", user.id);
+
+  return NextResponse.json({
+    org,
+    membership: { ...membership, has_direct_reports: (directReportCount ?? 0) > 0 },
+  });
 }
 
 export async function PATCH(req: Request): Promise<NextResponse> {
