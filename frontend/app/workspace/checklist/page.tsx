@@ -117,14 +117,17 @@ export default function WorkspaceChecklistPage() {
   if (noAssessment) {
     return (
       <PageShell>
-        <p className="text-sm text-gray-700">No active assessment.</p>
-        <p className="mt-2 text-sm text-gray-500">
-          Ask your admin to start one, or{" "}
-          <Link href="/workspace/assessments" className="underline">
-            start one yourself
-          </Link>{" "}
-          if you have the right role.
-        </p>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-5">
+          <p className="text-sm font-medium text-gray-800">No active assessment yet</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Your checklist will appear here once an assessment is started.
+            If you manage your team, you can{" "}
+            <Link href="/workspace/assessments" className="underline">
+              start one now
+            </Link>
+            .
+          </p>
+        </div>
       </PageShell>
     );
   }

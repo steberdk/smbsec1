@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api/client";
 
 type Invite = {
   id: string;
+  token: string;
   email: string;
   role: "manager" | "employee";
   is_it_executor: boolean;
@@ -32,6 +33,7 @@ export default function WorkspaceTeamPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -74,6 +76,13 @@ export default function WorkspaceTeamPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleCopyLink(token: string, inviteId: string) {
+    const link = `${window.location.origin}/accept-invite?token=${token}`;
+    await navigator.clipboard.writeText(link);
+    setCopied(inviteId);
+    setTimeout(() => setCopied(null), 2000);
   }
 
   async function handleRevoke(inviteId: string) {
@@ -183,13 +192,21 @@ export default function WorkspaceTeamPage() {
                     {new Date(invite.expires_at).toLocaleDateString()}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleRevoke(invite.id)}
-                  disabled={revoking === invite.id}
-                  className="text-xs text-red-600 underline disabled:opacity-50"
-                >
-                  {revoking === invite.id ? "Revoking…" : "Revoke"}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => handleCopyLink(invite.token, invite.id)}
+                    className="text-xs text-gray-500 underline"
+                  >
+                    {copied === invite.id ? "Copied!" : "Copy link"}
+                  </button>
+                  <button
+                    onClick={() => handleRevoke(invite.id)}
+                    disabled={revoking === invite.id}
+                    className="text-xs text-red-600 underline disabled:opacity-50"
+                  >
+                    {revoking === invite.id ? "Revoking…" : "Revoke"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
