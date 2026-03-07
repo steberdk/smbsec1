@@ -105,6 +105,31 @@ export default function WorkspaceChecklistPage() {
     }
   }
 
+  async function clearResponse(itemId: string) {
+    if (!token || !assessment) return;
+    setResponses((prev) => {
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
+    setSaving((prev) => new Set(prev).add(itemId));
+
+    try {
+      await apiFetch(`/api/assessments/${assessment.id}/responses`, token, {
+        method: "DELETE",
+        body: JSON.stringify({ assessment_item_id: itemId }),
+      });
+    } catch {
+      // Optimistic update stays; user can retry
+    } finally {
+      setSaving((prev) => {
+        const next = new Set(prev);
+        next.delete(itemId);
+        return next;
+      });
+    }
+  }
+
   if (sessionLoading || !token) {
     return <PageShell><p className="text-sm text-gray-600">Loading…</p></PageShell>;
   }
@@ -195,6 +220,7 @@ export default function WorkspaceChecklistPage() {
           responses={responses}
           saving={saving}
           onResponse={setResponse}
+          onClear={clearResponse}
         />
       )}
       {awarenessItems.length > 0 && (
@@ -204,6 +230,7 @@ export default function WorkspaceChecklistPage() {
           responses={responses}
           saving={saving}
           onResponse={setResponse}
+          onClear={clearResponse}
         />
       )}
     </PageShell>
@@ -216,12 +243,14 @@ function ItemGroup({
   responses,
   saving,
   onResponse,
+  onClear,
 }: {
   title: string;
   items: AssessmentItem[];
   responses: ResponseMap;
   saving: Set<string>;
   onResponse: (itemId: string, status: ResponseStatus) => void;
+  onClear: (itemId: string) => void;
 }) {
   return (
     <section className="mb-8">
@@ -234,6 +263,7 @@ function ItemGroup({
             response={responses[item.id] ?? null}
             isSaving={saving.has(item.id)}
             onResponse={onResponse}
+            onClear={onClear}
           />
         ))}
       </div>
@@ -246,11 +276,13 @@ function ChecklistItem({
   response,
   isSaving,
   onResponse,
+  onClear,
 }: {
   item: AssessmentItem;
   response: ResponseStatus | null;
   isSaving: boolean;
   onResponse: (itemId: string, status: ResponseStatus) => void;
+  onClear: (itemId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -287,7 +319,7 @@ function ChecklistItem({
         {(["done", "unsure", "skipped"] as ResponseStatus[]).map((s) => (
           <button
             key={s}
-            onClick={() => onResponse(item.id, s)}
+            onClick={() => response === s ? onClear(item.id) : onResponse(item.id, s)}
             className={`rounded-lg px-3 py-1 text-xs font-medium border transition-colors ${
               response === s
                 ? s === "done"

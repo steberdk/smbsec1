@@ -8,7 +8,7 @@ import { apiFetch } from "@/lib/api/client";
 
 type OrgMe = {
   org: { id: string; name: string };
-  membership: { role: string; user_id?: string };
+  membership: { role: string; user_id?: string; has_direct_reports: boolean };
 };
 
 type OrgMember = {
@@ -149,7 +149,7 @@ export default function WorkspaceGdprPage() {
       </section>
 
       {/* Self-deletion */}
-      <SelfDeleteSection token={token!} userId={userId!} members={members} role={orgMe.membership.role} />
+      <SelfDeleteSection token={token!} members={members} role={orgMe.membership.role} hasDirectReports={orgMe.membership.has_direct_reports} />
 
       {!isAdmin && (
         <p className="mt-4 text-sm text-gray-500">
@@ -267,22 +267,21 @@ export default function WorkspaceGdprPage() {
 
 function SelfDeleteSection({
   token,
-  userId,
   members,
   role,
+  hasDirectReports,
 }: {
   token: string;
-  userId: string;
   members: OrgMember[];
   role: string;
+  hasDirectReports: boolean;
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasDirectReports = members.some((m) => m.manager_user_id === userId);
   const isAdmin = role === "org_admin";
-  const otherMembers = members.filter((m) => m.user_id !== userId);
+  const otherMembers = members.filter((m) => m.role !== "org_admin");
 
   async function handleDeleteSelf() {
     if (!confirm("Permanently delete your account and all your data? This cannot be undone.")) return;
