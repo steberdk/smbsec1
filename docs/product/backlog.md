@@ -21,6 +21,15 @@
 - Friendlier first-login message when no active assessment
 - Checklist seed data ready (SQL in docs/sql/006_checklist_master.sql — apply in Supabase)
 
+## To Do — Iteration 4: GDPR Self-Service
+
+- Data residency disclosure on GDPR settings page (West EU / Ireland / eu-west-1)
+- Self-deletion for any user ("Delete my account" button in workspace)
+  - Blocker: org_admin with other members → delete org first
+  - Blocker: manager with direct reports → remove reports first
+  - On success: hard delete org_member + responses + auth user → redirect to /
+  - Deferred: report migration, assessment history transfer
+
 ## Deferred — v1.1 candidates
 
 - Per-role track filtering (IT Baseline only for is_it_executor)
