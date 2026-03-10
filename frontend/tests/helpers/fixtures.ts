@@ -53,7 +53,7 @@ export async function loginWithEmail(page: Page, email: string): Promise<void> {
   const { data, error } = await supabase.auth.admin.generateLink({
     type: "magiclink",
     email,
-    options: { redirectTo: `${baseUrl()}/workspace` },
+    options: { redirectTo: `${baseUrl()}/auth/callback` },
   });
   if (error || !data?.properties?.action_link) {
     throw new Error(`Failed to generate magic link for ${email}: ${error?.message}`);

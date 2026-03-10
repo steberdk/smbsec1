@@ -28,9 +28,9 @@ function LoginInner() {
     setError(null);
 
     const supabase = getSupabaseBrowserClient();
-    const redirectTo = next
-      ? `${window.location.origin}${next}`
-      : `${window.location.origin}/workspace`;
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    if (next) callbackUrl.searchParams.set("next", next);
+    const redirectTo = callbackUrl.toString();
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
