@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/hooks/useSession";
 import { apiFetch } from "@/lib/api/client";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Stage = "loading" | "accepting" | "success" | "error";
 
@@ -20,7 +21,7 @@ function AcceptInviteInner() {
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get("token");
-  const { token: authToken, loading: sessionLoading } = useSession();
+  const { token: authToken, email: userEmail, loading: sessionLoading } = useSession();
 
   // Stage is derived from token at mount time — no synchronous setState needed in effects.
   // "accepting" = token present and API call not yet resolved.
@@ -75,15 +76,38 @@ function AcceptInviteInner() {
     );
   }
 
+  const isWrongEmail = errorMsg?.includes("different email address");
+
+  async function handleLogout() {
+    await getSupabaseBrowserClient().auth.signOut();
+    const next = encodeURIComponent(`/accept-invite?token=${token ?? ""}`);
+    router.replace(`/login?next=${next}`);
+  }
+
   return (
     <main className="max-w-md mx-auto px-4 py-20">
       <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4">
         <p className="font-medium text-red-800">Could not accept invite</p>
         <p className="mt-1 text-sm text-red-700">{errorMsg}</p>
       </div>
-      <p className="mt-4 text-sm text-gray-600">
-        If the link has expired, ask the person who invited you to send a new one.
-      </p>
+      {isWrongEmail ? (
+        <div className="mt-4 space-y-2">
+          <p className="text-sm text-gray-600">
+            You are signed in as <strong>{userEmail ?? "another account"}</strong>.
+            Sign out and log in with the email address this invite was sent to.
+          </p>
+          <button
+            onClick={handleLogout}
+            className="rounded-lg bg-gray-900 text-white text-sm px-4 py-2"
+          >
+            Sign out and try again
+          </button>
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-gray-600">
+          If the link has expired, ask the person who invited you to send a new one.
+        </p>
+      )}
     </main>
   );
 }
