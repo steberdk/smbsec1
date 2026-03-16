@@ -11,7 +11,8 @@ import {
   getOrgMembership,
   hasRole,
 } from "../../../lib/api/helpers";
-import { type ChecklistItemRow } from "../../../lib/db/types";
+import { type ChecklistItemRow, type EmailPlatform } from "../../../lib/db/types";
+import { resolveSteps } from "../../../lib/checklist/resolveSteps";
 
 export const runtime = "nodejs";
 
@@ -88,6 +89,15 @@ export async function POST(req: Request): Promise<NextResponse> {
     return apiError("An assessment is already in progress for this organisation", 409);
   }
 
+  // Fetch org's email_platform for platform-specific step resolution
+  const { data: org } = await supabase
+    .from("orgs")
+    .select("email_platform")
+    .eq("id", membership.org_id)
+    .single();
+
+  const emailPlatform = (org?.email_platform as EmailPlatform) ?? null;
+
   // Read all active checklist items from the master table (source of truth)
   const { data: items, error: itemsErr } = await supabase
     .from("checklist_items")
@@ -124,6 +134,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   // Snapshot all active checklist items into assessment_items (AC-ASMT-3)
   // description field stores the outcome for display in historical views
+  // steps are resolved for the org's email platform at snapshot time
   const snapshot = (items as ChecklistItemRow[]).map((item) => ({
     assessment_id: assessment.id,
     checklist_item_id: item.id,
@@ -134,6 +145,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     track: item.track,
     impact: item.impact,
     effort: item.effort,
+    why_it_matters: item.why_it_matters,
+    steps: resolveSteps(item.steps, emailPlatform),
   }));
 
   const { error: snapshotErr } = await supabase

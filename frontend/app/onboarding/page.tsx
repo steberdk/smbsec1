@@ -179,7 +179,7 @@ export default function OnboardingPage() {
               { value: "self", label: "I do", sub: "You'll work through the IT checklist yourself." },
               { value: "staff_member", label: "A staff member", sub: "We'll send them an invite with the IT checklist assigned." },
               { value: "external_it", label: "An external IT company or consultant", sub: "We can send them an invite, or you can share the checklist with them." },
-              { value: "not_sure", label: "Not sure yet", sub: "We'll assign it to you for now — you can reassign later." },
+              { value: "not_sure", label: "Not sure yet", sub: "We'll assign it to you for now." },
             ] as { value: ItHandling; label: string; sub: string }[]
           ).map((opt) => (
             <label

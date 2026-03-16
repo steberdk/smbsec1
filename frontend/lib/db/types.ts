@@ -46,6 +46,7 @@ export type OrgMemberRow = {
   role: OrgRole;
   manager_user_id: string | null;
   is_it_executor: boolean;
+  email: string | null;
   created_at: string;
 };
 
@@ -71,6 +72,8 @@ export type AssessmentItemRow = {
   track: ItemTrack;
   impact: Impact | null;
   effort: Effort | null;
+  why_it_matters: string | null;
+  steps: string[];
   created_at: string;
 };
 
@@ -107,6 +110,8 @@ export type ChecklistGroupRow = {
   created_at: string;
 };
 
+export type StepsMap = Record<string, string[]>;
+
 export type ChecklistItemRow = {
   id: string;
   group_id: string;
@@ -114,7 +119,7 @@ export type ChecklistItemRow = {
   title: string;
   outcome: string | null;
   why_it_matters: string | null;
-  steps: string[];
+  steps: StepsMap;
   time_estimate: string | null;
   impact: Impact | null;
   effort: Effort | null;

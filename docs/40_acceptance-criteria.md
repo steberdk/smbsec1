@@ -711,3 +711,83 @@ Awareness track completion is tracked separately from IT Baseline completion in 
 - Assert:
   - [ ] IT Baseline % is unchanged (0% if employee has no IT items)
   - [ ] Awareness % shows 100% for that employee
+
+---
+
+# 17. Steps & Why It Matters (Iteration 5)
+
+## AC-STEPS-01
+Assessment snapshot (`POST /api/assessments`) must copy `steps` (resolved for org platform) and `why_it_matters` from `checklist_items` into `assessment_items`.
+
+## AC-STEPS-02
+`GET /api/assessments/:id` must return `steps` (string[]) and `why_it_matters` (string | null) per item.
+
+## AC-STEPS-03
+Expanding a checklist item shows:
+- `why_it_matters` in a highlighted block
+- Numbered steps list
+
+## AC-STEPS-04
+`resolveSteps(stepsMap, platform)` picks the platform-specific variant or falls back to `"default"`.
+
+**Status: Implemented and tested (E2E-TRACK-04, E2E-TRACK-05, E2E-TRACK-06)**
+
+---
+
+# 18. Per-Track Dashboard Aggregation (Iteration 5)
+
+## AC-TRACK-AGG-01
+Dashboard API returns `stats.by_track: { it_baseline: TrackStats, awareness: TrackStats }`.
+
+## AC-TRACK-AGG-02
+Non-IT-executor member's `percent` is calculated against awareness items only (not all items). Resolves AC-AWARE-3 denominator bug.
+
+## AC-TRACK-AGG-03
+Dashboard UI shows IT Baseline and Awareness as separate labelled progress indicators.
+
+**Status: Implemented and tested (E2E-TRACK-AGG-01)**
+
+---
+
+# 19. Named Members (Iteration 5)
+
+## AC-NAMES-01
+`email` is stored in `org_members` at invite acceptance from `invites.email`.
+
+## AC-NAMES-02
+Dashboard API returns `email` per member from `org_members.email`.
+
+## AC-NAMES-03
+Dashboard UI shows email address instead of truncated UUID when `email` is non-null.
+
+## AC-NAMES-04
+Graceful fallback to truncated UUID when `email` is null (existing members, self-created admin).
+
+**Status: Implemented and tested (E2E-NAMES-01)**
+
+---
+
+# 20. Post-Completion Screen (Iteration 5)
+
+## AC-ITER5-05
+When all assigned items are answered, checklist page shows a post-completion screen instead of the regular item list.
+
+## AC-ITER5-06
+Post-completion screen shows stat grid: done / unsure / skipped counts.
+
+## AC-ITER5-07
+Post-completion screen has a "Add reminder to calendar (.ics)" button that triggers download of `smbsec-review.ics` with DTSTART = today + 90 days.
+
+## AC-ITER5-08
+Post-completion screen has a "View dashboard" link and a "Show checklist" disclosure to view items read-only.
+
+**Status: Implemented and tested (E2E-DASH-03, E2E-ITEM-05)**
+
+---
+
+# 21. First Assessment CTA (Iteration 5)
+
+## AC-ITER5-CTA
+On workspace load, if the user is `org_admin` and no active assessment exists, a prominent "Start your first security review" CTA is shown inline. Not auto-started during onboarding.
+
+**Status: Implemented**

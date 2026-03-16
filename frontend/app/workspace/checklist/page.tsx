@@ -14,6 +14,8 @@ type AssessmentItem = {
   impact: string | null;
   effort: string | null;
   order_index: number;
+  why_it_matters: string | null;
+  steps: string[];
 };
 
 type Assessment = {
@@ -37,6 +39,7 @@ export default function WorkspaceChecklistPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [noAssessment, setNoAssessment] = useState(false);
   const [isItExecutor, setIsItExecutor] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -176,29 +179,117 @@ export default function WorkspaceChecklistPage() {
   const itItems = visibleItems.filter((i) => i.track === "it_baseline");
   const awarenessItems = visibleItems.filter((i) => i.track === "awareness");
 
-  return (
-    <PageShell>
-      {/* Completion banner */}
-      {allAnswered && (
-        <div className="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-5">
-          <p className="text-sm font-semibold text-green-800">All items answered — great work!</p>
-          <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-lg bg-white border border-green-100 py-2">
-              <p className="text-lg font-bold text-green-700">{doneCount}</p>
+  function downloadIcs() {
+    const now = new Date();
+    const due = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+    const fmt = (d: Date) =>
+      d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const uid = `smbsec-${now.getTime()}@smbsec`;
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//SMBsec//Review//EN",
+      "BEGIN:VEVENT",
+      `UID:${uid}`,
+      `DTSTART:${fmt(due)}`,
+      `SUMMARY:smbsec: Security Review Due`,
+      `DESCRIPTION:Your quarterly security review is due. Log in to SMB Security Check to start your reassessment.`,
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    const blob = new Blob([ics], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "smbsec-review.ics";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Post-completion screen (AC-ITER5-05 to AC-ITER5-08)
+  if (allAnswered) {
+    return (
+      <PageShell>
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-6">
+          <p className="text-lg font-semibold text-green-800 text-center">
+            All items answered — great work!
+          </p>
+
+          {/* Stat grid */}
+          <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-lg bg-white border border-green-100 py-3">
+              <p className="text-2xl font-bold text-green-700">{doneCount}</p>
               <p className="text-xs text-gray-500">Done</p>
             </div>
-            <div className="rounded-lg bg-white border border-green-100 py-2">
-              <p className="text-lg font-bold text-amber-700">{unsureCount}</p>
+            <div className="rounded-lg bg-white border border-green-100 py-3">
+              <p className="text-2xl font-bold text-amber-700">{unsureCount}</p>
               <p className="text-xs text-gray-500">Unsure</p>
             </div>
-            <div className="rounded-lg bg-white border border-green-100 py-2">
-              <p className="text-lg font-bold text-gray-500">{skippedCount}</p>
+            <div className="rounded-lg bg-white border border-green-100 py-3">
+              <p className="text-2xl font-bold text-gray-500">{skippedCount}</p>
               <p className="text-xs text-gray-500">Skipped</p>
             </div>
           </div>
-        </div>
-      )}
 
+          {/* .ics download + dashboard link */}
+          <div className="mt-5 flex flex-col gap-3">
+            <button
+              onClick={downloadIcs}
+              className="w-full rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-800 hover:bg-green-100 transition-colors"
+            >
+              Add reminder to calendar (.ics)
+            </button>
+            <Link
+              href="/workspace/dashboard"
+              className="w-full rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white text-center hover:bg-green-800 transition-colors"
+            >
+              View dashboard &rarr;
+            </Link>
+          </div>
+
+          {/* Read-only checklist disclosure */}
+          <div className="mt-5 border-t border-green-200 pt-4">
+            <button
+              onClick={() => setShowChecklist((v) => !v)}
+              className="text-sm text-green-700 font-medium hover:underline"
+            >
+              {showChecklist ? "Hide checklist \u25B4" : "Show checklist \u25BE"}
+            </button>
+          </div>
+        </div>
+
+        {/* Read-only checklist when disclosed */}
+        {showChecklist && (
+          <div className="mt-6">
+            {itItems.length > 0 && (
+              <ItemGroup
+                title="IT Baseline"
+                items={itItems}
+                responses={responses}
+                saving={saving}
+                onResponse={setResponse}
+                onClear={clearResponse}
+              />
+            )}
+            {awarenessItems.length > 0 && (
+              <ItemGroup
+                title="Security Awareness"
+                items={awarenessItems}
+                responses={responses}
+                saving={saving}
+                onResponse={setResponse}
+                onClear={clearResponse}
+              />
+            )}
+          </div>
+        )}
+      </PageShell>
+    );
+  }
+
+  return (
+    <PageShell>
       {/* Progress bar */}
       <div className="mb-6">
         <div className="flex justify-between text-xs text-gray-500 mb-1">
@@ -311,8 +402,28 @@ function ChecklistItem({
         {isSaving && <span className="text-xs text-gray-400">saving…</span>}
       </div>
 
-      {expanded && item.description && (
-        <p className="mt-2 text-xs text-gray-600">{item.description}</p>
+      {expanded && (
+        <div className="mt-3 space-y-2">
+          {item.description && (
+            <p className="text-xs text-gray-600">{item.description}</p>
+          )}
+          {item.why_it_matters && (
+            <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
+              <p className="text-xs font-medium text-amber-800">Why it matters</p>
+              <p className="mt-0.5 text-xs text-amber-700">{item.why_it_matters}</p>
+            </div>
+          )}
+          {item.steps && item.steps.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-gray-700 mb-1">Steps</p>
+              <ol className="list-decimal list-inside space-y-1">
+                {item.steps.map((step, i) => (
+                  <li key={i} className="text-xs text-gray-600">{step}</li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
       )}
 
       <div className="mt-3 flex gap-2">

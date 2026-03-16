@@ -17,6 +17,7 @@ export default function WorkspacePage() {
   const { token, loading: sessionLoading } = useSession();
   const [orgMe, setOrgMe] = useState<OrgMe | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [hasActiveAssessment, setHasActiveAssessment] = useState<boolean | null>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -25,11 +26,17 @@ export default function WorkspacePage() {
     }
   }, [sessionLoading, token, router]);
 
-  // Load org membership
+  // Load org membership + check for active assessment
   useEffect(() => {
     if (!token) return;
-    apiFetch<OrgMe>("/api/orgs/me", token)
-      .then(setOrgMe)
+    Promise.all([
+      apiFetch<OrgMe>("/api/orgs/me", token),
+      apiFetch<{ assessments: { status: string }[] }>("/api/assessments", token),
+    ])
+      .then(([orgData, { assessments }]) => {
+        setOrgMe(orgData);
+        setHasActiveAssessment(assessments.some((a) => a.status === "active"));
+      })
       .catch((e: unknown) => {
         const status = (e as { status?: number }).status;
         if (status === 404) {
@@ -85,6 +92,24 @@ export default function WorkspacePage() {
           Log out
         </button>
       </div>
+
+      {/* First-assessment CTA for org_admin with no active assessment */}
+      {isAdmin && hasActiveAssessment === false && (
+        <div className="mt-6 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-5 py-6 text-center">
+          <p className="text-sm font-semibold text-gray-800">
+            Start your first security review
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            Kick off an assessment so your team can begin working through the security checklist.
+          </p>
+          <Link
+            href="/workspace/assessments"
+            className="mt-4 inline-block rounded-lg bg-gray-800 px-5 py-2 text-sm font-medium text-white hover:bg-gray-900 transition-colors"
+          >
+            Start assessment
+          </Link>
+        </div>
+      )}
 
       <nav className="mt-8 grid gap-3 sm:grid-cols-2">
         <WorkspaceCard

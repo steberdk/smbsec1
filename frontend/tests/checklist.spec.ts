@@ -81,17 +81,71 @@ test("E2E-TRACK-03: All member roles see the Awareness track", async ({ page }) 
   await expect(page.getByRole("heading", { name: /security awareness/i })).toBeVisible({ timeout: 10_000 });
 });
 
-test.skip("E2E-TRACK-04: Google Workspace platform shows Google-specific steps", () => {
-  // Skipped: checklist items in the DB do not yet contain platform-specific
-  // step URLs. Implement once items reference admin.google.com.
+test("E2E-TRACK-04: IT Executor can expand item and see steps list", async ({ page }) => {
+  // Steps are now snapshotted from checklist_items (default platform variant)
+  const iso = await createIsolatedOrg("TRACK04 Org");
+  try {
+    await startAssessment(iso.orgId, iso.adminUser.id);
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.waitForURL(/\/workspace/);
+    await page.goto("/workspace/checklist");
+
+    // Wait for items to load, then click first item title to expand
+    const firstItem = page.getByRole("button", { name: /use a password manager/i });
+    await expect(firstItem).toBeVisible({ timeout: 10_000 });
+    await firstItem.click();
+
+    // Steps list should appear
+    await expect(page.getByText(/steps/i).first()).toBeVisible({ timeout: 5_000 });
+    // At least one numbered step should render
+    await expect(page.locator("ol li").first()).toBeVisible();
+  } finally {
+    await iso.cleanup();
+  }
 });
 
-test.skip("E2E-TRACK-05: Microsoft 365 platform shows M365-specific steps", () => {
-  // Skipped: same reason as TRACK-04.
+test("E2E-TRACK-05: Expanded item shows 'Why it matters' block", async ({ page }) => {
+  const iso = await createIsolatedOrg("TRACK05 Org");
+  try {
+    await startAssessment(iso.orgId, iso.adminUser.id);
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.waitForURL(/\/workspace/);
+    await page.goto("/workspace/checklist");
+
+    // Click first item to expand
+    const firstItem = page.getByRole("button", { name: /use a password manager/i });
+    await expect(firstItem).toBeVisible({ timeout: 10_000 });
+    await firstItem.click();
+
+    // Why it matters block should be visible
+    await expect(page.getByText(/why it matters/i)).toBeVisible({ timeout: 5_000 });
+  } finally {
+    await iso.cleanup();
+  }
 });
 
-test.skip("E2E-TRACK-06: Unset platform shows generic steps and configuration prompt", () => {
-  // Skipped: same reason as TRACK-04.
+test("E2E-TRACK-06: Expanded item renders steps from DB snapshot", async ({ page }) => {
+  // Verifies steps are populated from the assessment_items snapshot
+  const iso = await createIsolatedOrg("TRACK06 Org");
+  try {
+    await startAssessment(iso.orgId, iso.adminUser.id);
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.waitForURL(/\/workspace/);
+    await page.goto("/workspace/checklist");
+
+    // Expand the first item
+    const firstItem = page.getByRole("button", { name: /use a password manager/i });
+    await expect(firstItem).toBeVisible({ timeout: 10_000 });
+    await firstItem.click();
+
+    // Should have multiple step list items
+    const stepItems = page.locator("ol li");
+    await expect(stepItems.first()).toBeVisible({ timeout: 5_000 });
+    const count = await stepItems.count();
+    expect(count).toBeGreaterThanOrEqual(2);
+  } finally {
+    await iso.cleanup();
+  }
 });
 
 // ---------------------------------------------------------------------------

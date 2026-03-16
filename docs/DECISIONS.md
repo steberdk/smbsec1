@@ -123,7 +123,44 @@ Not MVP, but schema must allow extension.
 
 ---
 
-## 6. No Hidden Authority
+## 6. Platform-Specific Steps Storage (Iteration 5)
+
+Decision: `checklist_items.steps` uses a keyed jsonb object format.
+
+Format:
+```json
+{
+  "default": ["Step 1", "Step 2"],
+  "google_workspace": ["Go to admin.google.com...", "..."],
+  "microsoft_365": ["Go to security.microsoft.com...", "..."]
+}
+```
+
+Resolution logic: `resolveSteps(stepsMap, orgPlatform)` picks the platform-specific
+variant if it exists, otherwise falls back to `"default"`.
+
+At assessment creation (snapshot time), steps are resolved for the org's
+`email_platform` setting and stored as a flat array in `assessment_items.steps`.
+This means historical snapshots reflect the platform choice at the time the
+assessment was started.
+
+Migration 007 transformed all existing flat arrays to `{ "default": [...] }`.
+
+---
+
+## 7. Named Members via Email in org_members (Iteration 5)
+
+Decision: Store `email` in `org_members` at invite acceptance.
+
+Rationale: The alternative (`supabase.auth.admin.listUsers()`) fetches all
+project users on every dashboard load and would rate-limit at scale.
+
+The `email` column is nullable — existing rows and self-created org_admin
+accounts remain null (dashboard falls back to truncated UUID).
+
+---
+
+## 8. No Hidden Authority
 
 All permission enforcement must:
 - Exist in database (RLS)

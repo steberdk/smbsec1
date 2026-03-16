@@ -77,12 +77,14 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   // 7. Insert org_members row (privileged — bypasses RLS)
+  //    Store email from invite for dashboard display (AC-NAMES-01)
   const { error: memberErr } = await service.from("org_members").insert({
     org_id: invite.org_id,
     user_id: user.id,
     role: invite.role,
     manager_user_id: invite.manager_user_id,
     is_it_executor: invite.is_it_executor,
+    email: invite.email,
   });
 
   if (memberErr) return apiError(memberErr.message, 500);

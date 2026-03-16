@@ -10,6 +10,7 @@ type CadenceStatus = "green" | "amber" | "red" | "never";
 
 type MemberStat = {
   user_id: string;
+  email: string | null;
   role: string;
   is_it_executor: boolean;
   done: number;
@@ -19,9 +20,24 @@ type MemberStat = {
   percent: number;
 };
 
+type TrackStats = {
+  total: number;
+  done: number;
+  unsure: number;
+  skipped: number;
+  percent: number;
+};
+
 type DashboardData = {
   assessment: { id: string; status: string; scope: string; created_at: string } | null;
-  stats: { total: number; done: number; unsure: number; skipped: number; percent: number };
+  stats: {
+    total: number;
+    done: number;
+    unsure: number;
+    skipped: number;
+    percent: number;
+    by_track?: { it_baseline: TrackStats; awareness: TrackStats };
+  };
   members: MemberStat[];
   cadence: { last_completed_at: string | null; status: CadenceStatus };
 };
@@ -127,6 +143,14 @@ export default function WorkspaceDashboardPage() {
               <StatPill label="Unsure" value={stats.unsure} color="text-amber-700" />
               <StatPill label="Skipped" value={stats.skipped} color="text-gray-500" />
             </div>
+
+            {/* Per-track breakdown (AC-TRACK-AGG-01/02/03) */}
+            {stats.by_track && (
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <TrackBar label="IT Baseline" track={stats.by_track.it_baseline} />
+                <TrackBar label="Awareness" track={stats.by_track.awareness} />
+              </div>
+            )}
           </div>
 
           {/* Member breakdown */}
@@ -142,7 +166,9 @@ export default function WorkspaceDashboardPage() {
                           {m.role.replace("_", " ")}
                           {m.is_it_executor && " · IT executor"}
                         </p>
-                        <p className="text-xs text-gray-400 font-mono">{m.user_id.slice(0, 8)}…</p>
+                        <p className="text-xs text-gray-400 font-mono">
+                          {m.email ?? `${m.user_id.slice(0, 8)}…`}
+                        </p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-semibold">{m.percent}%</p>
@@ -163,6 +189,26 @@ export default function WorkspaceDashboardPage() {
         </>
       )}
     </PageShell>
+  );
+}
+
+function TrackBar({ label, track }: { label: string; track: TrackStats }) {
+  return (
+    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+      <div className="flex justify-between text-xs text-gray-600 mb-1">
+        <span className="font-medium">{label}</span>
+        <span>{track.percent}%</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-1.5">
+        <div
+          className="bg-gray-700 h-1.5 rounded-full"
+          style={{ width: `${track.percent}%` }}
+        />
+      </div>
+      <p className="mt-1 text-xs text-gray-400">
+        {track.done + track.unsure + track.skipped} / {track.total} items
+      </p>
+    </div>
   );
 }
 
