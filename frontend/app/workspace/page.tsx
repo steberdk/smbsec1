@@ -19,6 +19,8 @@ export default function WorkspacePage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [hasActiveAssessment, setHasActiveAssessment] = useState<boolean | null>(null);
 
+  useEffect(() => { document.title = "Workspace | SMB Security Quick-Check"; }, []);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!sessionLoading && !token) {
@@ -54,7 +56,7 @@ export default function WorkspacePage() {
   }
 
   if (sessionLoading || !token) {
-    return <main className="max-w-2xl mx-auto px-4 py-10"><p className="text-sm text-gray-600">Loading…</p></main>;
+    return null;
   }
 
   if (loadError) {

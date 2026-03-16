@@ -35,6 +35,8 @@ export default function WorkspaceTeamPage() {
   const [revoking, setRevoking] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
+  useEffect(() => { document.title = "Team | SMB Security Quick-Check"; }, []);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!sessionLoading && !token) {

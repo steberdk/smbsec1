@@ -177,7 +177,7 @@ export default function ChecklistPage() {
 
         <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
           <p className="text-sm text-blue-900 font-medium">
-            Sign in to track your progress and sync across devices.
+            Sign in to save your progress and work through the checklist with your team.
           </p>
           <Link
             href="/login"

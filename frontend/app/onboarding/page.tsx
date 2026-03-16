@@ -89,7 +89,7 @@ export default function OnboardingPage() {
   }
 
   if (sessionLoading || !token) {
-    return <main className="max-w-lg mx-auto px-4 py-10"><p className="text-sm text-gray-600">Loading…</p></main>;
+    return null;
   }
 
   return (

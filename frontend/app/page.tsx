@@ -1,4 +1,7 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Security Checklist for Small Business" };
 
 export default function HomePage() {
   return (
@@ -12,7 +15,7 @@ export default function HomePage() {
           No enterprise complexity. Just the highest-impact steps.
         </p>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Link
             href="/checklist"
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gray-900 text-white"
@@ -92,7 +95,7 @@ export default function HomePage() {
       </section>
 
       <section className="mt-10 space-y-2 text-sm text-gray-600">
-        <p>Privacy: Progress is stored in your browser. Sign in to sync across devices.</p>
+        <p>Privacy: Your data stays in the EU. No tracking, no ads. Free for small teams.</p>
       </section>
     </main>
   );

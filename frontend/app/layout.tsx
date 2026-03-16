@@ -13,7 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SMB Security Quick-Check",
+  title: {
+    default: "SMB Security Quick-Check",
+    template: "%s | SMB Security Quick-Check",
+  },
   description: "A practical security baseline checklist for small and medium-sized businesses.",
 };
 

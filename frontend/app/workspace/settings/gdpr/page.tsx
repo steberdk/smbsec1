@@ -38,6 +38,8 @@ export default function WorkspaceGdprPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  useEffect(() => { document.title = "Settings & Data | SMB Security Quick-Check"; }, []);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!sessionLoading && !token) {

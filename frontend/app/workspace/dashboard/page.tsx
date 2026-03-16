@@ -62,6 +62,8 @@ export default function WorkspaceDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  useEffect(() => { document.title = "Dashboard | SMB Security Quick-Check"; }, []);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!sessionLoading && !token) {

@@ -41,6 +41,8 @@ export default function WorkspaceChecklistPage() {
   const [isItExecutor, setIsItExecutor] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
 
+  useEffect(() => { document.title = "My Checklist | SMB Security Quick-Check"; }, []);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!sessionLoading && !token) {
