@@ -41,79 +41,55 @@
 
 Scoped and finalised by cross-functional product team after 2 iterations (PM + UX + Security + BA + Architect).
 Theme: **make the product non-embarrassing on day one** — dashboard shows real names and accurate data; checklist shows actual guidance; users complete with a reason to return.
-Estimated: 3.5 days for one developer.
 
-### Sprint Committed (Days 1–4)
+### Delivered
 
-**Day 1 — Architecture & DB first:**
-- Document platform-specific step storage decision in `docs/DECISIONS.md` (Option A: `checklist_items.steps` becomes keyed jsonb object `{ default, google_workspace, microsoft_365, ... }`)
-- Run migration 007: add `why_it_matters` (text) and `steps` (jsonb `[]`) columns to `assessment_items`
-- Run migration 007b: transform existing `checklist_items.steps` flat arrays to `{ "default": [...] }` keyed object
-- Update `AssessmentItemRow` TypeScript type to include `steps: string[]` and `why_it_matters: string | null`
-- Update snapshot INSERT in `POST /api/assessments` to copy `steps` (resolved for org platform) and `why_it_matters` into `assessment_items`
-- Update `GET /api/assessments/:id` select to return `steps` and `why_it_matters`
-  - AC: AC-STEPS-01
+- Migration 007: `steps` (jsonb) + `why_it_matters` (text) on `assessment_items`; `email` (text) on `org_members`; `checklist_items.steps` transformed to keyed format `{ "default": [...] }`
+- Assessment snapshot copies `steps` (resolved for org platform) + `why_it_matters` into `assessment_items`
+- `resolveSteps(stepsMap, platform)` helper for platform-specific step resolution
+- Checklist UI: expanded items show "Why it matters" block + numbered steps list
+- Per-track dashboard: IT Baseline and Awareness shown as separate progress indicators
+- Denominator fix: non-IT-executor percent calculated against awareness items only
+- Named members: `email` stored at invite acceptance, shown on dashboard (fallback to UUID)
+- Post-completion screen: stat grid → .ics calendar download → dashboard link → read-only checklist disclosure
+- First-assessment CTA on workspace for org_admin with no active assessment
+- Onboarding copy fix: removed broken "reassign later in Team Settings" promise
+- E2E: TRACK-04/05/06 un-skipped, DASH-03/TRACK-AGG-01/NAMES-01 added (53 passing, 4 intentionally skipped)
+- Docs: DECISIONS.md updated (platform steps storage, email in org_members), acceptance-criteria sections 17-21
 
-**Day 1 PM / Day 2 — Steps & platform rendering:**
-- Update workspace checklist UI to render expanded item with `why_it_matters` block + numbered steps list — resolves AC-STEPS-02/03/04
-- Add `resolveSteps(stepsMap, emailPlatform)` helper: picks platform-specific steps variant from keyed object, falls back to `default`
-- Platform label shown in steps container (e.g. "Google Workspace") when platform is set
-- Unset platform: show static prompt "Set your email platform in Settings to see the right instructions" (not a dead link — Org Settings page deferred)
-- Un-skip E2E-TRACK-04 and E2E-TRACK-05; write E2E-STEPS-01
-  - AC: AC-STEPS-02, AC-PLAT-02, AC-PLAT-03, AC-PLAT-06
-- Patch onboarding copy: remove "you can reassign IT tasks later in Team Settings" (broken promise — settings page deferred to iteration 6)
+## Iteration 5 — QA sweep findings (2026-03-10)
 
-**Day 2 PM — Per-track dashboard aggregation + denominator bug fix:**
-- Update `GET /api/dashboard` to add `stats.by_track: { it_baseline: TrackStats, awareness: TrackStats }`
-- Fix denominator bug: non-IT-executor members' `percent` calculated against awareness items only, not all items
-- Update dashboard UI to show IT Baseline and Awareness as separate labelled progress indicators
-- Write E2E-TRACK-AGG-01 (non-IT-executor shows 100% when all awareness answered)
-  - AC: AC-TRACK-AGG-01, AC-TRACK-AGG-02, AC-TRACK-AGG-03; resolves AC-AWARE-3
+_Findings from live browser QA of https://smbsec1.vercel.app (anonymous + protected-route flows)._
 
-**Day 3 — Named members + retention:**
-- Store `email` in `org_members` at invite acceptance (one extra write in `POST /api/invites/accept` — `invites.email` already has it). Do NOT use `supabase.auth.admin.listUsers()` — it fetches all project users on every dashboard load and will rate-limit at scale.
-- Add `email` column to `org_members` via migration (nullable, populated going forward; existing rows remain null with UUID fallback)
-- Update `GET /api/dashboard` to include `email` per member from `org_members.email` (simple JOIN, no Admin API call)
-- Update dashboard UI to show email address instead of truncated UUID; graceful fallback to truncated UUID when `email` is null
-- Write E2E-NAMES-01
-  - AC: AC-NAMES-01, AC-NAMES-02, AC-NAMES-03, AC-NAMES-04
-- Post-completion screen: replace completion banner with full-page layout — stat grid (done/unsure/skipped) → .ics download button → "View dashboard →" link → "Show checklist ▾" read-only disclosure
-- .ics generated client-side (no server); VEVENT SUMMARY "smbsec: Security Review Due", DTSTART today+90 days; filename `smbsec-review.ics`
-- Write E2E-DASH-03 (click .ics button triggers file download)
-  - AC: AC-ITER5-05 to AC-ITER5-08; resolves AC-DASH-3
+### Bugs
 
-**Day 4 — First-assessment CTA + docs + QA:**
-- On workspace load: if org_admin + no active assessment → show prominent "Start your first security review" CTA inline on the workspace home (NOT auto-started during onboarding — that has 4 failure modes with no recovery path if assessment creation fails after org creation succeeds)
-- The CTA routes to `/workspace/assessments` with a pre-filled start flow or triggers creation inline
-- Update `docs/DECISIONS.md` with steps storage and platform injection decisions
-- Update `docs/40_acceptance-criteria.md`: add AC-STEPS-*, AC-NAMES-*, AC-TRACK-AGG-* sections; mark AC-AWARE-3 as resolved by AC-TRACK-AGG-*
-- `npm run lint` (0 warnings), `npm run build` (TypeScript clean), `npm run test:e2e` (all new tests green, skipped tests un-skipped)
+- **BUG-01 — Stale copy referencing removed localStorage feature**
+  The landing page still reads "Progress is stored in your browser. Sign in to sync across devices."
+  and the checklist page still shows "Sign in to track your progress and sync across devices."
+  Anonymous localStorage tracking was intentionally removed; these references were not cleaned up.
+  The copy should be removed or replaced with a straightforward sign-in prompt.
 
-### Definition of Done — Iteration 5
+- **BUG-02 — Bare Next.js 404 page**
+  Any unknown URL (e.g. /nonexistent-page) returns the default Next.js 404 — no branding, no nav,
+  no "go home" link. Users are completely stranded.
 
-- [ ] `GET /api/assessments/:id` returns `steps` (array) and `why_it_matters` per item
-- [ ] Expanded checklist item shows numbered steps list and "Why it matters" text
-- [ ] Platform-specific steps resolve for Google Workspace (`admin.google.com`) and M365 (`security.microsoft.com`)
-- [ ] Dashboard shows email address per member, not truncated UUID
-- [ ] Dashboard shows IT Baseline and Awareness as separate labelled percentages
-- [ ] Non-IT-executor member shows 100% when all Awareness items answered (not ~42%)
-- [ ] Post-completion screen shows stat breakdown + .ics download button
-- [ ] First assessment auto-started at end of onboarding
-- [ ] E2E: E2E-STEPS-01, E2E-PLAT-01 (TRACK-04 un-skipped), E2E-TRACK-05 un-skipped, E2E-TRACK-06 un-skipped, E2E-NAMES-01, E2E-TRACK-AGG-01, E2E-DASH-03 all passing
-- [ ] `npm run lint` zero warnings, `npm run build` clean, `npm run test:e2e` green
-- [ ] `docs/DECISIONS.md` updated with steps storage + platform injection decisions
+- **BUG-03 — "Loading…" flash before auth redirect**
+  Protected routes (/workspace, /onboarding) briefly render "Loading…" before redirecting to /login.
+  Looks glitchy; should be instant or show a skeleton.
 
-### Critical implementation notes (from Architect iteration 3 review)
-- **Migration deployment order:** run migration 007 first, deploy new app code second — never simultaneously. `steps` column must be `NOT NULL DEFAULT '[]'`
-- **Migration 007b is destructive** — backup `checklist_items.steps` values before running. `resolveSteps()` helper must be deployed before 007b executes or production reads will fail silently (renders `"default"` as the only step text)
-- **`listUsers()` banned from production dashboard** — store `email` in `org_members` at invite acceptance instead
-- **Test fixtures need updating** — `startAssessment` in fixtures.ts must pass `steps` through to `assessment_items` or new E2E tests will see empty steps
-- **E2E stability:** use `next build && next start` in CI; add `test.setTimeout(60_000)` to isolated-org tests; move cleanup to `afterEach` hooks
+### UX / polish
 
-### Known bugs fixed in iteration 5
-- Dashboard `percent` wrong denominator for non-IT-executors → fixed via per-track aggregation
-- Onboarding "reassign IT tasks later in Team Settings" copy → removed (settings page deferred)
-- `assessment_responses` RLS SELECT exposes peer responses → document in `docs/31_permissions-model.md` as known gap; fix post-v1
+- **UX-01 — Mobile hero CTA wraps to two rows**
+  At 390 px (iPhone 14) the three hero buttons ("Start the checklist", "View summary", "Log in")
+  don't fit on one line. "Log in" drops to a second row, looking unintentional.
+
+- **UX-02 — Summary page is a dead end for anonymous users**
+  /summary shows only "Sign in to see your progress summary." with no teaser content. The "View
+  summary" CTA on the landing page goes nowhere useful for an anonymous visitor.
+
+- **UX-03 — All pages share the same `<title>`**
+  Every route returns "SMB Security Quick-Check" as the browser tab title. Per-page titles improve
+  orientation and SEO (e.g. "Security Checklist | SMB Security Quick-Check").
 
 ---
 
@@ -141,6 +117,14 @@ Theme: close the content gap and fix the experiences that would cause early adop
 - Landing page: fix "Start the checklist" CTA to not mislead users into a read-only dead-end; clarify the team workspace value proposition before signup
 - Magic link UX: add cross-browser/mobile warning ("open this link in the same browser where you signed up")
 - Invite email: configure `RESEND_FROM_EMAIL` to the product domain (not `onboarding@resend.dev`) and add context copy so employees don't mistake it for phishing
+
+### Bug fixes from QA sweep
+- BUG-01: Remove stale localStorage copy
+- BUG-02: Custom 404 page
+- BUG-03: Loading flash before auth redirect
+- UX-01: Mobile hero CTA layout
+- UX-02: Summary page dead end
+- UX-03: Per-page `<title>` tags
 
 ### Instrumentation (BA iteration 3)
 - Add `assessment_responses.updated_at` (trivial migration — high diagnostic value)
@@ -181,3 +165,4 @@ Theme: convert one-time users into quarterly returning users; establish the mini
 - Account recovery UI (magic link works but there is no visible "help, I can't get in" path)
 - E2E: self-deletion blocker test (user with direct reports — API enforces, no UI test yet)
 - E2E: data residency notice visible to non-admin users (no test yet)
+- SEO / Open Graph: og:title, og:description, og:image — low priority, awaiting later version when SEO strategy is defined
