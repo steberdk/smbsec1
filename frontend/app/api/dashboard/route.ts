@@ -51,7 +51,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   // Load all org members (needed for subtree computation and member breakdown)
   const { data: allMembers, error: membersErr } = await supabase
     .from("org_members")
-    .select("user_id, manager_user_id, role, is_it_executor")
+    .select("user_id, manager_user_id, role, is_it_executor, email")
     .eq("org_id", membership.org_id);
 
   if (membersErr || !allMembers) return apiError("Failed to load org members", 500);
@@ -97,7 +97,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     });
   }
 
-  // Load all assessment items (to know total count)
+  // Load all assessment items (to know total count and per-track breakdown)
   const { data: items, error: itemsErr } = await supabase
     .from("assessment_items")
     .select("id, track")
@@ -105,7 +105,11 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   if (itemsErr) return apiError(itemsErr.message, 500);
 
-  const totalItems = items?.length ?? 0;
+  const allItems = items ?? [];
+  const totalItems = allItems.length;
+  const itBaselineItemIds = new Set(allItems.filter((i) => i.track === "it_baseline").map((i) => i.id));
+  const awarenessItemIds = new Set(allItems.filter((i) => i.track === "awareness").map((i) => i.id));
+  const awarenessCount = awarenessItemIds.size;
 
   // Load responses for scoped users only
   const { data: responses, error: responsesErr } = await supabase
@@ -118,15 +122,11 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   const allResponses = responses ?? [];
 
-  // Aggregate org/manager-level stats
-  // For completion %, count: done + unsure + skipped per unique item across scoped users
-  // MVP simplification: count total responses (one per user per item)
+  // Aggregate overall stats
   const done = allResponses.filter((r) => r.status === "done").length;
   const unsure = allResponses.filter((r) => r.status === "unsure").length;
   const skipped = allResponses.filter((r) => r.status === "skipped").length;
 
-  // For a single-user scope, percent = their own completion
-  // For multi-user scope, percent = avg completion across members in scope
   const scopeSize = scopedUserIds.length;
   const totalPossible = totalItems * scopeSize;
   const percent =
@@ -134,9 +134,26 @@ export async function GET(req: Request): Promise<NextResponse> {
       ? 0
       : Math.round(((done + unsure + skipped) / totalPossible) * 100);
 
+  // Per-track stats aggregation (AC-TRACK-AGG-01/02/03)
+  function trackStats(itemIds: Set<string>) {
+    const trackResponses = allResponses.filter((r) => itemIds.has(r.assessment_item_id));
+    const tDone = trackResponses.filter((r) => r.status === "done").length;
+    const tUnsure = trackResponses.filter((r) => r.status === "unsure").length;
+    const tSkipped = trackResponses.filter((r) => r.status === "skipped").length;
+    const tTotal = itemIds.size * scopeSize;
+    return {
+      total: itemIds.size,
+      done: tDone,
+      unsure: tUnsure,
+      skipped: tSkipped,
+      percent: tTotal === 0 ? 0 : Math.round(((tDone + tUnsure + tSkipped) / tTotal) * 100),
+    };
+  }
+
   // Per-member breakdown (only for manager + org_admin)
   type MemberStat = {
     user_id: string;
+    email: string | null;
     role: string;
     is_it_executor: boolean;
     done: number;
@@ -155,26 +172,41 @@ export async function GET(req: Request): Promise<NextResponse> {
       const mUnsure = memberResponses.filter((r) => r.status === "unsure").length;
       const mSkipped = memberResponses.filter((r) => r.status === "skipped").length;
       const memberMembership = allMembers.find((m) => m.user_id === uid);
+      const isItExecutor = memberMembership?.is_it_executor ?? false;
+
+      // Fix denominator: non-IT-executors only have awareness items (AC-TRACK-AGG-02)
+      const memberTotal = isItExecutor ? totalItems : awarenessCount;
 
       return {
         user_id: uid,
+        email: memberMembership?.email ?? null,
         role: memberMembership?.role ?? "employee",
-        is_it_executor: memberMembership?.is_it_executor ?? false,
+        is_it_executor: isItExecutor,
         done: mDone,
         unsure: mUnsure,
         skipped: mSkipped,
-        total: totalItems,
+        total: memberTotal,
         percent:
-          totalItems === 0
+          memberTotal === 0
             ? 0
-            : Math.round(((mDone + mUnsure + mSkipped) / totalItems) * 100),
+            : Math.round(((mDone + mUnsure + mSkipped) / memberTotal) * 100),
       };
     });
   }
 
   return NextResponse.json({
     assessment: latestAssessment,
-    stats: { total: totalItems, done, unsure, skipped, percent },
+    stats: {
+      total: totalItems,
+      done,
+      unsure,
+      skipped,
+      percent,
+      by_track: {
+        it_baseline: trackStats(itBaselineItemIds),
+        awareness: trackStats(awarenessItemIds),
+      },
+    },
     members: memberBreakdown,
     cadence: {
       last_completed_at: lastCompletedAt,

@@ -37,7 +37,27 @@
 - Settings & data page now accessible to all users (not just org_admin)
 - E2E: TRACK-01, TRACK-02, ITEM-05, DEL-06 added
 
-## Iteration 5 — QA sweep (2026-03-10)
+## Done — Iteration 5: Activation & Retention (2026-03-16)
+
+Scoped and finalised by cross-functional product team after 2 iterations (PM + UX + Security + BA + Architect).
+Theme: **make the product non-embarrassing on day one** — dashboard shows real names and accurate data; checklist shows actual guidance; users complete with a reason to return.
+
+### Delivered
+
+- Migration 007: `steps` (jsonb) + `why_it_matters` (text) on `assessment_items`; `email` (text) on `org_members`; `checklist_items.steps` transformed to keyed format `{ "default": [...] }`
+- Assessment snapshot copies `steps` (resolved for org platform) + `why_it_matters` into `assessment_items`
+- `resolveSteps(stepsMap, platform)` helper for platform-specific step resolution
+- Checklist UI: expanded items show "Why it matters" block + numbered steps list
+- Per-track dashboard: IT Baseline and Awareness shown as separate progress indicators
+- Denominator fix: non-IT-executor percent calculated against awareness items only
+- Named members: `email` stored at invite acceptance, shown on dashboard (fallback to UUID)
+- Post-completion screen: stat grid → .ics calendar download → dashboard link → read-only checklist disclosure
+- First-assessment CTA on workspace for org_admin with no active assessment
+- Onboarding copy fix: removed broken "reassign later in Team Settings" promise
+- E2E: TRACK-04/05/06 un-skipped, DASH-03/TRACK-AGG-01/NAMES-01 added (53 passing, 4 intentionally skipped)
+- Docs: DECISIONS.md updated (platform steps storage, email in org_members), acceptance-criteria sections 17-21
+
+## Iteration 5 — QA sweep findings (2026-03-10)
 
 _Findings from live browser QA of https://smbsec1.vercel.app (anonymous + protected-route flows)._
 
@@ -67,35 +87,82 @@ _Findings from live browser QA of https://smbsec1.vercel.app (anonymous + protec
   /summary shows only "Sign in to see your progress summary." with no teaser content. The "View
   summary" CTA on the landing page goes nowhere useful for an anonymous visitor.
 
-- **UX-03 — All pages share the same <title>**
+- **UX-03 — All pages share the same `<title>`**
   Every route returns "SMB Security Quick-Check" as the browser tab title. Per-page titles improve
   orientation and SEO (e.g. "Security Checklist | SMB Security Quick-Check").
 
 ---
 
-### Recommended — build next (priority order)
+## Iteration 6: Platform Content + Early Adopter Readiness (planned)
 
-1. **Remove stale localStorage copy (BUG-01)**
-   Strip "Progress is stored in your browser. Sign in to sync across devices." from the landing page
-   and replace the checklist sign-in banner with a plain prompt. Also reconsider whether the
-   "View summary" landing-page CTA makes sense for anonymous visitors (UX-02).
+Theme: close the content gap and fix the experiences that would cause early adopters to churn in week 1.
 
-2. **Custom 404 page**
-   Add app/not-found.tsx with site header/branding, a short message, and a "Go home" link.
-   30-minute task, high polish impact.
+### Content (all DB-ready content written by Security Expert in product team iteration 2)
+- Platform-specific step content for `acct-enable-mfa-email`, `email-phishing-filters`, `email-disable-macros`, `backup-3-2-1`
+  - Google Workspace: admin.google.com paths
+  - Microsoft 365: security.microsoft.com / M365 admin center paths
+- 4 new IT Baseline items (content ready in product team iteration 2 output):
+  - `endpoint-defender-active` — Windows Defender / AV (high impact, low effort)
+  - `email-auth-spf-dkim-dmarc` — SPF, DKIM, DMARC (high impact, medium effort; blocks BEC/invoice fraud)
+  - `network-rdp-exposure` — RDP not exposed to internet (high impact, low effort)
+  - `gws-oauth-app-audit` — Audit third-party app access in Google Admin Console (closes the dangerous OAuth token gap: 100%-complete SMBs still have 30-80 unreviewed OAuth grants; one of the most likely persistent-access attack paths)
 
-3. **Per-page `<title>` tags**
-   Each route should set a descriptive title (e.g. "Security Checklist | SMB Security Quick-Check").
-   Improves browser tab orientation and is a prerequisite for any future SEO work.
+### Settings & admin
+- Org Settings page: `email_platform` + IT executor reassignment (resolves AC-ONBOARD-4)
+- `GET /api/orgs/me` returns `org.email_platform` and `org.primary_os`
+
+### UX fixes identified in product team iteration 3
+- IT executor contextual message on first checklist load: "Your admin has assigned you the IT Baseline track — these are the technical controls for [Org Name]"
+- Admin confirmation view: dashboard shows whether IT executor has started work (not just a completion %)
+- Landing page: fix "Start the checklist" CTA to not mislead users into a read-only dead-end; clarify the team workspace value proposition before signup
+- Magic link UX: add cross-browser/mobile warning ("open this link in the same browser where you signed up")
+- Invite email: configure `RESEND_FROM_EMAIL` to the product domain (not `onboarding@resend.dev`) and add context copy so employees don't mistake it for phishing
+
+### Bug fixes from QA sweep
+- BUG-01: Remove stale localStorage copy
+- BUG-02: Custom 404 page
+- BUG-03: Loading flash before auth redirect
+- UX-01: Mobile hero CTA layout
+- UX-02: Summary page dead end
+- UX-03: Per-page `<title>` tags
+
+### Instrumentation (BA iteration 3)
+- Add `assessment_responses.updated_at` (trivial migration — high diagnostic value)
+- Record `orgs.email_platform` at onboarding for analytics segmentation
+
+### Pre-launch quality gate (PM iteration 3)
+- **Manual IT Baseline walkthrough:** dev completes the full IT Baseline as a non-technical owner using only what the product shows. Every item requiring a Google search to follow is flagged for content improvement before first users see it.
+
+### Success metrics to track from day 1 (BA iteration 3)
+- Checklist Completion Rate: ≥60% within 30 days = healthy; <20% at day 14 = red flag
+- Multi-member Engagement Rate: ≥50% of orgs have >1 responding user within 14 days
+- Time-to-First-Response: ≤24h for ≥70% of orgs
+- "Worked" test: 8 orgs × 30 days → 5/8 at ≥60% completion, 4/8 multi-user, 6/8 respond within 24h
+
+---
+
+## Iteration 7: Retention & Paid Tier Foundation (planned)
+
+Theme: convert one-time users into quarterly returning users; establish the minimum for a paid tier.
+
+- **Monthly pulse check-in** — 3-question prompt at login: "New staff joined or left? New SaaS apps added? Any security incidents?" Yes triggers relevant checklist items. Two .ics downloads: quarterly (full review) + monthly (pulse). No backend required — client-side prompt + localStorage state.
+- **Reassessment reminder email** — Resend trigger at 80 days post-completion: "Your quarterly security review is due in 10 days." One-click deep link to start reassessment.
+- **Scenario-based completion gates for Awareness track** — 2–3 scenario questions before "Done" unlocks on awareness items. Dramatically improves effectiveness over self-reported completion. Requires `verificationQuestions[]` field on items + `ScenarioGate` UI component. No backend change.
+- **Shareable summary output** — Print-CSS-formatted summary page (not PDF generation — just `@media print` styles on the dashboard). Useful for insurance renewal conversations.
+- **Display name capture** — Prompt for name at invite acceptance; store in `org_members.display_name`. Replaces email in dashboard member list with a real name.
+- **Paid tier gate** — Free = personal checklist (single user). Paid = team dashboard + reminders + shareable summary (£10/month per org). Gate the dashboard and team pages behind a subscription flag.
+
+---
 
 ## Deferred — v1.1 candidates
 
+- Phishing simulations (separate product surface, email infra, GDPR complexity)
+- Evidence uploads (file storage cost, GDPR surface area, low SMB value)
+- Branch delete UI (backend done; UI medium effort, low urgency for 1-20 person orgs)
+- Audit logs / event history (no security value at SMB scale)
+- `assessment_responses` RLS tightening (move dashboard aggregation to SECURITY DEFINER function; restrict SELECT policy to `user_id = auth.uid()`)
+- Mobile responsiveness audit (Tailwind v4 should be responsive; needs a dedicated test pass)
+- Account recovery UI (magic link works but there is no visible "help, I can't get in" path)
 - E2E: self-deletion blocker test (user with direct reports — API enforces, no UI test yet)
 - E2E: data residency notice visible to non-admin users (no test yet)
-- Platform-specific checklist step content (Google Workspace / M365)
-- Branch delete UI (manager + all direct reports in one action)
-- Reset checklist item to unanswered state
-- Phishing simulations
-- Evidence uploads
-- Reassessment reminders / calendar integration
 - SEO / Open Graph: og:title, og:description, og:image — low priority, awaiting later version when SEO strategy is defined

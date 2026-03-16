@@ -240,23 +240,33 @@ export async function startAssessment(orgId: string, adminUserId: string): Promi
 
   const { data: items } = await supabase
     .from("checklist_items")
-    .select("id, group_id, track, title, outcome, order_index, impact, effort")
+    .select("id, group_id, track, title, outcome, why_it_matters, steps, order_index, impact, effort")
     .eq("active", true)
     .order("order_index", { ascending: true });
 
   if (items?.length) {
     await supabase.from("assessment_items").insert(
-      (items as Record<string, unknown>[]).map((item) => ({
-        assessment_id: (assessment as { id: string }).id,
-        checklist_item_id: item.id,
-        group_id: item.group_id,
-        title: item.title,
-        description: item.outcome,
-        order_index: item.order_index,
-        track: item.track,
-        impact: item.impact,
-        effort: item.effort,
-      }))
+      (items as Record<string, unknown>[]).map((item) => {
+        // Resolve steps: keyed object → pick "default" variant for tests
+        const stepsMap = item.steps as Record<string, string[]> | string[] | null;
+        const resolvedSteps = Array.isArray(stepsMap)
+          ? stepsMap
+          : (stepsMap?.["default"] ?? []);
+
+        return {
+          assessment_id: (assessment as { id: string }).id,
+          checklist_item_id: item.id,
+          group_id: item.group_id,
+          title: item.title,
+          description: item.outcome,
+          why_it_matters: item.why_it_matters,
+          steps: resolvedSteps,
+          order_index: item.order_index,
+          track: item.track,
+          impact: item.impact,
+          effort: item.effort,
+        };
+      })
     );
   }
 

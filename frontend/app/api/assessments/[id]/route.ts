@@ -38,7 +38,7 @@ export async function GET(
 
   const { data: items, error: itemsErr } = await supabase
     .from("assessment_items")
-    .select("id, checklist_item_id, group_id, title, description, order_index, track, impact, effort")
+    .select("id, checklist_item_id, group_id, title, description, order_index, track, impact, effort, why_it_matters, steps")
     .eq("assessment_id", id)
     .order("order_index", { ascending: true });
 
