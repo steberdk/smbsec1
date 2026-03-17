@@ -17,17 +17,17 @@ export default function HomePage() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <Link
-            href="/checklist"
+            href="/login"
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gray-900 text-white"
           >
-            Start the checklist
+            Sign up free
           </Link>
 
           <Link
-            href="/summary"
+            href="/checklist"
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300"
           >
-            View summary
+            Browse the checklist
           </Link>
 
           <Link

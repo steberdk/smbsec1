@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test("home page loads and shows checklist CTA", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("link", { name: /start the checklist/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /browse the checklist/i })).toBeVisible();
 });
 
 test("checklist page (anon) shows item titles but no status buttons", async ({ page }) => {

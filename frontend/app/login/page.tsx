@@ -75,9 +75,14 @@ function LoginInner() {
         </button>
 
         {status === "sent" && (
-          <p className="text-sm text-green-700">
-            Sent! Check your email and click the link to continue.
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm text-green-700">
+              Sent! Check your email and click the link to continue.
+            </p>
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Open the link in the same browser where you requested it. Magic links don&apos;t work across different browsers or devices.
+            </p>
+          </div>
         )}
         {status === "error" && <p className="text-sm text-red-700">{error}</p>}
       </form>

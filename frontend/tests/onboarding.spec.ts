@@ -109,8 +109,8 @@ test("E2E-ONBOARD-04: 'Not sure' assigns IT checklist to owner and redirects to 
 
     await page.waitForURL(/\/workspace/, { timeout: 15_000 });
 
-    // Owner is set as IT executor; workspace shows "IT executor" tag
-    await expect(page.getByText(/it executor/i)).toBeVisible({ timeout: 10_000 });
+    // Owner is set as IT executor; workspace shows "IT executor" tag in role line
+    await expect(page.getByText(/org admin · IT executor/i)).toBeVisible({ timeout: 10_000 });
   } finally {
     const { data: membership } = await supabase
       .from("org_members")

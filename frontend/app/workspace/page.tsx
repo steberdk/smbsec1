@@ -138,6 +138,13 @@ export default function WorkspacePage() {
             description="Start, view, and complete security assessments."
           />
         )}
+        {isAdmin && (
+          <WorkspaceCard
+            href="/workspace/settings"
+            title="Org Settings"
+            description="Email platform, IT executor assignment."
+          />
+        )}
         <WorkspaceCard
           href="/workspace/settings/gdpr"
           title="Settings & data"

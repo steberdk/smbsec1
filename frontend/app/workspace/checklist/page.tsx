@@ -39,6 +39,8 @@ export default function WorkspaceChecklistPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [noAssessment, setNoAssessment] = useState(false);
   const [isItExecutor, setIsItExecutor] = useState(false);
+  const [orgName, setOrgName] = useState("");
+  const [showExecutorBanner, setShowExecutorBanner] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
 
   useEffect(() => { document.title = "My Checklist | SMB Security Quick-Check"; }, []);
@@ -56,10 +58,14 @@ export default function WorkspaceChecklistPage() {
 
     Promise.all([
       apiFetch<{ assessments: Assessment[] }>("/api/assessments", token),
-      apiFetch<{ membership: { is_it_executor: boolean } }>("/api/orgs/me", token),
+      apiFetch<{ org: { name: string }; membership: { is_it_executor: boolean } }>("/api/orgs/me", token),
     ])
-      .then(async ([{ assessments }, { membership }]) => {
+      .then(async ([{ assessments }, { org, membership }]) => {
         setIsItExecutor(membership.is_it_executor);
+        setOrgName(org.name);
+        if (membership.is_it_executor && !localStorage.getItem("smbsec:executor-banner-dismissed")) {
+          setShowExecutorBanner(true);
+        }
         const active = assessments.find((a) => a.status === "active");
         if (!active) {
           setNoAssessment(true);
@@ -305,6 +311,25 @@ export default function WorkspaceChecklistPage() {
           />
         </div>
       </div>
+
+      {/* IT executor contextual banner */}
+      {showExecutorBanner && (
+        <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 flex items-start justify-between gap-3">
+          <p className="text-sm text-blue-800">
+            Your admin has assigned you the IT Baseline track — these are the technical controls for <strong>{orgName}</strong>.
+          </p>
+          <button
+            onClick={() => {
+              setShowExecutorBanner(false);
+              localStorage.setItem("smbsec:executor-banner-dismissed", "1");
+            }}
+            className="text-blue-400 hover:text-blue-600 text-lg leading-none flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            &times;
+          </button>
+        </div>
+      )}
 
       {itItems.length > 0 && (
         <ItemGroup
