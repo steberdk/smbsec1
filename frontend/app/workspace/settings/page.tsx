@@ -1,28 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSession } from "@/lib/hooks/useSession";
+import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
-
-type OrgMe = {
-  org: {
-    id: string;
-    name: string;
-    email_platform: string | null;
-    primary_os: string | null;
-  };
-  membership: {
-    user_id: string;
-    role: string;
-    is_it_executor: boolean;
-  };
-};
 
 type MemberInfo = {
   user_id: string;
   email: string | null;
+  display_name: string | null;
   role: string;
   is_it_executor: boolean;
 };
@@ -36,11 +22,10 @@ const PLATFORM_OPTIONS = [
 ];
 
 export default function OrgSettingsPage() {
-  const router = useRouter();
-  const { token, loading: sessionLoading } = useSession();
-  const [orgMe, setOrgMe] = useState<OrgMe | null>(null);
+  const { token, orgData, isAdmin, refresh } = useWorkspace();
+
   const [members, setMembers] = useState<MemberInfo[]>([]);
-  const [platform, setPlatform] = useState("");
+  const [platform, setPlatform] = useState(orgData.org.email_platform ?? "");
   const [executor, setExecutor] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -49,26 +34,17 @@ export default function OrgSettingsPage() {
   useEffect(() => { document.title = "Org Settings | SMB Security Quick-Check"; }, []);
 
   useEffect(() => {
-    if (!sessionLoading && !token) router.replace("/login");
-  }, [sessionLoading, token, router]);
-
-  useEffect(() => {
     if (!token) return;
-    Promise.all([
-      apiFetch<OrgMe>("/api/orgs/me", token),
-      apiFetch<{ members: MemberInfo[] }>("/api/dashboard", token),
-    ])
-      .then(([orgData, dashData]) => {
-        setOrgMe(orgData);
-        setPlatform(orgData.org.email_platform ?? "");
+    apiFetch<{ members: MemberInfo[] }>("/api/dashboard", token)
+      .then((dashData) => {
         const currentExecutor = dashData.members.find((m) => m.is_it_executor);
-        setExecutor(currentExecutor?.user_id ?? orgData.membership.user_id);
+        setExecutor(currentExecutor?.user_id ?? orgData.membership.user_id ?? "");
         setMembers(dashData.members);
       })
       .catch((e: unknown) => {
         setLoadError(e instanceof Error ? e.message : "Failed to load settings.");
       });
-  }, [token]);
+  }, [token, orgData.membership.user_id]);
 
   async function handleSave() {
     if (!token) return;
@@ -86,6 +62,7 @@ export default function OrgSettingsPage() {
         body: JSON.stringify({ user_id: executor }),
       });
       setSaveMsg("Settings saved.");
+      refresh();
     } catch (e: unknown) {
       setSaveMsg(e instanceof Error ? e.message : "Failed to save.");
     } finally {
@@ -93,34 +70,30 @@ export default function OrgSettingsPage() {
     }
   }
 
-  if (sessionLoading || !token) return null;
-
-  if (loadError) {
+  if (!isAdmin) {
     return (
-      <PageShell>
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm text-red-800">{loadError}</p>
-        </div>
-      </PageShell>
+      <>
+        <h1 className="text-xl font-bold mb-6">Org Settings</h1>
+        <p className="text-sm text-gray-600">Only organisation admins can change settings.</p>
+      </>
     );
   }
 
-  if (!orgMe) {
-    return <PageShell><p className="text-sm text-gray-600">Loading...</p></PageShell>;
-  }
-
-  const isAdmin = orgMe.membership.role === "org_admin";
-
-  if (!isAdmin) {
+  if (loadError) {
     return (
-      <PageShell>
-        <p className="text-sm text-gray-600">Only organisation admins can change settings.</p>
-      </PageShell>
+      <>
+        <h1 className="text-xl font-bold mb-6">Org Settings</h1>
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm text-red-800">{loadError}</p>
+        </div>
+      </>
     );
   }
 
   return (
-    <PageShell>
+    <>
+      <h1 className="text-xl font-bold mb-6">Org Settings</h1>
+
       <div className="space-y-6">
         {/* Email Platform */}
         <div>
@@ -152,7 +125,7 @@ export default function OrgSettingsPage() {
           >
             {members.map((m) => (
               <option key={m.user_id} value={m.user_id}>
-                {m.email ?? m.user_id.slice(0, 8) + "..."} ({m.role.replace("_", " ")})
+                {m.display_name ?? m.email ?? m.user_id.slice(0, 8) + "..."} ({m.role.replace("_", " ")})
               </option>
             ))}
           </select>
@@ -181,18 +154,6 @@ export default function OrgSettingsPage() {
           Settings & data (export, deletion)
         </Link>
       </div>
-    </PageShell>
-  );
-}
-
-function PageShell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="max-w-2xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Org Settings</h1>
-        <Link href="/workspace" className="text-sm text-gray-500 underline">Back</Link>
-      </div>
-      {children}
-    </main>
+    </>
   );
 }

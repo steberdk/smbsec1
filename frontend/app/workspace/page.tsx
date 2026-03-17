@@ -1,119 +1,87 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSession } from "@/lib/hooks/useSession";
+import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-
-type OrgMe = {
-  org: { id: string; name: string };
-  membership: { role: string; is_it_executor: boolean };
-};
 
 export default function WorkspacePage() {
-  const router = useRouter();
-  const { token, loading: sessionLoading } = useSession();
-  const [orgMe, setOrgMe] = useState<OrgMe | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { token, orgData, isManager, isAdmin } = useWorkspace();
+  const { membership } = orgData;
+
   const [hasActiveAssessment, setHasActiveAssessment] = useState<boolean | null>(null);
+  const [pendingInviteCount, setPendingInviteCount] = useState<number | null>(null);
 
-  useEffect(() => { document.title = "Workspace | SMB Security Quick-Check"; }, []);
-
-  // Redirect to login if not authenticated
   useEffect(() => {
-    if (!sessionLoading && !token) {
-      router.replace("/login");
-    }
-  }, [sessionLoading, token, router]);
+    document.title = "Workspace | SMB Security Quick-Check";
+  }, []);
 
-  // Load org membership + check for active assessment
+  // Load assessment + invite status for guided first-run
   useEffect(() => {
     if (!token) return;
-    Promise.all([
-      apiFetch<OrgMe>("/api/orgs/me", token),
-      apiFetch<{ assessments: { status: string }[] }>("/api/assessments", token),
-    ])
-      .then(([orgData, { assessments }]) => {
-        setOrgMe(orgData);
-        setHasActiveAssessment(assessments.some((a) => a.status === "active"));
-      })
-      .catch((e: unknown) => {
-        const status = (e as { status?: number }).status;
-        if (status === 404) {
-          router.replace("/onboarding");
-        } else {
-          setLoadError(e instanceof Error ? e.message : "Failed to load organisation.");
-        }
-      });
-  }, [token, router]);
+    const fetches: Promise<void>[] = [
+      apiFetch<{ assessments: { status: string }[] }>("/api/assessments", token)
+        .then(({ assessments }) => {
+          setHasActiveAssessment(assessments.some((a) => a.status === "active"));
+        }),
+    ];
+    if (isManager) {
+      fetches.push(
+        apiFetch<{ invites: unknown[] }>("/api/invites", token)
+          .then(({ invites }) => setPendingInviteCount(invites.length))
+      );
+    }
+    Promise.all(fetches).catch(() => {});
+  }, [token, isManager]);
 
-  async function handleLogout() {
-    const supabase = getSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    router.replace("/");
-  }
-
-  if (sessionLoading || !token) {
-    return null;
-  }
-
-  if (loadError) {
-    return (
-      <main className="max-w-2xl mx-auto px-4 py-10">
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm text-red-800">{loadError}</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (!orgMe) {
-    return <main className="max-w-2xl mx-auto px-4 py-10"><p className="text-sm text-gray-600">Loading…</p></main>;
-  }
-
-  const { org, membership } = orgMe;
-  const isManager = membership.role === "manager" || membership.role === "org_admin";
-  const isAdmin = membership.role === "org_admin";
+  // Guided first-run: show step-by-step when admin has no assessment yet
+  const showGuidedSetup = isAdmin && hasActiveAssessment === false;
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-10">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{org.name}</h1>
-          <p className="mt-1 text-sm text-gray-500 capitalize">
-            {membership.role.replace("_", " ")}
-            {membership.is_it_executor && " · IT executor"}
-          </p>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-gray-500 underline"
-        >
-          Log out
-        </button>
-      </div>
+    <>
+      <h1 className="text-xl font-bold">{orgData.org.name}</h1>
+      <p className="mt-1 text-sm text-gray-500 capitalize mb-6">
+        {membership.role.replace("_", " ")}
+        {membership.is_it_executor && " · IT executor"}
+      </p>
 
-      {/* First-assessment CTA for org_admin with no active assessment */}
-      {isAdmin && hasActiveAssessment === false && (
-        <div className="mt-6 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-5 py-6 text-center">
-          <p className="text-sm font-semibold text-gray-800">
-            Start your first security review
+      {/* Guided first-run for org_admin */}
+      {showGuidedSetup && (
+        <div className="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <p className="text-sm font-semibold text-gray-800 mb-4">
+            Get started in 3 steps
           </p>
-          <p className="mt-1 text-xs text-gray-500">
-            Kick off an assessment so your team can begin working through the security checklist.
-          </p>
-          <Link
-            href="/workspace/assessments"
-            className="mt-4 inline-block rounded-lg bg-gray-800 px-5 py-2 text-sm font-medium text-white hover:bg-gray-900 transition-colors"
-          >
-            Start assessment
-          </Link>
+          <ol className="space-y-3">
+            <GuidedStep
+              number={1}
+              title="Invite your IT lead"
+              description="Assign someone to handle the technical security checklist."
+              href="/workspace/team"
+              done={pendingInviteCount !== null && pendingInviteCount > 0}
+              cta="Invite team member"
+            />
+            <GuidedStep
+              number={2}
+              title="Start your first assessment"
+              description="Kick off a security review so your team can begin."
+              href="/workspace/assessments"
+              done={false}
+              cta="Start assessment"
+            />
+            <GuidedStep
+              number={3}
+              title="Share the summary"
+              description="Once your team has responded, review progress on the dashboard."
+              href="/workspace/dashboard"
+              done={false}
+              cta="View dashboard"
+            />
+          </ol>
         </div>
       )}
 
-      <nav className="mt-8 grid gap-3 sm:grid-cols-2">
+      {/* Navigation cards (always visible) */}
+      <nav className="grid gap-3 sm:grid-cols-2">
         <WorkspaceCard
           href="/workspace/checklist"
           title="My checklist"
@@ -148,10 +116,56 @@ export default function WorkspacePage() {
         <WorkspaceCard
           href="/workspace/settings/gdpr"
           title="Settings & data"
-          description={isAdmin ? "Export org data, manage members, or delete the organisation." : "View data storage info or delete your account."}
+          description={
+            isAdmin
+              ? "Export org data, manage members, or delete the organisation."
+              : "View data storage info or delete your account."
+          }
         />
       </nav>
-    </main>
+    </>
+  );
+}
+
+function GuidedStep({
+  number,
+  title,
+  description,
+  href,
+  done,
+  cta,
+}: {
+  number: number;
+  title: string;
+  description: string;
+  href: string;
+  done: boolean;
+  cta: string;
+}) {
+  return (
+    <li className="flex items-start gap-3">
+      <span
+        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+          done ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"
+        }`}
+      >
+        {done ? "\u2713" : number}
+      </span>
+      <div className="flex-1">
+        <p className={`text-sm font-medium ${done ? "text-green-700 line-through" : "text-gray-800"}`}>
+          {title}
+        </p>
+        <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+        {!done && (
+          <Link
+            href={href}
+            className="mt-1.5 inline-block text-xs font-medium text-gray-700 underline hover:text-gray-900"
+          >
+            {cta} &rarr;
+          </Link>
+        )}
+      </div>
+    </li>
   );
 }
 

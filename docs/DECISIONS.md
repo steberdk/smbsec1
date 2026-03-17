@@ -166,3 +166,50 @@ All permission enforcement must:
 - Exist in database (RLS)
 - Exist in backend validation
 - Not rely solely on frontend logic
+
+---
+
+## 9. Workspace Navigation Shell (PI 2, Iteration 1)
+
+Decision: All workspace pages share a persistent layout via `workspace/layout.tsx`.
+
+Architecture:
+- `WorkspaceProvider` context (in `lib/hooks/useWorkspace.tsx`) fetches org/membership data once
+- All workspace pages consume via `useWorkspace()` hook instead of individual fetches
+- Role-aware nav links rendered in the layout header
+- Individual page `PageShell` wrappers removed
+
+Rationale: Eliminates duplicated auth/loading logic across 7 workspace pages.
+Provides persistent navigation without "Back" links.
+
+---
+
+## 10. Display Name on org_members (PI 2, Iteration 1)
+
+Decision: Add `display_name` (text, nullable) to `org_members`.
+
+Captured at invite acceptance via a name prompt before the accept API call.
+Shown on dashboard, settings, and member lists (falls back to email → UUID).
+
+The column is nullable and the code handles its absence gracefully — if migration 011
+hasn't been applied yet, queries omit it and the UI falls back to email.
+
+---
+
+## 11. Security Headers via next.config.ts (PI 2, Iteration 1)
+
+Decision: Security headers (CSP, X-Frame-Options, etc.) are set in `next.config.ts`
+`headers()` function rather than middleware or per-route.
+
+CSP allows `connect-src` to self + Supabase URLs. `script-src` includes `unsafe-inline`
+and `unsafe-eval` because Next.js requires them for client-side hydration.
+
+---
+
+## 12. In-Memory Rate Limiting (PI 2, Iteration 1)
+
+Decision: Simple in-memory sliding-window rate limiter (60 req/min/user).
+
+Not persistent across serverless cold starts — acceptable for SMB scale.
+Applied selectively to high-risk routes (dashboard, invite accept).
+Keyed by user_id (authenticated) or IP (unauthenticated).

@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSession } from "@/lib/hooks/useSession";
+import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
 
 type CadenceStatus = "green" | "amber" | "red" | "never";
@@ -11,6 +10,7 @@ type CadenceStatus = "green" | "amber" | "red" | "never";
 type MemberStat = {
   user_id: string;
   email: string | null;
+  display_name: string | null;
   role: string;
   is_it_executor: boolean;
   done: number;
@@ -57,19 +57,11 @@ const CADENCE_CLASSES: Record<CadenceStatus, string> = {
 };
 
 export default function WorkspaceDashboardPage() {
-  const router = useRouter();
-  const { token, loading: sessionLoading } = useSession();
+  const { token } = useWorkspace();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => { document.title = "Dashboard | SMB Security Quick-Check"; }, []);
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!sessionLoading && !token) {
-      router.replace("/login");
-    }
-  }, [sessionLoading, token, router]);
 
   useEffect(() => {
     if (!token) return;
@@ -80,28 +72,24 @@ export default function WorkspaceDashboardPage() {
       });
   }, [token]);
 
-  if (sessionLoading || !token) {
-    return <PageShell><p className="text-sm text-gray-600">Loading…</p></PageShell>;
-  }
-
   if (loadError) {
     return (
-      <PageShell>
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm text-red-800">{loadError}</p>
-        </div>
-      </PageShell>
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+        <p className="text-sm text-red-800">{loadError}</p>
+      </div>
     );
   }
 
   if (!data) {
-    return <PageShell><p className="text-sm text-gray-600">Loading…</p></PageShell>;
+    return <p className="text-sm text-gray-600">Loading...</p>;
   }
 
   const { stats, members, cadence, assessment } = data;
 
   return (
-    <PageShell>
+    <>
+      <h1 className="text-xl font-bold mb-6">Dashboard</h1>
+
       {/* Cadence indicator */}
       <div className={`rounded-xl border px-4 py-3 mb-6 inline-flex items-center gap-2 ${CADENCE_CLASSES[cadence.status]}`}>
         <span className="text-sm font-medium">{CADENCE_LABEL[cadence.status]}</span>
@@ -128,7 +116,6 @@ export default function WorkspaceDashboardPage() {
               {" · started "}{new Date(assessment.created_at).toLocaleDateString()}
             </p>
 
-            {/* Progress bar */}
             <div className="flex justify-between text-xs text-gray-500 mb-1">
               <span>{stats.done + stats.unsure + stats.skipped} / {stats.total * Math.max(members.length, 1)} responses</span>
               <span>{stats.percent}%</span>
@@ -146,7 +133,6 @@ export default function WorkspaceDashboardPage() {
               <StatPill label="Skipped" value={stats.skipped} color="text-gray-500" />
             </div>
 
-            {/* Per-track breakdown (AC-TRACK-AGG-01/02/03) */}
             {stats.by_track && (
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <TrackBar label="IT Baseline" track={stats.by_track.it_baseline} />
@@ -169,12 +155,12 @@ export default function WorkspaceDashboardPage() {
                           {m.is_it_executor && " · IT executor"}
                         </p>
                         <p className="text-xs text-gray-400 font-mono">
-                          {m.email ?? `${m.user_id.slice(0, 8)}…`}
+                          {m.display_name ?? m.email ?? `${m.user_id.slice(0, 8)}...`}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-semibold">{m.percent}%</p>
-                        <p className="text-xs text-gray-500">{m.done}✓ {m.unsure}? {m.skipped}–</p>
+                        <p className="text-xs text-gray-500">{m.done}&#10003; {m.unsure}? {m.skipped}&ndash;</p>
                       </div>
                     </div>
                     <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
@@ -190,7 +176,7 @@ export default function WorkspaceDashboardPage() {
           )}
         </>
       )}
-    </PageShell>
+    </>
   );
 }
 
@@ -220,19 +206,5 @@ function StatPill({ label, value, color }: { label: string; value: number; color
       <p className={`text-lg font-bold ${color}`}>{value}</p>
       <p className="text-xs text-gray-500">{label}</p>
     </div>
-  );
-}
-
-function PageShell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="max-w-2xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Dashboard</h1>
-        <Link href="/workspace" className="text-sm text-gray-500 underline">
-          Back
-        </Link>
-      </div>
-      {children}
-    </main>
   );
 }

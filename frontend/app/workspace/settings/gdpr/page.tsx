@@ -1,15 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSession } from "@/lib/hooks/useSession";
+import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
-
-type OrgMe = {
-  org: { id: string; name: string };
-  membership: { role: string; user_id?: string; has_direct_reports: boolean };
-};
 
 type OrgMember = {
   user_id: string;
@@ -20,47 +14,30 @@ type OrgMember = {
 
 export default function WorkspaceGdprPage() {
   const router = useRouter();
-  const { token, userId, loading: sessionLoading } = useSession();
+  const { token, userId, orgData, isAdmin } = useWorkspace();
 
-  const [orgMe, setOrgMe] = useState<OrgMe | null>(null);
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Delete member state
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
 
-  // Export state
   const [exporting, setExporting] = useState(false);
 
-  // Delete org state
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => { document.title = "Settings & Data | SMB Security Quick-Check"; }, []);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
-    if (!sessionLoading && !token) {
-      router.replace("/login");
-    }
-  }, [sessionLoading, token, router]);
-
-  useEffect(() => {
-    if (!token) return;
-    apiFetch<OrgMe>("/api/orgs/me", token)
-      .then(async (me) => {
-        setOrgMe(me);
-        if (me.membership.role === "org_admin") {
-          const { members: list } = await apiFetch<{ members: OrgMember[] }>("/api/orgs/members", token);
-          setMembers(list);
-        }
-      })
+    if (!token || !isAdmin) return;
+    apiFetch<{ members: OrgMember[] }>("/api/orgs/members", token)
+      .then(({ members: list }) => setMembers(list))
       .catch((e: unknown) => {
         setLoadError(e instanceof Error ? e.message : "Failed to load.");
       });
-  }, [token]);
+  }, [token, isAdmin]);
 
   async function handleExport() {
     if (!token) return;
@@ -104,7 +81,7 @@ export default function WorkspaceGdprPage() {
 
   async function handleDeleteOrg(e: React.FormEvent) {
     e.preventDefault();
-    if (!token || !orgMe) return;
+    if (!token) return;
     setDeleting(true);
     setDeleteError(null);
     try {
@@ -119,28 +96,23 @@ export default function WorkspaceGdprPage() {
     }
   }
 
-  if (sessionLoading || !token) {
-    return <PageShell><p className="text-sm text-gray-600">Loading…</p></PageShell>;
-  }
-
   if (loadError) {
     return (
-      <PageShell>
+      <>
+        <h1 className="text-xl font-bold mb-6">Settings & data</h1>
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
           <p className="text-sm text-red-800">{loadError}</p>
         </div>
-      </PageShell>
+      </>
     );
   }
 
-  if (!orgMe) {
-    return <PageShell><p className="text-sm text-gray-600">Loading…</p></PageShell>;
-  }
-
-  const isAdmin = orgMe.membership.role === "org_admin";
+  const hasDirectReports = orgData.membership.has_direct_reports;
 
   return (
-    <PageShell>
+    <>
+      <h1 className="text-xl font-bold mb-6">Settings & data</h1>
+
       {/* Data residency */}
       <section className="mb-8 rounded-xl border border-gray-200 px-4 py-4">
         <h2 className="text-base font-semibold mb-1">Data storage</h2>
@@ -151,7 +123,7 @@ export default function WorkspaceGdprPage() {
       </section>
 
       {/* Self-deletion */}
-      <SelfDeleteSection token={token!} members={members} role={orgMe.membership.role} hasDirectReports={orgMe.membership.has_direct_reports} />
+      <SelfDeleteSection token={token} members={members} role={orgData.membership.role} hasDirectReports={hasDirectReports} />
 
       {!isAdmin && (
         <p className="mt-4 text-sm text-gray-500">
@@ -162,67 +134,67 @@ export default function WorkspaceGdprPage() {
       {isAdmin && (
         <>
           {/* Data export */}
-      <section className="mb-8">
-        <h2 className="text-base font-semibold mb-1">Export data</h2>
-        <p className="text-sm text-gray-500 mb-3">
-          Download all organisation data as JSON (org, members, assessments, responses).
-        </p>
-        <button
-          onClick={handleExport}
-          disabled={exporting}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm disabled:opacity-60"
-        >
-          {exporting ? "Exporting…" : "Download JSON export"}
-        </button>
-      </section>
+          <section className="mb-8">
+            <h2 className="text-base font-semibold mb-1">Export data</h2>
+            <p className="text-sm text-gray-500 mb-3">
+              Download all organisation data as JSON (org, members, assessments, responses).
+            </p>
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm disabled:opacity-60"
+            >
+              {exporting ? "Exporting..." : "Download JSON export"}
+            </button>
+          </section>
 
-      {/* Member management */}
-      <section className="mb-8">
-        <h2 className="text-base font-semibold mb-3">Members</h2>
+          {/* Member management */}
+          <section className="mb-8">
+            <h2 className="text-base font-semibold mb-3">Members</h2>
 
-        {removeError && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 mb-3">
-            <p className="text-sm text-red-800">{removeError}</p>
-          </div>
-        )}
+            {removeError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 mb-3">
+                <p className="text-sm text-red-800">{removeError}</p>
+              </div>
+            )}
 
-        {members.length === 0 ? (
-          <p className="text-sm text-gray-500">No members.</p>
-        ) : (
-          <div className="space-y-2">
-            {members.map((m) => {
-              const isSelf = m.user_id === userId;
-              const isOtherAdmin = m.role === "org_admin" && !isSelf;
-              const canRemove = !isSelf && !isOtherAdmin;
+            {members.length === 0 ? (
+              <p className="text-sm text-gray-500">No members.</p>
+            ) : (
+              <div className="space-y-2">
+                {members.map((m) => {
+                  const isSelf = m.user_id === userId;
+                  const isOtherAdmin = m.role === "org_admin" && !isSelf;
+                  const canRemove = !isSelf && !isOtherAdmin;
 
-              return (
-                <div
-                  key={m.user_id}
-                  className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3"
-                >
-                  <div>
-                    <p className="text-xs font-mono text-gray-600">{m.user_id.slice(0, 12)}…</p>
-                    <p className="text-xs text-gray-500 capitalize">
-                      {m.role.replace("_", " ")}
-                      {m.is_it_executor && " · IT executor"}
-                      {isSelf && " · you"}
-                    </p>
-                  </div>
-                  {canRemove && (
-                    <button
-                      onClick={() => handleRemoveMember(m.user_id)}
-                      disabled={removingId === m.user_id}
-                      className="text-xs text-red-600 underline disabled:opacity-50"
+                  return (
+                    <div
+                      key={m.user_id}
+                      className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3"
                     >
-                      {removingId === m.user_id ? "Removing…" : "Remove"}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                      <div>
+                        <p className="text-xs font-mono text-gray-600">{m.user_id.slice(0, 12)}...</p>
+                        <p className="text-xs text-gray-500 capitalize">
+                          {m.role.replace("_", " ")}
+                          {m.is_it_executor && " · IT executor"}
+                          {isSelf && " · you"}
+                        </p>
+                      </div>
+                      {canRemove && (
+                        <button
+                          onClick={() => handleRemoveMember(m.user_id)}
+                          disabled={removingId === m.user_id}
+                          className="text-xs text-red-600 underline disabled:opacity-50"
+                        >
+                          {removingId === m.user_id ? "Removing..." : "Remove"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
 
           {/* Delete organisation */}
           <section className="rounded-xl border border-red-200 p-4">
@@ -235,14 +207,14 @@ export default function WorkspaceGdprPage() {
             <form onSubmit={handleDeleteOrg} className="space-y-3">
               <div className="space-y-1">
                 <label className="block text-xs text-gray-600">
-                  Type <strong>{orgMe.org.name}</strong> to confirm
+                  Type <strong>{orgData.org.name}</strong> to confirm
                 </label>
                 <input
                   type="text"
                   className="w-full border rounded-lg px-3 py-2 text-sm"
                   value={deleteConfirm}
                   onChange={(e) => setDeleteConfirm(e.target.value)}
-                  placeholder={orgMe.org.name}
+                  placeholder={orgData.org.name}
                 />
               </div>
 
@@ -254,16 +226,16 @@ export default function WorkspaceGdprPage() {
 
               <button
                 type="submit"
-                disabled={deleting || deleteConfirm !== orgMe.org.name}
+                disabled={deleting || deleteConfirm !== orgData.org.name}
                 className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-40"
               >
-                {deleting ? "Deleting…" : "Delete organisation permanently"}
+                {deleting ? "Deleting..." : "Delete organisation permanently"}
               </button>
             </form>
           </section>
         </>
       )}
-    </PageShell>
+    </>
   );
 }
 
@@ -328,22 +300,8 @@ function SelfDeleteSection({
         disabled={deleting || (isAdmin && otherMembers.length > 0) || hasDirectReports}
         className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-40"
       >
-        {deleting ? "Deleting…" : "Delete my account permanently"}
+        {deleting ? "Deleting..." : "Delete my account permanently"}
       </button>
     </section>
-  );
-}
-
-function PageShell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="max-w-2xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Settings & data</h1>
-        <Link href="/workspace" className="text-sm text-gray-500 underline">
-          Back
-        </Link>
-      </div>
-      {children}
-    </main>
   );
 }

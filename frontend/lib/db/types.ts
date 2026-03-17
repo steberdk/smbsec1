@@ -47,6 +47,7 @@ export type OrgMemberRow = {
   manager_user_id: string | null;
   is_it_executor: boolean;
   email: string | null;
+  display_name?: string | null;
   created_at: string;
 };
 

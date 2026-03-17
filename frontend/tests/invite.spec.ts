@@ -122,6 +122,10 @@ test("E2E-INV-04: Invited user accepts invite and lands in workspace", async ({ 
     // Accept the invite via the accept-invite page
     await page.goto(`/accept-invite?token=${inviteToken}`);
 
+    // Name prompt appears — click Accept invite to proceed
+    await expect(page.getByRole("button", { name: /accept invite/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: /accept invite/i }).click();
+
     // Should redirect to workspace after accepting
     await page.waitForURL(/\/workspace/, { timeout: 15_000 });
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();

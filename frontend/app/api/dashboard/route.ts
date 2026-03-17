@@ -21,6 +21,7 @@ import {
   getOrgMembership,
   buildSubtree,
 } from "../../../lib/api/helpers";
+import { rateLimit, rateLimitKey } from "../../../lib/api/rateLimit";
 import { type OrgMemberRow } from "../../../lib/db/types";
 
 export const runtime = "nodejs";
@@ -44,6 +45,9 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   const user = await getUser(supabase);
   if (!user) return apiError("Unauthorized", 401);
+
+  const rl = rateLimit(rateLimitKey(req, user.id));
+  if (rl) return rl;
 
   const membership = await getOrgMembership(supabase, user.id);
   if (!membership) return apiError("Not a member of any organisation", 404);
@@ -154,6 +158,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   type MemberStat = {
     user_id: string;
     email: string | null;
+    display_name: string | null;
     role: string;
     is_it_executor: boolean;
     done: number;
@@ -180,6 +185,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       return {
         user_id: uid,
         email: memberMembership?.email ?? null,
+        display_name: (memberMembership as Record<string, unknown>)?.display_name as string ?? null,
         role: memberMembership?.role ?? "employee",
         is_it_executor: isItExecutor,
         done: mDone,

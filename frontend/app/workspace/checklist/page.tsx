@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSession } from "@/lib/hooks/useSession";
+import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
 
 type AssessmentItem = {
@@ -29,8 +28,7 @@ type ResponseStatus = "done" | "unsure" | "skipped";
 type ResponseMap = Record<string, ResponseStatus>;
 
 export default function WorkspaceChecklistPage() {
-  const router = useRouter();
-  const { token, loading: sessionLoading } = useSession();
+  const { token } = useWorkspace();
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [items, setItems] = useState<AssessmentItem[]>([]);
@@ -45,14 +43,6 @@ export default function WorkspaceChecklistPage() {
 
   useEffect(() => { document.title = "My Checklist | SMB Security Quick-Check"; }, []);
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!sessionLoading && !token) {
-      router.replace("/login");
-    }
-  }, [sessionLoading, token, router]);
-
-  // Load active assessment + items + my responses
   useEffect(() => {
     if (!token) return;
 
@@ -141,38 +131,29 @@ export default function WorkspaceChecklistPage() {
     }
   }
 
-  if (sessionLoading || !token) {
-    return <PageShell><p className="text-sm text-gray-600">Loading…</p></PageShell>;
-  }
-
   if (loadError) {
     return (
-      <PageShell>
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm text-red-800">{loadError}</p>
-        </div>
-      </PageShell>
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+        <p className="text-sm text-red-800">{loadError}</p>
+      </div>
     );
   }
 
   if (noAssessment) {
     return (
-      <PageShell>
-        <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-5">
-          <p className="text-sm font-medium text-gray-800">No active assessment yet</p>
-          <p className="mt-1 text-sm text-gray-500">
-            Your checklist will appear here once an assessment is started.
-          </p>
-        </div>
-      </PageShell>
+      <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-5">
+        <p className="text-sm font-medium text-gray-800">No active assessment yet</p>
+        <p className="mt-1 text-sm text-gray-500">
+          Your checklist will appear here once an assessment is started.
+        </p>
+      </div>
     );
   }
 
   if (!assessment || items.length === 0) {
-    return <PageShell><p className="text-sm text-gray-600">Loading…</p></PageShell>;
+    return <p className="text-sm text-gray-600">Loading...</p>;
   }
 
-  // Non-IT-executors only see the awareness track
   const visibleItems = isItExecutor ? items : items.filter((i) => i.track === "awareness");
   const answered = visibleItems.filter((i) => responses[i.id] !== undefined).length;
   const total = visibleItems.length;
@@ -183,7 +164,6 @@ export default function WorkspaceChecklistPage() {
   const unsureCount = visibleItems.filter((i) => responses[i.id] === "unsure").length;
   const skippedCount = visibleItems.filter((i) => responses[i.id] === "skipped").length;
 
-  // Group items by track
   const itItems = visibleItems.filter((i) => i.track === "it_baseline");
   const awarenessItems = visibleItems.filter((i) => i.track === "awareness");
 
@@ -215,16 +195,15 @@ export default function WorkspaceChecklistPage() {
     URL.revokeObjectURL(url);
   }
 
-  // Post-completion screen (AC-ITER5-05 to AC-ITER5-08)
   if (allAnswered) {
     return (
-      <PageShell>
+      <>
+        <h1 className="text-xl font-bold mb-6">My checklist</h1>
         <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-6">
           <p className="text-lg font-semibold text-green-800 text-center">
             All items answered — great work!
           </p>
 
-          {/* Stat grid */}
           <div className="mt-4 grid grid-cols-3 gap-3 text-center">
             <div className="rounded-lg bg-white border border-green-100 py-3">
               <p className="text-2xl font-bold text-green-700">{doneCount}</p>
@@ -240,7 +219,6 @@ export default function WorkspaceChecklistPage() {
             </div>
           </div>
 
-          {/* .ics download + dashboard link */}
           <div className="mt-5 flex flex-col gap-3">
             <button
               onClick={downloadIcs}
@@ -256,7 +234,6 @@ export default function WorkspaceChecklistPage() {
             </Link>
           </div>
 
-          {/* Read-only checklist disclosure */}
           <div className="mt-5 border-t border-green-200 pt-4">
             <button
               onClick={() => setShowChecklist((v) => !v)}
@@ -267,52 +244,34 @@ export default function WorkspaceChecklistPage() {
           </div>
         </div>
 
-        {/* Read-only checklist when disclosed */}
         {showChecklist && (
           <div className="mt-6">
             {itItems.length > 0 && (
-              <ItemGroup
-                title="IT Baseline"
-                items={itItems}
-                responses={responses}
-                saving={saving}
-                onResponse={setResponse}
-                onClear={clearResponse}
-              />
+              <ItemGroup title="IT Baseline" items={itItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
             )}
             {awarenessItems.length > 0 && (
-              <ItemGroup
-                title="Security Awareness"
-                items={awarenessItems}
-                responses={responses}
-                saving={saving}
-                onResponse={setResponse}
-                onClear={clearResponse}
-              />
+              <ItemGroup title="Security Awareness" items={awarenessItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
             )}
           </div>
         )}
-      </PageShell>
+      </>
     );
   }
 
   return (
-    <PageShell>
-      {/* Progress bar */}
+    <>
+      <h1 className="text-xl font-bold mb-6">My checklist</h1>
+
       <div className="mb-6">
         <div className="flex justify-between text-xs text-gray-500 mb-1">
           <span>{answered} / {total} answered</span>
           <span>{pct}%</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2">
-          <div
-            className="bg-gray-800 h-2 rounded-full transition-all"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="bg-gray-800 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
-      {/* IT executor contextual banner */}
       {showExecutorBanner && (
         <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 flex items-start justify-between gap-3">
           <p className="text-sm text-blue-800">
@@ -332,26 +291,12 @@ export default function WorkspaceChecklistPage() {
       )}
 
       {itItems.length > 0 && (
-        <ItemGroup
-          title="IT Baseline"
-          items={itItems}
-          responses={responses}
-          saving={saving}
-          onResponse={setResponse}
-          onClear={clearResponse}
-        />
+        <ItemGroup title="IT Baseline" items={itItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
       )}
       {awarenessItems.length > 0 && (
-        <ItemGroup
-          title="Security Awareness"
-          items={awarenessItems}
-          responses={responses}
-          saving={saving}
-          onResponse={setResponse}
-          onClear={clearResponse}
-        />
+        <ItemGroup title="Security Awareness" items={awarenessItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
       )}
-    </PageShell>
+    </>
   );
 }
 
@@ -426,7 +371,7 @@ function ChecklistItem({
             </span>
           )}
         </button>
-        {isSaving && <span className="text-xs text-gray-400">saving…</span>}
+        {isSaving && <span className="text-xs text-gray-400">saving...</span>}
       </div>
 
       {expanded && (
@@ -471,19 +416,5 @@ function ChecklistItem({
         ))}
       </div>
     </div>
-  );
-}
-
-function PageShell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="max-w-2xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">My checklist</h1>
-        <Link href="/workspace" className="text-sm text-gray-500 underline">
-          Back
-        </Link>
-      </div>
-      {children}
-    </main>
   );
 }

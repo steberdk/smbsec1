@@ -791,3 +791,75 @@ Post-completion screen has a "View dashboard" link and a "Show checklist" disclo
 On workspace load, if the user is `org_admin` and no active assessment exists, a prominent "Start your first security review" CTA is shown inline. Not auto-started during onboarding.
 
 **Status: Implemented**
+
+---
+
+# 22. Security Headers (PI 2, Iteration 1)
+
+## AC-SEC-HEADERS
+All responses include: X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo denied), Content-Security-Policy (self + Supabase connect-src, frame-ancestors none).
+
+**Status: Implemented in next.config.ts**
+
+---
+
+# 23. Rate Limiting (PI 2, Iteration 1)
+
+## AC-RATE-LIMIT
+API routes enforce in-memory rate limiting (60 req/min per user). Returns 429 with Retry-After header when exceeded. Keyed by user_id (authenticated) or IP (unauthenticated).
+
+**Status: Implemented — applied to /api/dashboard and /api/invites/accept**
+
+---
+
+# 24. Force Light Mode (PI 2, Iteration 1)
+
+## AC-LIGHT-MODE
+Dark mode CSS variables override removed. All pages render in light mode regardless of OS preference.
+
+**Status: Implemented**
+
+---
+
+# 25. Workspace Navigation Shell (PI 2, Iteration 1)
+
+## AC-NAV-SHELL
+All workspace pages share a persistent header with: org name, role-aware nav links (Home, Checklist, Dashboard, Team, Assessments, Settings), and logout button. Individual pages no longer have "Back" links or their own header/logout.
+
+**Status: Implemented via workspace/layout.tsx + useWorkspace context**
+
+---
+
+# 26. Guided First-Run (PI 2, Iteration 1)
+
+## AC-FIRST-RUN
+When org_admin has no active assessment, workspace home shows a "Get started in 3 steps" guide: 1) Invite IT lead, 2) Start assessment, 3) Share summary. Steps show done/pending state. Step 1 is marked done when pending invites exist.
+
+**Status: Implemented**
+
+---
+
+# 27. Display Name Capture (PI 2, Iteration 1)
+
+## AC-DISPLAY-NAME
+Invite acceptance flow shows a name prompt before calling the accept API. Display name is stored in `org_members.display_name` and shown on the dashboard (falls back to email, then truncated UUID).
+
+**Status: Implemented (requires migration 011 for display_name column)**
+
+---
+
+# 28. DB Performance Index (PI 2, Iteration 1)
+
+## AC-DB-INDEX
+Index on `assessment_responses(assessment_id, user_id)` for dashboard query performance.
+
+**Status: Defined in migration 011**
+
+---
+
+# 29. Analytics SQL Views (PI 2, Iteration 1)
+
+## AC-ANALYTICS
+Three analytics views created: `v_org_completion` (per-org completion rate), `v_cadence` (days since last assessment), `v_onboarding_funnel` (signup→org→assessment→response→invite stages).
+
+**Status: Defined in migration 011**

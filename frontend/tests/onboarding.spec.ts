@@ -147,8 +147,8 @@ test("E2E-ORG-01: org admin is the sole root member after onboarding", async ({ 
     // Role shows as org admin
     await expect(page.getByText(/org admin/i)).toBeVisible();
 
-    // Team page is visible (manager+ only) — confirms admin role granted
-    await expect(page.getByRole("link", { name: /team/i })).toBeVisible();
+    // Team page is visible in nav (manager+ only) — confirms admin role granted
+    await expect(page.getByRole("link", { name: /^team$/i }).first()).toBeVisible();
   } finally {
     const { data: membership } = await supabase
       .from("org_members")

@@ -141,6 +141,27 @@ Theme: close the content gap and fix the experiences that would cause early adop
 
 ---
 
+## Done — PI 2 Iteration 1: Foundation & Polish (2026-03-17)
+
+Theme: infrastructure hardening, navigation UX, and new-user onboarding flow.
+
+### Delivered
+- **CI/CD pipeline** — GitHub Actions workflow: lint + build + E2E + Playwright report artifact (pre-existing, verified)
+- **Security headers** — CSP, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy, Permissions-Policy in next.config.ts
+- **Rate limiting** — In-memory sliding-window rate limiter (60 req/min/user) applied to dashboard and invite accept routes
+- **DB performance index** — `assessment_responses(assessment_id, user_id)` index (migration 011)
+- **Force light mode** — Removed dark mode CSS variables override that conflicted with hardcoded light Tailwind classes
+- **Workspace navigation shell** — Persistent header with org name, role-aware nav links, and logout. All workspace pages share layout via `workspace/layout.tsx` + `useWorkspace` context provider
+- **Guided first-run** — "Get started in 3 steps" guide on workspace home for org_admin with no active assessment (invite → assess → review)
+- **Display name capture** — Name prompt at invite acceptance, stored in `org_members.display_name`, shown on dashboard (migration 011 required)
+- **Analytics SQL views** — `v_org_completion`, `v_cadence`, `v_onboarding_funnel` views (migration 011)
+- Docs: DECISIONS.md, acceptance-criteria sections 22-29, backlog updated
+
+### Migration required
+Apply `docs/sql/011_pi2_iteration1.sql` in Supabase SQL editor. Adds `display_name` column, performance index, and analytics views.
+
+---
+
 ## Iteration 7: Retention & Paid Tier Foundation (planned)
 
 Theme: convert one-time users into quarterly returning users; establish the minimum for a paid tier.

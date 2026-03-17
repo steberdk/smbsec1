@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSession } from "@/lib/hooks/useSession";
+import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
 
 type Invite = {
@@ -23,8 +21,7 @@ type InviteForm = {
 };
 
 export default function WorkspaceTeamPage() {
-  const router = useRouter();
-  const { token, loading: sessionLoading } = useSession();
+  const { token } = useWorkspace();
 
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -36,13 +33,6 @@ export default function WorkspaceTeamPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => { document.title = "Team | SMB Security Quick-Check"; }, []);
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!sessionLoading && !token) {
-      router.replace("/login");
-    }
-  }, [sessionLoading, token, router]);
 
   function loadInvites() {
     if (!token) return;
@@ -80,8 +70,8 @@ export default function WorkspaceTeamPage() {
     }
   }
 
-  async function handleCopyLink(token: string, inviteId: string) {
-    const link = `${window.location.origin}/accept-invite?token=${token}`;
+  async function handleCopyLink(inviteToken: string, inviteId: string) {
+    const link = `${window.location.origin}/accept-invite?token=${inviteToken}`;
     await navigator.clipboard.writeText(link);
     setCopied(inviteId);
     setTimeout(() => setCopied(null), 2000);
@@ -100,12 +90,10 @@ export default function WorkspaceTeamPage() {
     }
   }
 
-  if (sessionLoading || !token) {
-    return <PageShell><p className="text-sm text-gray-600">Loading…</p></PageShell>;
-  }
-
   return (
-    <PageShell>
+    <>
+      <h1 className="text-xl font-bold mb-6">Team</h1>
+
       {/* Invite form */}
       <section className="mb-8">
         <h2 className="text-base font-semibold mb-4">Invite a team member</h2>
@@ -161,7 +149,7 @@ export default function WorkspaceTeamPage() {
             disabled={submitting}
             className="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-60"
           >
-            {submitting ? "Sending…" : "Send invite"}
+            {submitting ? "Sending..." : "Send invite"}
           </button>
         </form>
       </section>
@@ -206,7 +194,7 @@ export default function WorkspaceTeamPage() {
                     disabled={revoking === invite.id}
                     className="text-xs text-red-600 underline disabled:opacity-50"
                   >
-                    {revoking === invite.id ? "Revoking…" : "Revoke"}
+                    {revoking === invite.id ? "Revoking..." : "Revoke"}
                   </button>
                 </div>
               </div>
@@ -214,20 +202,6 @@ export default function WorkspaceTeamPage() {
           </div>
         )}
       </section>
-    </PageShell>
-  );
-}
-
-function PageShell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="max-w-2xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Team</h1>
-        <Link href="/workspace" className="text-sm text-gray-500 underline">
-          Back
-        </Link>
-      </div>
-      {children}
-    </main>
+    </>
   );
 }

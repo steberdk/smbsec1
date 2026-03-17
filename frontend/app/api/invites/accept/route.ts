@@ -16,6 +16,7 @@ import { NextResponse } from "next/server";
 import { supabaseForRequest } from "../../../../lib/supabase/server";
 import { supabaseServiceClient } from "../../../../lib/supabase/service";
 import { apiError, getUser } from "../../../../lib/api/helpers";
+import { rateLimit, rateLimitKey } from "../../../../lib/api/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -25,10 +26,14 @@ export async function POST(req: Request): Promise<NextResponse> {
   const user = await getUser(supabase);
   if (!user) return apiError("Unauthorized", 401);
 
-  const body: { token: string } = await req.json().catch(() => null);
+  const rl = rateLimit(rateLimitKey(req, user.id));
+  if (rl) return rl;
+
+  const body: { token: string; display_name?: string } = await req.json().catch(() => null);
   if (!body?.token || typeof body.token !== "string") {
     return apiError("token is required", 400);
   }
+  const displayName = typeof body.display_name === "string" ? body.display_name.trim() || null : null;
 
   // 2. Look up invite using service client (bypasses RLS — invite row is not
   //    behind a policy the unauthenticated-to-org user can satisfy)
@@ -78,14 +83,19 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   // 7. Insert org_members row (privileged — bypasses RLS)
   //    Store email from invite for dashboard display (AC-NAMES-01)
-  const { error: memberErr } = await service.from("org_members").insert({
+  //    display_name added in migration 011 — include if provided, omit null to avoid
+  //    error when column doesn't exist yet
+  const memberRow: Record<string, unknown> = {
     org_id: invite.org_id,
     user_id: user.id,
     role: invite.role,
     manager_user_id: invite.manager_user_id,
     is_it_executor: invite.is_it_executor,
     email: invite.email,
-  });
+  };
+  if (displayName) memberRow.display_name = displayName;
+
+  const { error: memberErr } = await service.from("org_members").insert(memberRow);
 
   if (memberErr) return apiError(memberErr.message, 500);
 

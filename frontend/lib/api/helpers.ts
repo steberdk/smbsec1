@@ -47,7 +47,7 @@ export async function getOrgMembership(
 ): Promise<OrgMemberRow | null> {
   const { data, error } = await supabase
     .from("org_members")
-    .select("org_id, user_id, role, manager_user_id, is_it_executor, created_at")
+    .select("org_id, user_id, role, manager_user_id, is_it_executor, email, created_at")
     .eq("user_id", userId)
     .maybeSingle();
 

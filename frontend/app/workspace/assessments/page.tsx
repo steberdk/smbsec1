@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSession } from "@/lib/hooks/useSession";
+import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
 
 type Assessment = {
@@ -14,38 +12,21 @@ type Assessment = {
   completed_at: string | null;
 };
 
-type OrgMe = {
-  membership: { role: string };
-};
-
 export default function WorkspaceAssessmentsPage() {
-  const router = useRouter();
-  const { token, userId, loading: sessionLoading } = useSession();
+  const { token, userId, isManager, isAdmin } = useWorkspace();
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
-  const [role, setRole] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [completing, setCompleting] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!sessionLoading && !token) {
-      router.replace("/login");
-    }
-  }, [sessionLoading, token, router]);
+  useEffect(() => { document.title = "Assessments | SMB Security Quick-Check"; }, []);
 
   function loadData() {
     if (!token) return;
-    Promise.all([
-      apiFetch<{ assessments: Assessment[] }>("/api/assessments", token),
-      apiFetch<OrgMe>("/api/orgs/me", token),
-    ])
-      .then(([{ assessments: list }, { membership }]) => {
-        setAssessments(list);
-        setRole(membership.role);
-      })
+    apiFetch<{ assessments: Assessment[] }>("/api/assessments", token)
+      .then(({ assessments: list }) => setAssessments(list))
       .catch((e: unknown) => {
         setLoadError(e instanceof Error ? e.message : "Failed to load.");
       });
@@ -56,8 +37,6 @@ export default function WorkspaceAssessmentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const isAdmin = role === "org_admin";
-  const isManager = role === "manager" || role === "org_admin";
   const hasActive = assessments.some((a) => a.status === "active");
 
   async function handleStart() {
@@ -100,22 +79,18 @@ export default function WorkspaceAssessmentsPage() {
     }
   }
 
-  if (sessionLoading || !token) {
-    return <PageShell><p className="text-sm text-gray-600">Loading…</p></PageShell>;
-  }
-
   if (loadError) {
     return (
-      <PageShell>
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm text-red-800">{loadError}</p>
-        </div>
-      </PageShell>
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+        <p className="text-sm text-red-800">{loadError}</p>
+      </div>
     );
   }
 
   return (
-    <PageShell>
+    <>
+      <h1 className="text-xl font-bold mb-6">Assessments</h1>
+
       {isManager && (
         <div className="mb-6">
           <button
@@ -123,7 +98,7 @@ export default function WorkspaceAssessmentsPage() {
             disabled={starting || hasActive}
             className="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-60"
           >
-            {starting ? "Starting…" : hasActive ? "Assessment already in progress" : "Start new assessment"}
+            {starting ? "Starting..." : hasActive ? "Assessment already in progress" : "Start new assessment"}
           </button>
           {!isAdmin && (
             <p className="mt-1 text-xs text-gray-500">Managers start a subtree assessment covering their own team.</p>
@@ -171,27 +146,13 @@ export default function WorkspaceAssessmentsPage() {
                   disabled={completing === a.id}
                   className="text-xs text-gray-700 border border-gray-300 rounded-lg px-3 py-1 hover:border-gray-500 disabled:opacity-50"
                 >
-                  {completing === a.id ? "Completing…" : "Mark complete"}
+                  {completing === a.id ? "Completing..." : "Mark complete"}
                 </button>
               )}
             </div>
           ))}
         </div>
       )}
-    </PageShell>
-  );
-}
-
-function PageShell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="max-w-2xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Assessments</h1>
-        <Link href="/workspace" className="text-sm text-gray-500 underline">
-          Back
-        </Link>
-      </div>
-      {children}
-    </main>
+    </>
   );
 }
