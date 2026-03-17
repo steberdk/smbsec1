@@ -94,6 +94,37 @@ export default function HomePage() {
         </ul>
       </section>
 
+      {/* Trust signals */}
+      <section className="mt-10 space-y-4">
+        <h2 className="text-xl font-semibold">Why trust this tool</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="font-medium text-sm">EU data residency</p>
+            <p className="mt-1 text-xs text-gray-500">All data stored in Ireland (AWS eu-west-1). No data leaves the EU.</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="font-medium text-sm">No tracking, no ads</p>
+            <p className="mt-1 text-xs text-gray-500">No analytics cookies, no third-party tracking scripts, no advertising.</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="font-medium text-sm">Free for small teams</p>
+            <p className="mt-1 text-xs text-gray-500">The security checklist and team dashboard are completely free. No credit card required.</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="font-medium text-sm">Open checklist</p>
+            <p className="mt-1 text-xs text-gray-500">Browse every item before signing up. No gated content.</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="font-medium text-sm">Delete anytime</p>
+            <p className="mt-1 text-xs text-gray-500">One-click account deletion. Hard delete — no soft flags, no data retention.</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="font-medium text-sm">Magic link login</p>
+            <p className="mt-1 text-xs text-gray-500">No passwords stored. Sign in via email link — one less credential to worry about.</p>
+          </div>
+        </div>
+      </section>
+
       <section className="mt-10 space-y-2 text-sm text-gray-600">
         <p>Privacy: Your data stays in the EU. No tracking, no ads. Free for small teams.</p>
       </section>

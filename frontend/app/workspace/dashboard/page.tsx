@@ -100,13 +100,21 @@ export default function WorkspaceDashboardPage() {
         )}
       </div>
 
-      {/* Cadence indicator */}
-      <div className={`rounded-xl border px-4 py-3 mb-6 inline-flex items-center gap-2 ${CADENCE_CLASSES[cadence.status]}`}>
-        <span className="text-sm font-medium">{CADENCE_LABEL[cadence.status]}</span>
+      {/* Cadence indicator + next review due */}
+      <div className={`rounded-xl border px-4 py-3 mb-6 ${CADENCE_CLASSES[cadence.status]}`}>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">{CADENCE_LABEL[cadence.status]}</span>
+          {cadence.last_completed_at && (
+            <span className="text-xs">
+              · Last completed {new Date(cadence.last_completed_at).toLocaleDateString()}
+            </span>
+          )}
+        </div>
         {cadence.last_completed_at && (
-          <span className="text-xs">
-            · Last completed {new Date(cadence.last_completed_at).toLocaleDateString()}
-          </span>
+          <p className="text-xs mt-1 opacity-80">
+            Next review due by{" "}
+            {new Date(new Date(cadence.last_completed_at).getTime() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+          </p>
         )}
       </div>
 

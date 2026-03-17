@@ -11,12 +11,14 @@ export default function WorkspacePage() {
 
   const [hasActiveAssessment, setHasActiveAssessment] = useState<boolean | null>(null);
   const [pendingInviteCount, setPendingInviteCount] = useState<number | null>(null);
+  const [cadence, setCadence] = useState<{ status: string; last_completed_at: string | null } | null>(null);
+  const [checklistPercent, setChecklistPercent] = useState<number | null>(null);
 
   useEffect(() => {
     document.title = "Workspace | SMB Security Quick-Check";
   }, []);
 
-  // Load assessment + invite status for guided first-run
+  // Load assessment + invite status + dashboard summary
   useEffect(() => {
     if (!token) return;
     const fetches: Promise<void>[] = [
@@ -24,6 +26,12 @@ export default function WorkspacePage() {
         .then(({ assessments }) => {
           setHasActiveAssessment(assessments.some((a) => a.status === "active"));
         }),
+      apiFetch<{ stats: { percent: number }; cadence: { status: string; last_completed_at: string | null } }>("/api/dashboard", token)
+        .then(({ stats, cadence: c }) => {
+          setCadence(c);
+          setChecklistPercent(stats.percent);
+        })
+        .catch(() => {}),
     ];
     if (isManager) {
       fetches.push(
@@ -44,6 +52,27 @@ export default function WorkspacePage() {
         {membership.role.replace("_", " ")}
         {membership.is_it_executor && " · IT executor"}
       </p>
+
+      {/* Cadence warning banner (amber/red) */}
+      {cadence && (cadence.status === "amber" || cadence.status === "red") && (
+        <div className={`mb-6 rounded-xl border px-4 py-3 ${
+          cadence.status === "red"
+            ? "border-red-200 bg-red-50 text-red-800"
+            : "border-amber-200 bg-amber-50 text-amber-800"
+        }`}>
+          <p className="text-sm font-medium">
+            {cadence.status === "red" ? "Security review overdue" : "Security review due soon"}
+          </p>
+          <p className="text-xs mt-0.5 opacity-80">
+            {cadence.last_completed_at
+              ? `Last completed ${new Date(cadence.last_completed_at).toLocaleDateString()}. `
+              : ""}
+            <Link href="/workspace/assessments" className="underline">
+              Start a reassessment
+            </Link>
+          </p>
+        </div>
+      )}
 
       {/* Guided first-run for org_admin */}
       {showGuidedSetup && (
@@ -86,6 +115,7 @@ export default function WorkspacePage() {
           href="/workspace/checklist"
           title="My checklist"
           description="Work through your assigned security items."
+          progress={checklistPercent}
         />
         <WorkspaceCard
           href="/workspace/dashboard"
@@ -173,10 +203,12 @@ function WorkspaceCard({
   href,
   title,
   description,
+  progress,
 }: {
   href: string;
   title: string;
   description: string;
+  progress?: number | null;
 }) {
   return (
     <Link
@@ -185,6 +217,11 @@ function WorkspaceCard({
     >
       <p className="font-medium text-sm">{title}</p>
       <p className="mt-1 text-xs text-gray-500">{description}</p>
+      {progress != null && progress > 0 && (
+        <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+          <div className="bg-gray-700 h-1.5 rounded-full" style={{ width: `${progress}%` }} />
+        </div>
+      )}
     </Link>
   );
 }

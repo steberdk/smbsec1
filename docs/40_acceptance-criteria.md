@@ -917,3 +917,57 @@ Done/Unsure/Skipped buttons show hover tooltips explaining what each status mean
 When the user has started answering items but has high-impact items still not marked Done, a banner shows "X high-impact items still need attention" on the checklist page.
 
 **Status: Implemented**
+
+---
+
+# 36. Reassessment Reminder Email (PI 2, Iteration 3)
+
+## AC-REMINDER
+POST /api/reminders sends reassessment reminder emails to org_admins whose last completed assessment is 76-95 days old. Protected by CRON_SECRET bearer token. Uses Resend with deep link to /workspace/assessments.
+
+**Status: Implemented**
+
+---
+
+# 37. Next Review Due Date (PI 2, Iteration 3)
+
+## AC-REVIEW-DUE
+Dashboard cadence indicator shows "Next review due by [date]" calculated as last_completed_at + 90 days.
+
+**Status: Implemented**
+
+---
+
+# 38. Cadence Banner on Workspace Home (PI 2, Iteration 3)
+
+## AC-CADENCE-BANNER
+Workspace home shows an amber or red banner when cadence status is "due soon" or "overdue", with a link to start reassessment.
+
+**Status: Implemented**
+
+---
+
+# 39. Progress Context on Workspace Cards (PI 2, Iteration 3)
+
+## AC-PROGRESS-CARD
+"My checklist" card on workspace home shows a mini progress bar when the user has started answering items.
+
+**Status: Implemented**
+
+---
+
+# 40. Resume Where You Left Off (PI 2, Iteration 3)
+
+## AC-RESUME
+Checklist page shows a "Resume where you left off" link when user has partially completed items. Clicking it smooth-scrolls to the first unanswered item.
+
+**Status: Implemented**
+
+---
+
+# 41. Trust Signals on Landing Page (PI 2, Iteration 3)
+
+## AC-TRUST
+Landing page shows a "Why trust this tool" section with 6 trust signals: EU data residency, no tracking, free for small teams, open checklist, delete anytime, magic link login.
+
+**Status: Implemented**

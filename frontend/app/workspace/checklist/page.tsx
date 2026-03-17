@@ -276,6 +276,19 @@ export default function WorkspaceChecklistPage() {
         <div className="w-full bg-gray-100 rounded-full h-2">
           <div className="bg-gray-800 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
+        {answered > 0 && answered < total && (
+          <button
+            onClick={() => {
+              const firstUnanswered = visibleItems.find((i) => responses[i.id] === undefined);
+              if (firstUnanswered) {
+                document.getElementById(`item-${firstUnanswered.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }
+            }}
+            className="mt-2 text-xs text-gray-500 underline hover:text-gray-700"
+          >
+            Resume where you left off
+          </button>
+        )}
       </div>
 
       {/* Risk prioritization: high-impact items still open */}
@@ -374,6 +387,7 @@ function ChecklistItem({
 
   return (
     <div
+      id={`item-${item.id}`}
       className={`rounded-xl border p-4 ${
         response === "done"
           ? "border-green-200 bg-green-50"

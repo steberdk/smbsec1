@@ -162,6 +162,21 @@ Apply `docs/sql/011_pi2_iteration1.sql` in Supabase SQL editor. Adds `display_na
 
 ---
 
+## Done — PI 2 Iteration 3: Retention (2026-03-17)
+
+Theme: bring users back for quarterly reviews and build trust with new visitors.
+
+### Delivered
+- **Reassessment reminder email** — POST /api/reminders endpoint sends reminder via Resend to org_admins at day 76-95. Protected by CRON_SECRET bearer token. Deep links to /workspace/assessments.
+- **"Next review due" date on dashboard** — Cadence indicator shows due date (last_completed + 90 days)
+- **Cadence banner on workspace home** — Amber/red warning banner when review is due/overdue, links to reassessment
+- **Progress context on workspace cards** — Mini progress bar on "My checklist" card
+- **"Resume where you left off"** — Link on checklist page scrolls to first unanswered item
+- **Trust signals on landing page** — "Why trust this tool" section: EU data, no tracking, free, open checklist, delete anytime, magic link login
+- Docs: acceptance-criteria sections 36-41, backlog updated
+
+---
+
 ## Iteration 7: Retention & Paid Tier Foundation (planned)
 
 Theme: convert one-time users into quarterly returning users; establish the minimum for a paid tier.
