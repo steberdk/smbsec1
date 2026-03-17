@@ -863,3 +863,57 @@ Index on `assessment_responses(assessment_id, user_id)` for dashboard query perf
 Three analytics views created: `v_org_completion` (per-org completion rate), `v_cadence` (days since last assessment), `v_onboarding_funnel` (signup→org→assessment→response→invite stages).
 
 **Status: Defined in migration 011**
+
+---
+
+# 30. New Checklist Items (PI 2, Iteration 2)
+
+## AC-CONTENT-NEW
+5 new checklist items added: disk encryption (BitLocker/FileVault), SaaS account inventory, MFA beyond email, DNS filtering, incident response plan. All with steps, why_it_matters, impact/effort ratings, and platform-specific variants where applicable.
+
+**Status: Implemented (migration 012)**
+
+---
+
+# 31. Modified Checklist Items (PI 2, Iteration 2)
+
+## AC-CONTENT-MODIFY
+3 items modified: macros item updated for post-2022 framing (Office blocks internet macros by default), USB item broadened to include downloads/messaging apps, security rules doc item adds template structure.
+
+**Status: Implemented (migration 012)**
+
+---
+
+# 32. Platform-Specific Steps (PI 2, Iteration 2)
+
+## AC-CONTENT-PLATFORM
+Platform-specific steps (Google Workspace + Microsoft 365) added for: admin accounts, offboarding checklist, phishing report method. Resolved at assessment snapshot time via `resolveSteps()`.
+
+**Status: Implemented (migration 012)**
+
+---
+
+# 33. Shareable Print Summary (PI 2, Iteration 2)
+
+## AC-PRINT
+Dashboard page has a "Print summary" button. `@media print` CSS hides navigation, adjusts layout for paper output. Usable for insurance renewals or management reports.
+
+**Status: Implemented**
+
+---
+
+# 34. Response Tooltip Guidance (PI 2, Iteration 2)
+
+## AC-TOOLTIPS
+Done/Unsure/Skipped buttons show hover tooltips explaining what each status means: Done = control is in place, Unsure = needs investigation, Skipped = not applicable or deferred.
+
+**Status: Implemented**
+
+---
+
+# 35. Risk Prioritization (PI 2, Iteration 2)
+
+## AC-RISK-PRIORITY
+When the user has started answering items but has high-impact items still not marked Done, a banner shows "X high-impact items still need attention" on the checklist page.
+
+**Status: Implemented**

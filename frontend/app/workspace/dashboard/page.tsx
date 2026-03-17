@@ -88,7 +88,17 @@ export default function WorkspaceDashboardPage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold mb-6">Dashboard</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-bold">Dashboard</h1>
+        {assessment && (
+          <button
+            onClick={() => window.print()}
+            className="text-xs text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:border-gray-400 transition-colors print:hidden"
+          >
+            Print summary
+          </button>
+        )}
+      </div>
 
       {/* Cadence indicator */}
       <div className={`rounded-xl border px-4 py-3 mb-6 inline-flex items-center gap-2 ${CADENCE_CLASSES[cadence.status]}`}>

@@ -27,6 +27,12 @@ type Assessment = {
 type ResponseStatus = "done" | "unsure" | "skipped";
 type ResponseMap = Record<string, ResponseStatus>;
 
+const RESPONSE_TOOLTIPS: Record<ResponseStatus, string> = {
+  done: "We have completed this control or it is already in place.",
+  unsure: "We are not sure if this is done — needs investigation.",
+  skipped: "Not applicable to our organisation or deferred for now.",
+};
+
 export default function WorkspaceChecklistPage() {
   const { token } = useWorkspace();
 
@@ -272,6 +278,23 @@ export default function WorkspaceChecklistPage() {
         </div>
       </div>
 
+      {/* Risk prioritization: high-impact items still open */}
+      {(() => {
+        const highImpactOpen = visibleItems.filter(
+          (i) => i.impact === "high" && responses[i.id] !== "done"
+        );
+        if (highImpactOpen.length > 0 && answered > 0) {
+          return (
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-sm text-amber-800">
+                <strong>{highImpactOpen.length} high-impact item{highImpactOpen.length !== 1 ? "s" : ""}</strong> still need attention.
+              </p>
+            </div>
+          );
+        }
+        return null;
+      })()}
+
       {showExecutorBanner && (
         <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 flex items-start justify-between gap-3">
           <p className="text-sm text-blue-800">
@@ -403,6 +426,7 @@ function ChecklistItem({
           <button
             key={s}
             onClick={() => response === s ? onClear(item.id) : onResponse(item.id, s)}
+            title={RESPONSE_TOOLTIPS[s]}
             className={`rounded-lg px-3 py-1 text-xs font-medium border transition-colors ${
               response === s
                 ? s === "done"
