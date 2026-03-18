@@ -37,7 +37,8 @@ export function supabaseForRequest(req: Request): SupabaseClient {
 
   const client = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-  });
+    db: { schema: "smbsec1" },
+  }) as unknown as ReturnType<typeof createClient>;
 
   // Patch auth.getUser so routes validate the caller's JWT, not the service
   // role identity. Uses a separate anon client so the service key is never

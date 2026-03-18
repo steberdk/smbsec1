@@ -34,5 +34,6 @@ export function supabaseServiceClient(): SupabaseClient {
 
   return createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
-  });
+    db: { schema: "smbsec1" },
+  }) as unknown as SupabaseClient;
 }

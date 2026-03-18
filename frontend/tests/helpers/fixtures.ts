@@ -32,7 +32,8 @@ export function getServiceClient(): SupabaseClient {
   }
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-  });
+    db: { schema: "smbsec1" },
+  }) as unknown as SupabaseClient;
 }
 
 export function baseUrl(): string {
