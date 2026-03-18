@@ -106,7 +106,7 @@ export default function WorkspaceTeamPage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold mb-6">Team</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Team</h1>
 
       {/* Invite form */}
       <section className="mb-8">
@@ -117,7 +117,7 @@ export default function WorkspaceTeamPage() {
             <input
               type="email"
               required
-              className="w-full border rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow"
               value={form.email}
               onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
               placeholder="colleague@company.com"
@@ -161,7 +161,7 @@ export default function WorkspaceTeamPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-teal-700 text-white px-4 py-2 text-sm font-medium hover:bg-teal-800 transition-colors disabled:opacity-60"
+            className="rounded-lg bg-teal-700 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-teal-800 hover:shadow-md transition-all disabled:opacity-60"
           >
             {submitting ? "Sending..." : "Send invite"}
           </button>
@@ -176,7 +176,7 @@ export default function WorkspaceTeamPage() {
             {members.map((m) => (
               <div
                 key={m.user_id}
-                className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3"
+                className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
               >
                 <div>
                   <p className="text-sm font-medium">
@@ -213,7 +213,7 @@ export default function WorkspaceTeamPage() {
             {invites.map((invite) => (
               <div
                 key={invite.id}
-                className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3"
+                className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
               >
                 <div>
                   <p className="text-sm font-medium">{invite.email}</p>

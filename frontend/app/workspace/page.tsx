@@ -47,7 +47,7 @@ export default function WorkspacePage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold">{orgData.org.name}</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{orgData.org.name}</h1>
       <p className="mt-1 text-sm text-gray-500 capitalize mb-6">
         {membership.role.replace("_", " ")}
         {membership.is_it_executor && " · IT executor"}
@@ -76,7 +76,7 @@ export default function WorkspacePage() {
 
       {/* Guided first-run for org_admin */}
       {showGuidedSetup && (
-        <div className="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-5">
+        <div className="mb-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-gray-800 mb-4">
             Get started in 3 steps
           </p>
@@ -213,13 +213,13 @@ function WorkspaceCard({
   return (
     <Link
       href={href}
-      className="block rounded-xl border border-gray-200 bg-white p-4 hover:border-gray-400 transition-colors"
+      className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm card-hover"
     >
-      <p className="font-medium text-sm">{title}</p>
+      <p className="font-medium text-sm text-gray-900">{title}</p>
       <p className="mt-1 text-xs text-gray-500">{description}</p>
       {progress != null && progress > 0 && (
         <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-          <div className="bg-teal-600 h-1.5 rounded-full" style={{ width: `${progress}%` }} />
+          <div className="progress-gradient h-1.5 rounded-full" style={{ width: `${progress}%` }} />
         </div>
       )}
     </Link>

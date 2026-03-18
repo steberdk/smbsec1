@@ -96,8 +96,16 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="max-w-lg mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold">Set up your organisation</h1>
+    <main className="min-h-screen bg-[#f8fafb]">
+      {/* Header bar */}
+      <header className="border-b border-gray-200/60 bg-white/80 backdrop-blur-sm">
+        <div className="max-w-lg mx-auto px-4 h-12 flex items-center">
+          <span className="text-teal-700 font-bold text-sm tracking-tight">smbsec</span>
+        </div>
+      </header>
+
+      <div className="max-w-lg mx-auto px-4 py-10">
+      <h1 className="text-2xl font-bold text-gray-900">Set up your organisation</h1>
       <p className="mt-2 text-sm text-gray-600">
         Takes about 2 minutes. You can change everything later in Settings.
       </p>
@@ -108,7 +116,7 @@ export default function OnboardingPage() {
         <div className="space-y-1">
           <label className="block text-sm font-medium">Organisation name <span className="text-red-500">*</span></label>
           <input
-            className="w-full border rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow"
             type="text"
             required
             autoComplete="off"
@@ -123,7 +131,7 @@ export default function OnboardingPage() {
           <label className="block text-sm font-medium">Your name</label>
           <p className="text-xs text-gray-500">Shown to your team on the dashboard instead of your email.</p>
           <input
-            className="w-full border rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow"
             type="text"
             autoComplete="off"
             value={form.display_name}
@@ -267,7 +275,7 @@ export default function OnboardingPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-lg bg-teal-700 text-white py-2.5 text-sm font-medium hover:bg-teal-800 transition-colors disabled:opacity-60"
+          className="w-full rounded-lg bg-teal-700 text-white py-2.5 text-sm font-medium shadow-sm hover:bg-teal-800 hover:shadow-md transition-all disabled:opacity-60"
         >
           {submitting ? "Creating…" : "Create organisation →"}
         </button>
@@ -276,6 +284,7 @@ export default function OnboardingPage() {
           We&apos;ll send occasional reminder emails when your security review is due for reassessment.
         </p>
       </form>
+      </div>
     </main>
   );
 }

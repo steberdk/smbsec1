@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #f8fafb;
   --foreground: #171717;
 }
 
@@ -18,6 +18,30 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Smooth card hover transitions */
+.card-hover {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.card-hover:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Gradient progress bar */
+.progress-gradient {
+  background: linear-gradient(90deg, #0f766e 0%, #14b8a6 50%, #10b981 100%);
+}
+
+/* Hero gradient background */
+.hero-gradient {
+  background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 50%, #f0fdf4 100%);
+}
+
+/* Subtle section background */
+.section-tint {
+  background: linear-gradient(180deg, #f8fafb 0%, #ffffff 100%);
 }
 
 /* Print styles for shareable dashboard summary */

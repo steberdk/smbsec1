@@ -3,10 +3,10 @@
 import { ChecklistItem, ChecklistStatus } from "@/lib/checklist/types";
 
 const statusStyles: Record<ChecklistStatus, string> = {
-  todo: "border-gray-200",
-  done: "border-green-600",
-  unsure: "border-amber-600",
-  skipped: "border-slate-500",
+  todo: "border-gray-200 shadow-sm hover:shadow-md",
+  done: "border-green-600 shadow-sm",
+  unsure: "border-amber-600 shadow-sm",
+  skipped: "border-slate-500 shadow-sm",
 };
 
 const statusLabel: Record<ChecklistStatus, string> = {
@@ -30,7 +30,7 @@ export function ChecklistItemCard({
   readOnly?: boolean;
 }) {
   return (
-    <div className={`rounded-xl border p-4 bg-white ${statusStyles[status]}`}>
+    <div className={`rounded-xl border p-4 bg-white transition-shadow ${statusStyles[status]}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-sm text-gray-600 mb-1">{item.timeEstimate}</div>
@@ -60,35 +60,35 @@ export function ChecklistItemCard({
       {!readOnly && (
         <div className="mt-4 flex flex-wrap gap-2">
           <button
-            className="px-3 py-2 rounded-lg bg-gray-900 text-white text-sm"
+            className="px-3 py-2 rounded-lg bg-teal-700 text-white text-sm font-medium shadow-sm hover:bg-teal-800 hover:shadow-md transition-all"
             onClick={() => onSetStatus("done")}
             type="button"
           >
-            ✅ Done
+            Done
           </button>
 
           <button
-            className="px-3 py-2 rounded-lg bg-amber-600 text-white text-sm"
+            className="px-3 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium shadow-sm hover:bg-amber-700 hover:shadow-md transition-all"
             onClick={() => onSetStatus("unsure")}
             type="button"
           >
-            ❓ Not sure
+            Not sure
           </button>
 
           <button
-            className="px-3 py-2 rounded-lg bg-slate-600 text-white text-sm"
+            className="px-3 py-2 rounded-lg bg-slate-600 text-white text-sm font-medium shadow-sm hover:bg-slate-700 hover:shadow-md transition-all"
             onClick={() => onSetStatus("skipped")}
             type="button"
           >
-            ⏸ Skip
+            Skip
           </button>
 
           <button
-            className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm"
+            className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm shadow-sm hover:shadow-md transition-all"
             onClick={onReset}
             type="button"
           >
-            ↩ Reset
+            Reset
           </button>
         </div>
       )}

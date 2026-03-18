@@ -91,10 +91,10 @@ export default function WorkspaceDashboardPage() {
   if (!data) {
     return (
       <div className="animate-pulse space-y-4">
-        <div className="h-6 bg-gray-200 rounded w-32" />
-        <div className="h-20 bg-gray-100 rounded-xl" />
-        <div className="h-40 bg-gray-100 rounded-xl" />
-        <div className="h-24 bg-gray-100 rounded-xl" />
+        <div className="h-7 bg-gray-200/80 rounded-lg w-32" />
+        <div className="h-20 bg-gray-200/40 rounded-xl border border-gray-200/60" />
+        <div className="h-40 bg-gray-200/40 rounded-xl border border-gray-200/60" />
+        <div className="h-24 bg-gray-200/40 rounded-xl border border-gray-200/60" />
       </div>
     );
   }
@@ -104,7 +104,7 @@ export default function WorkspaceDashboardPage() {
   return (
     <>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         {assessment && (
           <button
             onClick={() => window.print()}
@@ -145,7 +145,7 @@ export default function WorkspaceDashboardPage() {
       ) : (
         <>
           {/* Overall stats */}
-          <div className="rounded-xl border border-gray-200 p-4 mb-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 mb-6 shadow-sm">
             <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">
               {assessment.scope} assessment · {assessment.status}
               {" · started "}{new Date(assessment.created_at).toLocaleDateString()}
@@ -155,9 +155,9 @@ export default function WorkspaceDashboardPage() {
               <span>{stats.done + stats.unsure + stats.skipped} / {members.length > 0 ? members.reduce((s, m) => s + m.total, 0) : stats.total} responses</span>
               <span>{stats.percent}%</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
+            <div className="w-full bg-gray-100 rounded-full h-2.5 mb-4 shadow-inner">
               <div
-                className="bg-teal-700 h-2 rounded-full"
+                className="progress-gradient h-2.5 rounded-full"
                 style={{ width: `${stats.percent}%` }}
               />
             </div>
@@ -196,14 +196,14 @@ export default function WorkspaceDashboardPage() {
 
 function TrackBar({ label, track }: { label: string; track: TrackStats }) {
   return (
-    <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+    <div className="rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
       <div className="flex justify-between text-xs text-gray-600 mb-1">
         <span className="font-medium">{label}</span>
         <span>{track.percent}%</span>
       </div>
       <div className="w-full bg-gray-200 rounded-full h-1.5">
         <div
-          className="bg-teal-600 h-1.5 rounded-full"
+          className="progress-gradient h-1.5 rounded-full"
           style={{ width: `${track.percent}%` }}
         />
       </div>
@@ -216,7 +216,7 @@ function TrackBar({ label, track }: { label: string; track: TrackStats }) {
 
 function StatPill({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="rounded-lg bg-gray-50 border border-gray-100 py-2">
+    <div className="rounded-lg bg-white border border-gray-100 py-2 shadow-sm">
       <p className={`text-lg font-bold ${color}`}>{value}</p>
       <p className="text-xs text-gray-500">{label}</p>
     </div>
@@ -265,7 +265,7 @@ function MemberRow({ member: m, token }: { member: MemberStat; token: string }) 
   const unsureItems = items?.filter((i) => i.status === "unsure") ?? [];
 
   return (
-    <div className="rounded-xl border border-gray-200">
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
       <button
         onClick={handleExpand}
         className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
@@ -291,7 +291,7 @@ function MemberRow({ member: m, token }: { member: MemberStat; token: string }) 
           </div>
         </div>
         <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-          <div className="bg-teal-600 h-1.5 rounded-full" style={{ width: `${m.percent}%` }} />
+          <div className="progress-gradient h-1.5 rounded-full" style={{ width: `${m.percent}%` }} />
         </div>
       </button>
 

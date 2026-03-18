@@ -37,14 +37,14 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#f8fafb]">
       {/* Persistent navigation header */}
-      <header className="border-b border-gray-200 bg-white">
+      <header className="border-b border-gray-200/60 bg-white/90 backdrop-blur-sm sticky top-0 z-30 shadow-sm">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-2">
               <Link href="/workspace" className="flex items-center gap-1.5">
-                <span className="text-teal-700 font-bold text-sm">smbsec</span>
+                <span className="text-teal-700 font-bold text-sm tracking-tight">smbsec</span>
               </Link>
               <span className="text-gray-300">|</span>
               <Link href="/workspace" className="text-sm font-medium text-gray-700 truncate max-w-[200px]" title={orgData.org.name}>
@@ -60,9 +60,9 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                       isActive(item.href)
-                        ? "bg-teal-50 text-teal-800"
+                        ? "bg-teal-50 text-teal-800 shadow-sm"
                         : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                     }`}
                   >

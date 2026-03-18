@@ -11,132 +11,164 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <main className="max-w-3xl mx-auto px-4 py-10">
-      <header className="space-y-4">
-        <h1 className="text-3xl font-bold">
-          Find your biggest cyber risks in 30 minutes
-        </h1>
-        <p className="text-gray-700">
-          A practical checklist for small and medium-sized businesses.
-          No enterprise complexity. Just the highest-impact steps.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-teal-700 text-white hover:bg-teal-800 transition-colors"
-          >
-            Sign up free
-          </Link>
-
-          <Link
-            href="/checklist"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
-          >
-            Browse the checklist
-          </Link>
-
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
-          >
-            Log in
-          </Link>
+    <main className="min-h-screen">
+      {/* Header bar */}
+      <header className="border-b border-gray-200/60 bg-white/80 backdrop-blur-sm">
+        <div className="max-w-3xl mx-auto px-4 h-12 flex items-center">
+          <span className="text-teal-700 font-bold text-sm tracking-tight">smbsec</span>
         </div>
       </header>
 
-      <section className="mt-10 space-y-4">
-        <h2 className="text-xl font-semibold">How SMBs actually get breached</h2>
-        <p className="text-sm text-gray-600">
+      {/* Hero section with gradient */}
+      <section className="hero-gradient border-b border-gray-200/40">
+        <div className="max-w-3xl mx-auto px-4 py-16 sm:py-20">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
+            Find your biggest cyber risks in 30 minutes
+          </h1>
+          <p className="mt-4 text-lg text-gray-600 max-w-2xl">
+            A practical checklist for small and medium-sized businesses.
+            No enterprise complexity. Just the highest-impact steps.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-8">
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-teal-700 text-white font-medium shadow-sm hover:bg-teal-800 hover:shadow-md transition-all"
+            >
+              Sign up free
+            </Link>
+
+            <Link
+              href="/checklist"
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-gray-300 bg-white font-medium text-gray-700 shadow-sm hover:border-gray-400 hover:shadow-md transition-all"
+            >
+              Browse the checklist
+            </Link>
+
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-gray-300 bg-white font-medium text-gray-700 shadow-sm hover:border-gray-400 hover:shadow-md transition-all"
+            >
+              Log in
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Attack cards */}
+      <section className="max-w-3xl mx-auto px-4 py-14">
+        <h2 className="text-2xl font-bold text-gray-900">How SMBs actually get breached</h2>
+        <p className="mt-2 text-sm text-gray-500">
           These five attacks cause the vast majority of incidents at small businesses.
           Every item on the checklist targets at least one of them.
         </p>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 mt-6">
           {[
             {
               title: "Phishing email",
               detail: "Employee clicks a fake invoice or login link. Accounts and data follow.",
               stat: "~80% of breaches start here",
+              accent: "border-l-red-400",
             },
             {
               title: "Stolen or reused password",
               detail: "One leaked password opens every service that shares it.",
               stat: "#1 account takeover method",
+              accent: "border-l-orange-400",
             },
             {
               title: "Unpatched software",
               detail: "Attackers scan for known holes automatically — within hours of public disclosure.",
               stat: "Exploited at internet scale",
+              accent: "border-l-amber-400",
             },
             {
               title: "Ransomware",
               detail: "Encrypts your files and demands payment. Often arrives via email.",
               stat: "Avg SMB downtime: 3–5 days",
+              accent: "border-l-purple-400",
             },
             {
               title: "Fake invoice / CEO fraud",
               detail: "Attacker impersonates a supplier or executive to redirect payments.",
               stat: "Highest financial loss per incident",
+              accent: "border-l-blue-400",
             },
           ].map((item) => (
             <div
               key={item.title}
-              className="rounded-xl border border-gray-200 bg-white p-4 space-y-1"
+              className={`rounded-xl border border-gray-200 bg-white p-5 shadow-sm border-l-4 ${item.accent} card-hover`}
             >
-              <p className="font-medium text-sm">{item.title}</p>
-              <p className="text-sm text-gray-600">{item.detail}</p>
-              <p className="text-xs text-gray-400">{item.stat}</p>
+              <p className="font-semibold text-sm text-gray-900">{item.title}</p>
+              <p className="text-sm text-gray-600 mt-1.5">{item.detail}</p>
+              <p className="text-xs text-gray-400 mt-2 font-medium">{item.stat}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="mt-10 space-y-4">
-        <h2 className="text-xl font-semibold">Why this checklist</h2>
-        <ul className="list-disc pl-5 text-gray-700 space-y-2">
-          <li>Covers the fixes that block the attacks above.</li>
-          <li>No enterprise tools or IT degree required.</li>
-          <li>Takes 30 minutes to identify your gaps — then fix them at your own pace.</li>
-        </ul>
-      </section>
-
-      {/* Trust signals */}
-      <section className="mt-10 space-y-4">
-        <h2 className="text-xl font-semibold">Why trust this tool</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="font-medium text-sm">EU data residency</p>
-            <p className="mt-1 text-xs text-gray-500">All data stored in Ireland (AWS eu-west-1). No data leaves the EU.</p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="font-medium text-sm">No tracking, no ads</p>
-            <p className="mt-1 text-xs text-gray-500">No analytics cookies, no third-party tracking scripts, no advertising.</p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="font-medium text-sm">Free for small teams</p>
-            <p className="mt-1 text-xs text-gray-500">The security checklist and team dashboard are completely free. No credit card required.</p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="font-medium text-sm">Open checklist</p>
-            <p className="mt-1 text-xs text-gray-500">Browse every item before signing up. No gated content.</p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="font-medium text-sm">Delete anytime</p>
-            <p className="mt-1 text-xs text-gray-500">One-click account deletion. Hard delete — no soft flags, no data retention.</p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="font-medium text-sm">Magic link login</p>
-            <p className="mt-1 text-xs text-gray-500">No passwords stored. Sign in via email link — one less credential to worry about.</p>
-          </div>
+      {/* Why this checklist */}
+      <section className="bg-white border-y border-gray-200/60">
+        <div className="max-w-3xl mx-auto px-4 py-14">
+          <h2 className="text-2xl font-bold text-gray-900">Why this checklist</h2>
+          <ul className="mt-4 space-y-3">
+            {[
+              "Covers the fixes that block the attacks above.",
+              "No enterprise tools or IT degree required.",
+              "Takes 30 minutes to identify your gaps — then fix them at your own pace.",
+            ].map((text) => (
+              <li key={text} className="flex items-start gap-3 text-gray-700">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-bold mt-0.5">&#10003;</span>
+                <span>{text}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
-      <footer className="mt-10 pt-6 border-t border-gray-200 space-y-2 text-sm text-gray-500">
-        <p>Your data stays in the EU. No tracking, no ads. Free for small teams.</p>
-        <div className="flex gap-4 text-xs">
-          <Link href="/privacy" className="underline hover:text-gray-700">Privacy policy</Link>
-          <Link href="/checklist" className="underline hover:text-gray-700">Browse checklist</Link>
-          <Link href="/login" className="underline hover:text-gray-700">Log in</Link>
+      {/* Trust signals */}
+      <section className="max-w-3xl mx-auto px-4 py-14">
+        <h2 className="text-2xl font-bold text-gray-900">Why trust this tool</h2>
+        <div className="grid gap-4 sm:grid-cols-3 mt-6">
+          {[
+            { title: "EU data residency", desc: "All data stored in Ireland (AWS eu-west-1). No data leaves the EU.", icon: "\uD83C\uDDEA\uD83C\uDDFA" },
+            { title: "No tracking, no ads", desc: "No analytics cookies, no third-party tracking scripts, no advertising.", icon: "\uD83D\uDEE1\uFE0F" },
+            { title: "Free for small teams", desc: "The security checklist and team dashboard are completely free. No credit card required.", icon: "\uD83C\uDD93" },
+            { title: "Open checklist", desc: "Browse every item before signing up. No gated content.", icon: "\uD83D\uDD13" },
+            { title: "Delete anytime", desc: "One-click account deletion. Hard delete — no soft flags, no data retention.", icon: "\uD83D\uDDD1\uFE0F" },
+            { title: "Magic link login", desc: "No passwords stored. Sign in via email link — one less credential to worry about.", icon: "\u2728" },
+          ].map((item) => (
+            <div key={item.title} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm card-hover">
+              <div className="text-xl mb-2">{item.icon}</div>
+              <p className="font-semibold text-sm text-gray-900">{item.title}</p>
+              <p className="mt-1.5 text-xs text-gray-500 leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA band */}
+      <section className="bg-teal-700">
+        <div className="max-w-3xl mx-auto px-4 py-10 text-center">
+          <p className="text-lg font-semibold text-white">Ready to find your security gaps?</p>
+          <p className="text-teal-100 text-sm mt-1">Free for small teams. No credit card required.</p>
+          <Link
+            href="/login"
+            className="mt-5 inline-flex items-center justify-center px-6 py-2.5 rounded-lg bg-white text-teal-700 font-semibold shadow-sm hover:shadow-md transition-all"
+          >
+            Get started free
+          </Link>
+        </div>
+      </section>
+
+      <footer className="border-t border-gray-200/60 bg-white">
+        <div className="max-w-3xl mx-auto px-4 py-8 space-y-2 text-sm text-gray-500">
+          <p>Your data stays in the EU. No tracking, no ads. Free for small teams.</p>
+          <div className="flex gap-4 text-xs">
+            <Link href="/privacy" className="underline hover:text-gray-700">Privacy policy</Link>
+            <Link href="/checklist" className="underline hover:text-gray-700">Browse checklist</Link>
+            <Link href="/login" className="underline hover:text-gray-700">Log in</Link>
+          </div>
         </div>
       </footer>
     </main>

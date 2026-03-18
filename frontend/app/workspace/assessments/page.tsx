@@ -90,7 +90,7 @@ export default function WorkspaceAssessmentsPage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold mb-2">Assessments</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">Assessments</h1>
       <p className="text-sm text-gray-500 mb-6">
         An assessment is a security review of your organisation. Start one to assign checklist items
         to your team. When everyone has responded, mark it complete to lock in results and track progress over time.
@@ -101,7 +101,7 @@ export default function WorkspaceAssessmentsPage() {
           <button
             onClick={handleStart}
             disabled={starting || hasActive}
-            className="rounded-lg bg-teal-700 text-white px-4 py-2 text-sm font-medium hover:bg-teal-800 transition-colors disabled:opacity-60"
+            className="rounded-lg bg-teal-700 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-teal-800 hover:shadow-md transition-all disabled:opacity-60"
           >
             {starting ? "Starting..." : hasActive ? "Assessment already in progress" : "Start new assessment"}
           </button>
@@ -124,8 +124,8 @@ export default function WorkspaceAssessmentsPage() {
           {assessments.map((a) => (
             <div
               key={a.id}
-              className={`rounded-xl border px-4 py-3 flex items-center justify-between gap-4 ${
-                a.status === "active" ? "border-blue-200 bg-blue-50" : "border-gray-200"
+              className={`rounded-xl border px-4 py-3 flex items-center justify-between gap-4 shadow-sm ${
+                a.status === "active" ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-white"
               }`}
             >
               <div>

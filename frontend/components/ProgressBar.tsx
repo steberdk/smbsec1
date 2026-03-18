@@ -7,9 +7,9 @@ export function ProgressBar({ percent }: { percent: number }) {
         <span className="font-medium">Progress</span>
         <span className="tabular-nums">{percent}%</span>
       </div>
-      <div className="h-3 w-full rounded-full bg-gray-200 overflow-hidden">
+      <div className="h-3 w-full rounded-full bg-gray-200 overflow-hidden shadow-inner">
         <div
-          className="h-3 rounded-full bg-gray-900 transition-all"
+          className="h-3 rounded-full progress-gradient transition-all"
           style={{ width: `${percent}%` }}
         />
       </div>

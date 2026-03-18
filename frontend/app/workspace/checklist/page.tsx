@@ -208,11 +208,11 @@ export default function WorkspaceChecklistPage() {
   if (!assessment || items.length === 0) {
     return (
       <div className="animate-pulse space-y-4">
-        <div className="h-6 bg-gray-200 rounded w-40" />
-        <div className="h-3 bg-gray-100 rounded w-full" />
-        <div className="h-16 bg-gray-100 rounded-xl" />
-        <div className="h-16 bg-gray-100 rounded-xl" />
-        <div className="h-16 bg-gray-100 rounded-xl" />
+        <div className="h-7 bg-gray-200/80 rounded-lg w-40" />
+        <div className="h-3 bg-gray-200/60 rounded-full w-full" />
+        <div className="h-16 bg-gray-200/40 rounded-xl border border-gray-200/60" />
+        <div className="h-16 bg-gray-200/40 rounded-xl border border-gray-200/60" />
+        <div className="h-16 bg-gray-200/40 rounded-xl border border-gray-200/60" />
       </div>
     );
   }
@@ -261,8 +261,8 @@ export default function WorkspaceChecklistPage() {
   if (allAnswered) {
     return (
       <>
-        <h1 className="text-xl font-bold mb-6">My checklist</h1>
-        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">My checklist</h1>
+        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-6 shadow-sm">
           <p className="text-lg font-semibold text-green-800 text-center">
             All items answered — great work!
           </p>
@@ -323,15 +323,15 @@ export default function WorkspaceChecklistPage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold mb-6">My checklist</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">My checklist</h1>
 
       <div className="mb-6">
         <div className="flex justify-between text-xs text-gray-500 mb-1">
           <span>{answered} / {total} answered</span>
           <span>{pct}%</span>
         </div>
-        <div className="w-full bg-gray-100 rounded-full h-2">
-          <div className="bg-teal-700 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
+        <div className="w-full bg-gray-100 rounded-full h-2.5 shadow-inner">
+          <div className="progress-gradient h-2.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
         {answered > 0 && answered < total && (
           <button
@@ -492,12 +492,12 @@ function ChecklistItem({
   return (
     <div
       id={`item-${item.id}`}
-      className={`rounded-xl border p-4 ${
+      className={`rounded-xl border p-4 shadow-sm transition-shadow ${
         response === "done"
           ? "border-green-200 bg-green-50"
           : response
           ? "border-gray-200 bg-gray-50"
-          : "border-gray-200 bg-white"
+          : "border-gray-200 bg-white hover:shadow-md"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
