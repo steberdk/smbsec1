@@ -283,6 +283,25 @@ test("E2E-ITEM-04: clicking the active button clears the item back to unanswered
   }
 });
 
+test("E2E-AI-01: workspace checklist items show 'Help me do this' AI guidance button", async ({ page }) => {
+  const orgId = await getAdminOrgId();
+  const adminUserId = await getAdminUserId();
+  await startAssessment(orgId, adminUserId);
+
+  await loginAsRole(page, "org_admin");
+  await page.goto("/workspace/checklist");
+
+  // Wait for items to load and expand the first one
+  const firstItem = page.locator("[id^='item-']").first();
+  await expect(firstItem).toBeVisible({ timeout: 10_000 });
+  await firstItem.locator("button").first().click();
+
+  // "Help me do this" AI guidance button should appear in expanded item
+  await expect(page.getByText(/help me do this/i).first()).toBeVisible({ timeout: 5_000 });
+
+  await completeAnyActiveAssessment(orgId);
+});
+
 test("E2E-ITEM-05: completion banner appears when all items are answered", async ({ page }) => {
   const iso = await createIsolatedOrg("ITEM05 Org");
   try {

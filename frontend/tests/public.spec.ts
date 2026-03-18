@@ -5,6 +5,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { loginAsRole } from "./helpers/fixtures";
 
 // ---------------------------------------------------------------------------
 // Landing page
@@ -60,6 +61,21 @@ test("E2E-PUB-02: anonymous checklist is read-only", async ({ page }) => {
 // ---------------------------------------------------------------------------
 // Summary (anonymous)
 // ---------------------------------------------------------------------------
+
+test("E2E-PUB-04: public checklist does not show errors when logged in", async ({
+  page,
+}) => {
+  // Log in first, then visit the public checklist
+  await loginAsRole(page, "org_admin");
+  await page.waitForURL(/\/workspace/);
+
+  // Navigate to public checklist
+  await page.goto("/checklist");
+
+  // Should render without error messages
+  await expect(page.getByRole("heading", { name: /checklist/i })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/error|invalid schema|failed/i)).toHaveCount(0);
+});
 
 test("E2E-PUB-03: summary page prompts sign-in for anonymous user", async ({
   page,
