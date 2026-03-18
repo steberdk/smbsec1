@@ -8,10 +8,10 @@ export default function HomePage() {
     <main className="max-w-3xl mx-auto px-4 py-10">
       <header className="space-y-4">
         <h1 className="text-3xl font-bold">
-          Fix the biggest cyber risks in 30 minutes
+          Find your biggest cyber risks in 30 minutes
         </h1>
         <p className="text-gray-700">
-          A practical checklist for small and medium-sized businesses. No fear.
+          A practical checklist for small and medium-sized businesses.
           No enterprise complexity. Just the highest-impact steps.
         </p>
 
@@ -90,7 +90,7 @@ export default function HomePage() {
         <ul className="list-disc pl-5 text-gray-700 space-y-2">
           <li>Covers the fixes that block the attacks above.</li>
           <li>No enterprise tools or IT degree required.</li>
-          <li>Takes 30–60 minutes for the highest-impact items.</li>
+          <li>Takes 30 minutes to identify your gaps — then fix them at your own pace.</li>
         </ul>
       </section>
 
@@ -125,9 +125,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mt-10 space-y-2 text-sm text-gray-600">
-        <p>Privacy: Your data stays in the EU. No tracking, no ads. Free for small teams.</p>
-      </section>
+      <footer className="mt-10 pt-6 border-t border-gray-200 space-y-2 text-sm text-gray-500">
+        <p>Your data stays in the EU. No tracking, no ads. Free for small teams.</p>
+        <div className="flex gap-4 text-xs">
+          <Link href="/privacy" className="underline hover:text-gray-700">Privacy policy</Link>
+          <Link href="/checklist" className="underline hover:text-gray-700">Browse checklist</Link>
+          <Link href="/login" className="underline hover:text-gray-700">Log in</Link>
+        </div>
+      </footer>
     </main>
   );
 }

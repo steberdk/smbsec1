@@ -89,7 +89,11 @@ export default function WorkspaceAssessmentsPage() {
 
   return (
     <>
-      <h1 className="text-xl font-bold mb-6">Assessments</h1>
+      <h1 className="text-xl font-bold mb-2">Assessments</h1>
+      <p className="text-sm text-gray-500 mb-6">
+        An assessment is a security review of your organisation. Start one to assign checklist items
+        to your team. When everyone has responded, mark it complete to lock in results and track progress over time.
+      </p>
 
       {isManager && (
         <div className="mb-6">

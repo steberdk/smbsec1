@@ -55,7 +55,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   // Load all org members (needed for subtree computation and member breakdown)
   const { data: allMembers, error: membersErr } = await supabase
     .from("org_members")
-    .select("user_id, manager_user_id, role, is_it_executor, email")
+    .select("user_id, manager_user_id, role, is_it_executor, email, display_name")
     .eq("org_id", membership.org_id);
 
   if (membersErr || !allMembers) return apiError("Failed to load org members", 500);
@@ -131,20 +131,28 @@ export async function GET(req: Request): Promise<NextResponse> {
   const unsure = allResponses.filter((r) => r.status === "unsure").length;
   const skipped = allResponses.filter((r) => r.status === "skipped").length;
 
-  const scopeSize = scopedUserIds.length;
-  const totalPossible = totalItems * scopeSize;
+  // Calculate role-adjusted total: IT executors see all items, others see only awareness
+  const totalPossible = scopedUserIds.reduce((sum, uid) => {
+    const member = allMembers.find((m) => m.user_id === uid);
+    return sum + (member?.is_it_executor ? totalItems : awarenessCount);
+  }, 0);
   const percent =
     totalPossible === 0
       ? 0
       : Math.round(((done + unsure + skipped) / totalPossible) * 100);
 
   // Per-track stats aggregation (AC-TRACK-AGG-01/02/03)
-  function trackStats(itemIds: Set<string>) {
+  function trackStats(itemIds: Set<string>, trackName: string) {
     const trackResponses = allResponses.filter((r) => itemIds.has(r.assessment_item_id));
     const tDone = trackResponses.filter((r) => r.status === "done").length;
     const tUnsure = trackResponses.filter((r) => r.status === "unsure").length;
     const tSkipped = trackResponses.filter((r) => r.status === "skipped").length;
-    const tTotal = itemIds.size * scopeSize;
+    // Role-adjusted: only count members who can see this track
+    const members = allMembers ?? [];
+    const membersWhoSeeTrack = trackName === "it_baseline"
+      ? scopedUserIds.filter((uid) => members.find((m) => m.user_id === uid)?.is_it_executor)
+      : scopedUserIds; // all members see awareness
+    const tTotal = itemIds.size * membersWhoSeeTrack.length;
     return {
       total: itemIds.size,
       done: tDone,
@@ -185,7 +193,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       return {
         user_id: uid,
         email: memberMembership?.email ?? null,
-        display_name: (memberMembership as Record<string, unknown>)?.display_name as string ?? null,
+        display_name: memberMembership?.display_name ?? null,
         role: memberMembership?.role ?? "employee",
         is_it_executor: isItExecutor,
         done: mDone,
@@ -209,8 +217,8 @@ export async function GET(req: Request): Promise<NextResponse> {
       skipped,
       percent,
       by_track: {
-        it_baseline: trackStats(itBaselineItemIds),
-        awareness: trackStats(awarenessItemIds),
+        it_baseline: trackStats(itBaselineItemIds, "it_baseline"),
+        awareness: trackStats(awarenessItemIds, "awareness"),
       },
     },
     members: memberBreakdown,

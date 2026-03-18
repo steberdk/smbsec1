@@ -36,15 +36,22 @@ export async function GET(
 
   if (assessErr || !assessment) return apiError("Assessment not found", 404);
 
-  const { data: items, error: itemsErr } = await supabase
-    .from("assessment_items")
-    .select("id, checklist_item_id, group_id, title, description, order_index, track, impact, effort, why_it_matters, steps")
-    .eq("assessment_id", id)
-    .order("order_index", { ascending: true });
+  const [{ data: items, error: itemsErr }, { data: groups }] = await Promise.all([
+    supabase
+      .from("assessment_items")
+      .select("id, checklist_item_id, group_id, title, description, order_index, track, impact, effort, why_it_matters, steps")
+      .eq("assessment_id", id)
+      .order("order_index", { ascending: true }),
+    supabase
+      .from("checklist_groups")
+      .select("id, title, track, order_index")
+      .eq("active", true)
+      .order("order_index", { ascending: true }),
+  ]);
 
   if (itemsErr) return apiError(itemsErr.message, 500);
 
-  return NextResponse.json({ assessment, items: items ?? [] });
+  return NextResponse.json({ assessment, items: items ?? [], groups: groups ?? [] });
 }
 
 export async function PATCH(

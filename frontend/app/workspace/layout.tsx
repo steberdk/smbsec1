@@ -40,7 +40,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
       <header className="border-b border-gray-200 bg-white">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex items-center justify-between h-14">
-            <Link href="/workspace" className="text-sm font-semibold text-gray-900 truncate max-w-[160px]">
+            <Link href="/workspace" className="text-sm font-semibold text-gray-900 truncate max-w-[240px]" title={orgData.org.name}>
               {orgData.org.name}
             </Link>
 

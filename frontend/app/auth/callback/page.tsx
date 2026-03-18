@@ -40,14 +40,14 @@ function AuthCallbackInner() {
       // do nothing and wait for the SIGNED_IN event that follows.
     });
 
-    // Safety net: if no session within 5 s, send to login.
+    // Safety net: if no session within 10 s, send to login.
     const timeout = setTimeout(() => {
       if (!done) {
         done = true;
         subscription.unsubscribe();
-        router.replace("/login");
+        router.replace("/login?error=timeout");
       }
-    }, 5000);
+    }, 10000);
 
     return () => {
       subscription.unsubscribe();

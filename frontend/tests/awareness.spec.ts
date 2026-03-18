@@ -35,7 +35,7 @@ test("E2E-AWARE-01: user can mark Awareness track items and see progress", async
 
   // Mark the first Done button in the Awareness section
   const awarenessSection = page.locator("section").filter({ has: page.getByRole("heading", { name: /security awareness/i }) });
-  const firstDone = awarenessSection.getByRole("button", { name: /^done$/i }).first();
+  const firstDone = awarenessSection.getByRole("button", { name: /i've done this/i }).first();
   await expect(firstDone).toBeVisible({ timeout: 10_000 });
 
   const saveResponse = page.waitForResponse(
@@ -73,7 +73,7 @@ test("E2E-AWARE-02: completing Awareness items is tracked independently per user
     await expect(page.getByRole("heading", { name: /security awareness/i })).toBeVisible({ timeout: 10_000 });
 
     const awarenessSection = page.locator("section").filter({ has: page.getByRole("heading", { name: /security awareness/i }) });
-    const doneButtons = awarenessSection.getByRole("button", { name: /^done$/i });
+    const doneButtons = awarenessSection.getByRole("button", { name: /i've done this/i });
     const count = await doneButtons.count();
 
     // Mark all visible awareness items as done
@@ -114,11 +114,11 @@ test("E2E-AWARE-03: Security Awareness track contains multiple items across grou
   const cardCount = await itemCards.count();
   expect(cardCount).toBeGreaterThanOrEqual(5);
 
-  // Each item card should have Done / Unsure / Skipped buttons
+  // Each awareness item card should have the awareness-specific response buttons
   const firstCard = itemCards.first();
-  await expect(firstCard.getByRole("button", { name: /^done$/i })).toBeVisible();
-  await expect(firstCard.getByRole("button", { name: /^unsure$/i })).toBeVisible();
-  await expect(firstCard.getByRole("button", { name: /^skipped$/i })).toBeVisible();
+  await expect(firstCard.getByRole("button", { name: /i've done this/i })).toBeVisible();
+  await expect(firstCard.getByRole("button", { name: /not yet/i })).toBeVisible();
+  await expect(firstCard.getByRole("button", { name: /not applicable/i })).toBeVisible();
 
   await completeAnyActiveAssessment(orgId);
 });

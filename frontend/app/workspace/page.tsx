@@ -83,10 +83,10 @@ export default function WorkspacePage() {
           <ol className="space-y-3">
             <GuidedStep
               number={1}
-              title="Invite your IT lead"
-              description="Assign someone to handle the technical security checklist."
+              title={membership.is_it_executor ? "IT checklist assigned to you" : "Invite your IT lead"}
+              description={membership.is_it_executor ? "You chose to handle IT yourself — the IT Baseline checklist is on your list." : "Assign someone to handle the technical security checklist."}
               href="/workspace/team"
-              done={pendingInviteCount !== null && pendingInviteCount > 0}
+              done={membership.is_it_executor || (pendingInviteCount !== null && pendingInviteCount > 0)}
               cta="Invite team member"
             />
             <GuidedStep

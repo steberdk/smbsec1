@@ -18,6 +18,7 @@ type ItHandling = "self" | "staff_member" | "external_it" | "not_sure";
 
 type CreateOrgBody = {
   name: string;
+  display_name?: string;
   email_platform?: EmailPlatform;
   primary_os?: PrimaryOs;
   company_size?: CompanySize;
@@ -88,6 +89,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     role: "org_admin",
     manager_user_id: null,
     is_it_executor: ownerIsItExecutor,
+    display_name: body.display_name?.trim() || null,
   });
 
   if (memberErr) {

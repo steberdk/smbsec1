@@ -135,7 +135,7 @@ export default function WorkspaceDashboardPage() {
             </p>
 
             <div className="flex justify-between text-xs text-gray-500 mb-1">
-              <span>{stats.done + stats.unsure + stats.skipped} / {stats.total * Math.max(members.length, 1)} responses</span>
+              <span>{stats.done + stats.unsure + stats.skipped} / {members.length > 0 ? members.reduce((s, m) => s + m.total, 0) : stats.total} responses</span>
               <span>{stats.percent}%</span>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
@@ -172,7 +172,7 @@ export default function WorkspaceDashboardPage() {
                           {m.role.replace("_", " ")}
                           {m.is_it_executor && " · IT executor"}
                         </p>
-                        <p className="text-xs text-gray-400 font-mono">
+                        <p className="text-xs text-gray-600">
                           {m.display_name ?? m.email ?? `${m.user_id.slice(0, 8)}...`}
                         </p>
                       </div>

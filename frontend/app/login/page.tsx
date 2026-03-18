@@ -87,7 +87,16 @@ function LoginInner() {
         {status === "error" && <p className="text-sm text-red-700">{error}</p>}
       </form>
 
-      <div className="mt-6 text-sm">
+      <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+        <p className="text-xs font-medium text-gray-700 mb-2">New here? Here&apos;s how it works:</p>
+        <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
+          <li>Enter your email above — we&apos;ll send a secure link</li>
+          <li>Set up your organisation (name, who handles IT)</li>
+          <li>Invite your team and start your security review</li>
+        </ol>
+      </div>
+
+      <div className="mt-4 text-sm">
         <Link className="underline" href="/">
           Back to home
         </Link>

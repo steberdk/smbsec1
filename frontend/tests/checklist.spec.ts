@@ -169,8 +169,8 @@ test.describe.serial("Checklist item state", () => {
     await loginAsRole(page, "org_admin");
     await page.goto("/workspace/checklist");
 
-    // Wait for items to load
-    const doneBtn = page.getByRole("button", { name: /^done$/i }).first();
+    // Wait for items to load — button text depends on track
+    const doneBtn = page.getByRole("button", { name: /^done$|^i've done this$/i }).first();
     await expect(doneBtn).toBeVisible({ timeout: 10_000 });
 
     // Set up network listener BEFORE clicking so we catch the PUT request
@@ -188,7 +188,7 @@ test.describe.serial("Checklist item state", () => {
 
     // Reload and confirm state persisted
     await page.reload();
-    await expect(page.getByRole("button", { name: /^done$/i }).first()).toHaveClass(
+    await expect(page.getByRole("button", { name: /^done$|^i've done this$/i }).first()).toHaveClass(
       /bg-green-700/,
       { timeout: 10_000 }
     );
@@ -201,7 +201,7 @@ test.describe.serial("Checklist item state", () => {
     await page.goto("/workspace/checklist");
 
     // Use the second item to avoid collision with ITEM-01's Done state
-    const unsureBtn = page.getByRole("button", { name: /^unsure$/i }).nth(1);
+    const unsureBtn = page.getByRole("button", { name: /^unsure$|^not yet$/i }).nth(1);
     await expect(unsureBtn).toBeVisible({ timeout: 10_000 });
     await unsureBtn.click();
 

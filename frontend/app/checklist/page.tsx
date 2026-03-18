@@ -42,10 +42,18 @@ export default function ChecklistPage() {
     async function checkAuth() {
       try {
         const supabase = getSupabaseBrowserClient();
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token ?? null;
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
         if (cancelled) return;
+
+        // If session check fails (stale token), clear it and show read-only
+        if (sessionError) {
+          await supabase.auth.signOut().catch(() => {});
+          setViewMode("readonly");
+          return;
+        }
+
+        const token = sessionData.session?.access_token ?? null;
 
         if (!token) {
           setViewMode("readonly");

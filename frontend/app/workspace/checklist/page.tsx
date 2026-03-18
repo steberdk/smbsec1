@@ -10,11 +10,19 @@ type AssessmentItem = {
   title: string;
   description: string | null;
   track: string;
+  group_id: string;
   impact: string | null;
   effort: string | null;
   order_index: number;
   why_it_matters: string | null;
   steps: string[];
+};
+
+type ChecklistGroup = {
+  id: string;
+  title: string;
+  track: string;
+  order_index: number;
 };
 
 type Assessment = {
@@ -27,17 +35,39 @@ type Assessment = {
 type ResponseStatus = "done" | "unsure" | "skipped";
 type ResponseMap = Record<string, ResponseStatus>;
 
-const RESPONSE_TOOLTIPS: Record<ResponseStatus, string> = {
-  done: "We have completed this control or it is already in place.",
-  unsure: "We are not sure if this is done — needs investigation.",
-  skipped: "Not applicable to our organisation or deferred for now.",
+const RESPONSE_TOOLTIPS: Record<string, Record<ResponseStatus, string>> = {
+  it_baseline: {
+    done: "We have completed this control or it is already in place.",
+    unsure: "We are not sure if this is done — needs investigation.",
+    skipped: "Not applicable to our organisation or deferred for now.",
+  },
+  awareness: {
+    done: "I understand this and have completed the action step.",
+    unsure: "I need to learn more about this or haven't done it yet.",
+    skipped: "Not applicable to my role right now.",
+  },
+};
+
+const RESPONSE_LABELS: Record<string, Record<ResponseStatus, string>> = {
+  it_baseline: {
+    done: "Done",
+    unsure: "Unsure",
+    skipped: "Skipped",
+  },
+  awareness: {
+    done: "I've done this",
+    unsure: "Not yet",
+    skipped: "Not applicable",
+  },
 };
 
 export default function WorkspaceChecklistPage() {
-  const { token } = useWorkspace();
+  const { token, orgData } = useWorkspace();
+  const userRole = orgData.membership.role;
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [items, setItems] = useState<AssessmentItem[]>([]);
+  const [groups, setGroups] = useState<ChecklistGroup[]>([]);
   const [responses, setResponses] = useState<ResponseMap>({});
   const [saving, setSaving] = useState<Set<string>>(new Set());
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -69,9 +99,9 @@ export default function WorkspaceChecklistPage() {
         }
         setAssessment(active);
 
-        const [{ items: itemList }, { responses: myResponses }] =
+        const [{ items: itemList, groups: groupList }, { responses: myResponses }] =
           await Promise.all([
-            apiFetch<{ items: AssessmentItem[] }>(
+            apiFetch<{ items: AssessmentItem[]; groups: ChecklistGroup[] }>(
               `/api/assessments/${active.id}`,
               token
             ),
@@ -82,6 +112,7 @@ export default function WorkspaceChecklistPage() {
           ]);
 
         setItems(itemList);
+        setGroups(groupList ?? []);
         const map: ResponseMap = {};
         for (const r of myResponses) map[r.assessment_item_id] = r.status;
         setResponses(map);
@@ -253,10 +284,10 @@ export default function WorkspaceChecklistPage() {
         {showChecklist && (
           <div className="mt-6">
             {itItems.length > 0 && (
-              <ItemGroup title="IT Baseline" items={itItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
+              <ItemGroup title="IT Baseline" track="it_baseline" items={itItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
             )}
             {awarenessItems.length > 0 && (
-              <ItemGroup title="Security Awareness" items={awarenessItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
+              <ItemGroup title="Security Awareness" track="awareness" items={awarenessItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
             )}
           </div>
         )}
@@ -290,6 +321,17 @@ export default function WorkspaceChecklistPage() {
           </button>
         )}
       </div>
+
+      {/* Welcome message for employees */}
+      {userRole === "employee" && answered === 0 && (
+        <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+          <p className="text-sm font-medium text-blue-800">Welcome to your security checklist</p>
+          <p className="mt-1 text-xs text-blue-700">
+            Your organisation is reviewing its security practices. Go through each item below —
+            tap any item to see guidance, then mark your response. This should take about 15 minutes.
+          </p>
+        </div>
+      )}
 
       {/* Risk prioritization: high-impact items still open */}
       {(() => {
@@ -326,11 +368,37 @@ export default function WorkspaceChecklistPage() {
         </div>
       )}
 
-      {itItems.length > 0 && (
-        <ItemGroup title="IT Baseline" items={itItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
-      )}
+      {itItems.length > 0 && (() => {
+        const itGroups = groups
+          .filter((g) => g.track === "it_baseline")
+          .sort((a, b) => a.order_index - b.order_index);
+        // Group items by their group_id; fallback to flat list if no groups
+        if (itGroups.length > 0) {
+          return (
+            <>
+              <h2 className="text-base font-semibold mb-3">IT Baseline</h2>
+              {itGroups.map((g) => {
+                const groupItems = itItems.filter((i) => i.group_id === g.id);
+                if (groupItems.length === 0) return null;
+                return (
+                  <ItemGroup key={g.id} title={g.title} track="it_baseline" items={groupItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
+                );
+              })}
+              {/* Items without a matching group */}
+              {(() => {
+                const groupIds = new Set(itGroups.map((g) => g.id));
+                const ungrouped = itItems.filter((i) => !groupIds.has(i.group_id));
+                return ungrouped.length > 0 ? (
+                  <ItemGroup title="Other" track="it_baseline" items={ungrouped} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
+                ) : null;
+              })()}
+            </>
+          );
+        }
+        return <ItemGroup title="IT Baseline" track="it_baseline" items={itItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />;
+      })()}
       {awarenessItems.length > 0 && (
-        <ItemGroup title="Security Awareness" items={awarenessItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
+        <ItemGroup title="Security Awareness" track="awareness" items={awarenessItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
       )}
     </>
   );
@@ -338,6 +406,7 @@ export default function WorkspaceChecklistPage() {
 
 function ItemGroup({
   title,
+  track,
   items,
   responses,
   saving,
@@ -345,6 +414,7 @@ function ItemGroup({
   onClear,
 }: {
   title: string;
+  track: string;
   items: AssessmentItem[];
   responses: ResponseMap;
   saving: Set<string>;
@@ -359,6 +429,7 @@ function ItemGroup({
           <ChecklistItem
             key={item.id}
             item={item}
+            track={track}
             response={responses[item.id] ?? null}
             isSaving={saving.has(item.id)}
             onResponse={onResponse}
@@ -372,12 +443,14 @@ function ItemGroup({
 
 function ChecklistItem({
   item,
+  track,
   response,
   isSaving,
   onResponse,
   onClear,
 }: {
   item: AssessmentItem;
+  track: string;
   response: ResponseStatus | null;
   isSaving: boolean;
   onResponse: (itemId: string, status: ResponseStatus) => void;
@@ -398,15 +471,27 @@ function ChecklistItem({
     >
       <div className="flex items-start justify-between gap-2">
         <button
-          className="text-left text-sm font-medium flex-1"
+          className="text-left text-sm font-medium flex-1 group"
           onClick={() => setExpanded((v) => !v)}
         >
-          {item.title}
-          {item.impact && (
-            <span className="ml-2 text-xs text-gray-400 font-normal">
-              {item.impact} impact
+          <span className="flex items-start gap-1.5">
+            <span className="text-gray-400 text-xs mt-0.5 transition-transform group-hover:text-gray-600" style={{ display: "inline-block", transform: expanded ? "rotate(90deg)" : "none" }}>
+              &#9656;
             </span>
-          )}
+            <span>
+              {item.title}
+              {item.impact && (
+                <span className="ml-2 text-xs text-gray-400 font-normal">
+                  {item.impact} impact
+                </span>
+              )}
+              {!expanded && (item.why_it_matters || (item.steps && item.steps.length > 0)) && (
+                <span className="ml-2 text-xs text-gray-400 font-normal">
+                  — tap for guidance
+                </span>
+              )}
+            </span>
+          </span>
         </button>
         {isSaving && <span className="text-xs text-gray-400">saving...</span>}
       </div>
@@ -435,23 +520,27 @@ function ChecklistItem({
         </div>
       )}
 
-      <div className="mt-3 flex gap-2">
-        {(["done", "unsure", "skipped"] as ResponseStatus[]).map((s) => (
-          <button
-            key={s}
-            onClick={() => response === s ? onClear(item.id) : onResponse(item.id, s)}
-            title={RESPONSE_TOOLTIPS[s]}
-            className={`rounded-lg px-3 py-1 text-xs font-medium border transition-colors ${
-              response === s
-                ? s === "done"
-                  ? "bg-green-700 text-white border-green-700"
-                  : "bg-gray-700 text-white border-gray-700"
-                : "border-gray-200 text-gray-600 hover:border-gray-400"
-            }`}
-          >
-            {s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
-        ))}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(["done", "unsure", "skipped"] as ResponseStatus[]).map((s) => {
+          const labels = RESPONSE_LABELS[track] ?? RESPONSE_LABELS.it_baseline;
+          const tooltips = RESPONSE_TOOLTIPS[track] ?? RESPONSE_TOOLTIPS.it_baseline;
+          return (
+            <button
+              key={s}
+              onClick={() => response === s ? onClear(item.id) : onResponse(item.id, s)}
+              title={tooltips[s]}
+              className={`rounded-lg px-3 py-1 text-xs font-medium border transition-colors ${
+                response === s
+                  ? s === "done"
+                    ? "bg-green-700 text-white border-green-700"
+                    : "bg-gray-700 text-white border-gray-700"
+                  : "border-gray-200 text-gray-600 hover:border-gray-400"
+              }`}
+            >
+              {labels[s]}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

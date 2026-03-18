@@ -9,6 +9,7 @@ type ItHandling = "self" | "staff_member" | "external_it" | "not_sure";
 
 type FormState = {
   name: string;
+  display_name: string;
   email_platform: string;
   primary_os: string;
   company_size: string;
@@ -23,6 +24,7 @@ export default function OnboardingPage() {
 
   const [form, setForm] = useState<FormState>({
     name: "",
+    display_name: "",
     email_platform: "",
     primary_os: "",
     company_size: "",
@@ -73,6 +75,7 @@ export default function OnboardingPage() {
         method: "POST",
         body: JSON.stringify({
           name: form.name.trim(),
+          display_name: form.display_name.trim() || undefined,
           email_platform: form.email_platform || undefined,
           primary_os: form.primary_os || undefined,
           company_size: form.company_size || undefined,
@@ -99,7 +102,7 @@ export default function OnboardingPage() {
         Takes about 2 minutes. You can change everything later in Settings.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-6" autoComplete="off">
 
         {/* Org name */}
         <div className="space-y-1">
@@ -108,9 +111,24 @@ export default function OnboardingPage() {
             className="w-full border rounded-lg px-3 py-2 text-sm"
             type="text"
             required
+            autoComplete="off"
             value={form.name}
             onChange={(e) => set("name", e.target.value)}
             placeholder="Acme Ltd"
+          />
+        </div>
+
+        {/* Display name */}
+        <div className="space-y-1">
+          <label className="block text-sm font-medium">Your name</label>
+          <p className="text-xs text-gray-500">Shown to your team on the dashboard instead of your email.</p>
+          <input
+            className="w-full border rounded-lg px-3 py-2 text-sm"
+            type="text"
+            autoComplete="off"
+            value={form.display_name}
+            onChange={(e) => set("display_name", e.target.value)}
+            placeholder="Jane Smith"
           />
         </div>
 
@@ -253,6 +271,10 @@ export default function OnboardingPage() {
         >
           {submitting ? "Creating…" : "Create organisation →"}
         </button>
+
+        <p className="text-xs text-gray-400 text-center">
+          We&apos;ll send occasional reminder emails when your security review is due for reassessment.
+        </p>
       </form>
     </main>
   );
