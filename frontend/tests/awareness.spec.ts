@@ -88,7 +88,7 @@ test("E2E-AWARE-02: completing Awareness items is tracked independently per user
 
     await expect(page.getByText(/team progress/i)).toBeVisible({ timeout: 10_000 });
     // At least one member row should appear in the team progress section
-    await expect(page.locator("[class*='rounded-xl border border-gray-200 px-4 py-3']").first())
+    await expect(page.locator("[class*='rounded-xl border border-gray-200']").first())
       .toBeVisible({ timeout: 10_000 });
   } finally {
     await employee.delete();

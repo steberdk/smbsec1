@@ -14,6 +14,15 @@ type Invite = {
   expires_at: string;
 };
 
+type OrgMember = {
+  user_id: string;
+  role: string;
+  is_it_executor: boolean;
+  email: string | null;
+  display_name: string | null;
+  created_at: string;
+};
+
 type InviteForm = {
   email: string;
   role: "manager" | "employee";
@@ -23,6 +32,7 @@ type InviteForm = {
 export default function WorkspaceTeamPage() {
   const { token } = useWorkspace();
 
+  const [members, setMembers] = useState<OrgMember[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState<InviteForm>({ email: "", role: "employee", is_it_executor: false });
@@ -34,17 +44,21 @@ export default function WorkspaceTeamPage() {
 
   useEffect(() => { document.title = "Team | SMB Security Quick-Check"; }, []);
 
-  function loadInvites() {
+  function loadData() {
     if (!token) return;
-    apiFetch<{ invites: Invite[] }>("/api/invites", token)
-      .then(({ invites: list }) => setInvites(list))
-      .catch((e: unknown) => {
-        setLoadError(e instanceof Error ? e.message : "Failed to load invites.");
-      });
+    Promise.all([
+      apiFetch<{ invites: Invite[] }>("/api/invites", token)
+        .then(({ invites: list }) => setInvites(list)),
+      apiFetch<{ members: OrgMember[] }>("/api/orgs/members", token)
+        .then(({ members: list }) => setMembers(list))
+        .catch(() => {}), // non-fatal if user can't access members
+    ]).catch((e: unknown) => {
+      setLoadError(e instanceof Error ? e.message : "Failed to load team data.");
+    });
   }
 
   useEffect(() => {
-    loadInvites();
+    loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -62,7 +76,7 @@ export default function WorkspaceTeamPage() {
       });
       setSubmitSuccess(`Invite sent to ${form.email}.`);
       setForm({ email: "", role: "employee", is_it_executor: false });
-      loadInvites();
+      loadData();
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Failed to send invite.");
     } finally {
@@ -153,6 +167,34 @@ export default function WorkspaceTeamPage() {
           </button>
         </form>
       </section>
+
+      {/* Current members */}
+      {members.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-base font-semibold mb-3">Team members</h2>
+          <div className="space-y-2">
+            {members.map((m) => (
+              <div
+                key={m.user_id}
+                className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3"
+              >
+                <div>
+                  <p className="text-sm font-medium">
+                    {m.display_name ?? m.email ?? `${m.user_id.slice(0, 8)}...`}
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize">
+                    {m.role.replace("_", " ")}
+                    {m.is_it_executor && " · IT executor"}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Joined {new Date(m.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Pending invites */}
       <section>

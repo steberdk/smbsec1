@@ -20,6 +20,14 @@ type MemberStat = {
   percent: number;
 };
 
+type DrillDownItem = {
+  id: string;
+  title: string;
+  track: string;
+  impact: string | null;
+  status: "done" | "unsure" | "skipped" | null;
+};
+
 type TrackStats = {
   total: number;
   done: number;
@@ -159,35 +167,14 @@ export default function WorkspaceDashboardPage() {
             )}
           </div>
 
-          {/* Member breakdown */}
+          {/* Member breakdown with drill-down */}
           {members.length > 0 && (
             <section>
               <h2 className="text-base font-semibold mb-3">Team progress</h2>
+              <p className="text-xs text-gray-400 mb-3">Click a team member to see their individual responses.</p>
               <div className="space-y-2">
                 {members.map((m) => (
-                  <div key={m.user_id} className="rounded-xl border border-gray-200 px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs text-gray-500 capitalize">
-                          {m.role.replace("_", " ")}
-                          {m.is_it_executor && " · IT executor"}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          {m.display_name ?? m.email ?? `${m.user_id.slice(0, 8)}...`}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold">{m.percent}%</p>
-                        <p className="text-xs text-gray-500">{m.done}&#10003; {m.unsure}? {m.skipped}&ndash;</p>
-                      </div>
-                    </div>
-                    <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-                      <div
-                        className="bg-gray-700 h-1.5 rounded-full"
-                        style={{ width: `${m.percent}%` }}
-                      />
-                    </div>
-                  </div>
+                  <MemberRow key={m.user_id} member={m} token={token} />
                 ))}
               </div>
             </section>
@@ -223,6 +210,116 @@ function StatPill({ label, value, color }: { label: string; value: number; color
     <div className="rounded-lg bg-gray-50 border border-gray-100 py-2">
       <p className={`text-lg font-bold ${color}`}>{value}</p>
       <p className="text-xs text-gray-500">{label}</p>
+    </div>
+  );
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  done: "bg-green-100 text-green-800 border-green-200",
+  unsure: "bg-amber-100 text-amber-800 border-amber-200",
+  skipped: "bg-gray-100 text-gray-500 border-gray-200",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  done: "Done",
+  unsure: "Unsure",
+  skipped: "Skipped",
+};
+
+function MemberRow({ member: m, token }: { member: MemberStat; token: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [items, setItems] = useState<DrillDownItem[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleExpand() {
+    if (expanded) {
+      setExpanded(false);
+      return;
+    }
+    setExpanded(true);
+    if (items) return; // already loaded
+    setLoading(true);
+    try {
+      const data = await apiFetch<{ items: DrillDownItem[] }>(
+        `/api/dashboard/members/${m.user_id}`,
+        token
+      );
+      setItems(data.items);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Count unsure items for highlight
+  const unsureItems = items?.filter((i) => i.status === "unsure") ?? [];
+
+  return (
+    <div className="rounded-xl border border-gray-200">
+      <button
+        onClick={handleExpand}
+        className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-gray-500 capitalize">
+              {m.role.replace("_", " ")}
+              {m.is_it_executor && " · IT executor"}
+            </p>
+            <p className="text-xs text-gray-600">
+              {m.display_name ?? m.email ?? `${m.user_id.slice(0, 8)}...`}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-sm font-semibold">{m.percent}%</p>
+              <p className="text-xs text-gray-500">{m.done}&#10003; {m.unsure}? {m.skipped}&ndash;</p>
+            </div>
+            <span className="text-gray-400 text-xs" style={{ transform: expanded ? "rotate(90deg)" : "none", display: "inline-block", transition: "transform 0.15s" }}>
+              &#9656;
+            </span>
+          </div>
+        </div>
+        <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+          <div className="bg-gray-700 h-1.5 rounded-full" style={{ width: `${m.percent}%` }} />
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-gray-200 px-4 py-3">
+          {loading && <p className="text-xs text-gray-400">Loading responses...</p>}
+          {items && items.length === 0 && <p className="text-xs text-gray-400">No items to show.</p>}
+          {items && items.length > 0 && (
+            <>
+              {unsureItems.length >= 2 && (
+                <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                  <p className="text-xs text-amber-800">
+                    <strong>{unsureItems.length} items</strong> marked as unsure — consider following up.
+                  </p>
+                </div>
+              )}
+              <div className="space-y-1">
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-center justify-between rounded-lg px-3 py-1.5 text-xs ${
+                      item.status
+                        ? STATUS_COLORS[item.status]
+                        : "bg-white text-gray-400 border border-dashed border-gray-200"
+                    }`}
+                  >
+                    <span className="flex-1">{item.title}</span>
+                    <span className="ml-2 font-medium whitespace-nowrap">
+                      {item.status ? STATUS_LABELS[item.status] : "Unanswered"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

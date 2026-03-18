@@ -1,0 +1,7 @@
+Service Name,URL,Who Uses It,Admin Account,MFA Enabled,Payment Method,Monthly Cost,Notes
+Google Workspace,https://workspace.google.com,All employees,admin@yourcompany.com,Yes,Company credit card,€12/user,Email and file storage
+Slack,https://slack.com,All employees,admin@yourcompany.com,Yes,Company credit card,€0 (free plan),Team communication
+Dropbox,https://dropbox.com,Marketing team,marketing@yourcompany.com,No — enable this!,Company credit card,€12/month,Shared files with clients
+[Service name],[URL],[Who uses it],[Admin email],[Yes/No],[Payment method],[Cost],[Notes]
+[Service name],[URL],[Who uses it],[Admin email],[Yes/No],[Payment method],[Cost],[Notes]
+[Service name],[URL],[Who uses it],[Admin email],[Yes/No],[Payment method],[Cost],[Notes]

@@ -18,11 +18,11 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   const membership = await getOrgMembership(supabase, user.id);
   if (!membership) return apiError("Not a member of any organisation", 404);
-  if (!hasRole(membership, "org_admin")) return apiError("Forbidden", 403);
+  if (!hasRole(membership, "manager")) return apiError("Forbidden", 403);
 
   const { data, error } = await supabase
     .from("org_members")
-    .select("user_id, role, is_it_executor, manager_user_id, created_at")
+    .select("user_id, role, is_it_executor, manager_user_id, email, display_name, created_at")
     .eq("org_id", membership.org_id)
     .order("created_at", { ascending: true });
 

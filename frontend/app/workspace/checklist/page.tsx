@@ -35,6 +35,24 @@ type Assessment = {
 type ResponseStatus = "done" | "unsure" | "skipped";
 type ResponseMap = Record<string, ResponseStatus>;
 
+// Template downloads for content-creation items (matched by title substring)
+const ITEM_TEMPLATES: { match: string; label: string; href: string }[] = [
+  { match: "security awareness session", label: "Download session outline", href: "/templates/security-awareness-session.md" },
+  { match: "security rules", label: "Download policy template", href: "/templates/security-rules.md" },
+  { match: "security basics", label: "Download policy template", href: "/templates/security-rules.md" },
+  { match: "incident response plan", label: "Download plan template", href: "/templates/incident-response-plan.md" },
+  { match: "offboarding checklist", label: "Download checklist template", href: "/templates/offboarding-checklist.md" },
+  { match: "list of all saas", label: "Download inventory spreadsheet", href: "/templates/saas-inventory.csv" },
+];
+
+function getTemplate(title: string): { label: string; href: string } | null {
+  const lower = title.toLowerCase();
+  for (const t of ITEM_TEMPLATES) {
+    if (lower.includes(t.match)) return { label: t.label, href: t.href };
+  }
+  return null;
+}
+
 const RESPONSE_TOOLTIPS: Record<string, Record<ResponseStatus, string>> = {
   it_baseline: {
     done: "We have completed this control or it is already in place.",
@@ -496,29 +514,41 @@ function ChecklistItem({
         {isSaving && <span className="text-xs text-gray-400">saving...</span>}
       </div>
 
-      {expanded && (
-        <div className="mt-3 space-y-2">
-          {item.description && (
-            <p className="text-xs text-gray-600">{item.description}</p>
-          )}
-          {item.why_it_matters && (
-            <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
-              <p className="text-xs font-medium text-amber-800">Why it matters</p>
-              <p className="mt-0.5 text-xs text-amber-700">{item.why_it_matters}</p>
-            </div>
-          )}
-          {item.steps && item.steps.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-gray-700 mb-1">Steps</p>
-              <ol className="list-decimal list-inside space-y-1">
-                {item.steps.map((step, i) => (
-                  <li key={i} className="text-xs text-gray-600">{step}</li>
-                ))}
-              </ol>
-            </div>
-          )}
-        </div>
-      )}
+      {expanded && (() => {
+        const template = getTemplate(item.title);
+        return (
+          <div className="mt-3 space-y-2">
+            {item.description && (
+              <p className="text-xs text-gray-600">{item.description}</p>
+            )}
+            {item.why_it_matters && (
+              <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
+                <p className="text-xs font-medium text-amber-800">Why it matters</p>
+                <p className="mt-0.5 text-xs text-amber-700">{item.why_it_matters}</p>
+              </div>
+            )}
+            {item.steps && item.steps.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-gray-700 mb-1">Steps</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  {item.steps.map((step, i) => (
+                    <li key={i} className="text-xs text-gray-600">{step}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+            {template && (
+              <a
+                href={template.href}
+                download
+                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-100 transition-colors"
+              >
+                &#8595; {template.label}
+              </a>
+            )}
+          </div>
+        );
+      })()}
 
       <div className="mt-3 flex flex-wrap gap-2">
         {(["done", "unsure", "skipped"] as ResponseStatus[]).map((s) => {
