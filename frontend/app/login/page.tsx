@@ -67,7 +67,7 @@ function LoginInner() {
         />
 
         <button
-          className="w-full rounded-lg bg-gray-900 text-white py-2 disabled:opacity-60"
+          className="w-full rounded-lg bg-teal-700 text-white py-2 hover:bg-teal-800 transition-colors disabled:opacity-60"
           disabled={status === "sending"}
           type="submit"
         >
@@ -84,7 +84,13 @@ function LoginInner() {
             </p>
           </div>
         )}
-        {status === "error" && <p className="text-sm text-red-700">{error}</p>}
+        {status === "error" && (
+          <p className="text-sm text-red-700">
+            {error?.includes("rate limit")
+              ? "Too many attempts — please try again in a few minutes."
+              : error}
+          </p>
+        )}
       </form>
 
       <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">

@@ -1,7 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Security Checklist for Small Business" };
+export const metadata: Metadata = {
+  title: "Security Checklist for Small Business",
+  openGraph: {
+    title: "Find your biggest cyber risks in 30 minutes",
+    description: "A practical security checklist for small businesses. Free, no sign-up required to browse.",
+  },
+};
 
 export default function HomePage() {
   return (
@@ -18,21 +24,21 @@ export default function HomePage() {
         <div className="flex flex-col sm:flex-row gap-3">
           <Link
             href="/login"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gray-900 text-white"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-teal-700 text-white hover:bg-teal-800 transition-colors"
           >
             Sign up free
           </Link>
 
           <Link
             href="/checklist"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
           >
             Browse the checklist
           </Link>
 
           <Link
             href="/login"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
           >
             Log in
           </Link>

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Allow: /checklist
+Allow: /summary
+Allow: /privacy
+Disallow: /workspace
+Disallow: /api
+Disallow: /auth
+
+Sitemap: https://smbsec1.vercel.app/sitemap.xml

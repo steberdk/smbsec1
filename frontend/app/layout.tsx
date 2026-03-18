@@ -17,7 +17,14 @@ export const metadata: Metadata = {
     default: "SMB Security Quick-Check",
     template: "%s | SMB Security Quick-Check",
   },
-  description: "A practical security baseline checklist for small and medium-sized businesses.",
+  description: "A practical security baseline checklist for small and medium-sized businesses. Find your biggest cyber risks in 30 minutes.",
+  openGraph: {
+    title: "SMB Security Quick-Check",
+    description: "A practical security checklist for small businesses. No enterprise complexity. Just the highest-impact steps.",
+    type: "website",
+    locale: "en_US",
+    siteName: "SMB Security Quick-Check",
+  },
 };
 
 export default function RootLayout({

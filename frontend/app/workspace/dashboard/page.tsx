@@ -148,7 +148,7 @@ export default function WorkspaceDashboardPage() {
             </div>
             <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
               <div
-                className="bg-gray-800 h-2 rounded-full"
+                className="bg-teal-700 h-2 rounded-full"
                 style={{ width: `${stats.percent}%` }}
               />
             </div>
@@ -194,7 +194,7 @@ function TrackBar({ label, track }: { label: string; track: TrackStats }) {
       </div>
       <div className="w-full bg-gray-200 rounded-full h-1.5">
         <div
-          className="bg-gray-700 h-1.5 rounded-full"
+          className="bg-teal-600 h-1.5 rounded-full"
           style={{ width: `${track.percent}%` }}
         />
       </div>
@@ -282,7 +282,7 @@ function MemberRow({ member: m, token }: { member: MemberStat; token: string }) 
           </div>
         </div>
         <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-          <div className="bg-gray-700 h-1.5 rounded-full" style={{ width: `${m.percent}%` }} />
+          <div className="bg-teal-600 h-1.5 rounded-full" style={{ width: `${m.percent}%` }} />
         </div>
       </button>
 

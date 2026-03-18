@@ -219,7 +219,7 @@ function WorkspaceCard({
       <p className="mt-1 text-xs text-gray-500">{description}</p>
       {progress != null && progress > 0 && (
         <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-          <div className="bg-gray-700 h-1.5 rounded-full" style={{ width: `${progress}%` }} />
+          <div className="bg-teal-600 h-1.5 rounded-full" style={{ width: `${progress}%` }} />
         </div>
       )}
     </Link>

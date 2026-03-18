@@ -267,7 +267,7 @@ export default function OnboardingPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-lg bg-gray-900 text-white py-2.5 text-sm font-medium disabled:opacity-60"
+          className="w-full rounded-lg bg-teal-700 text-white py-2.5 text-sm font-medium hover:bg-teal-800 transition-colors disabled:opacity-60"
         >
           {submitting ? "Creating…" : "Create organisation →"}
         </button>
