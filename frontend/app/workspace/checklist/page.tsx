@@ -310,10 +310,10 @@ export default function WorkspaceChecklistPage() {
         {showChecklist && (
           <div className="mt-6">
             {itItems.length > 0 && (
-              <ItemGroup title="IT Baseline" track="it_baseline" items={itItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
+              <ItemGroup title="IT Baseline" track="it_baseline" items={itItems} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
             )}
             {awarenessItems.length > 0 && (
-              <ItemGroup title="Security Awareness" track="awareness" items={awarenessItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
+              <ItemGroup title="Security Awareness" track="awareness" items={awarenessItems} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
             )}
           </div>
         )}
@@ -407,7 +407,7 @@ export default function WorkspaceChecklistPage() {
                 const groupItems = itItems.filter((i) => i.group_id === g.id);
                 if (groupItems.length === 0) return null;
                 return (
-                  <ItemGroup key={g.id} title={g.title} track="it_baseline" items={groupItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
+                  <ItemGroup key={g.id} title={g.title} track="it_baseline" items={groupItems} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
                 );
               })}
               {/* Items without a matching group */}
@@ -415,16 +415,16 @@ export default function WorkspaceChecklistPage() {
                 const groupIds = new Set(itGroups.map((g) => g.id));
                 const ungrouped = itItems.filter((i) => !groupIds.has(i.group_id));
                 return ungrouped.length > 0 ? (
-                  <ItemGroup title="Other" track="it_baseline" items={ungrouped} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
+                  <ItemGroup title="Other" track="it_baseline" items={ungrouped} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
                 ) : null;
               })()}
             </>
           );
         }
-        return <ItemGroup title="IT Baseline" track="it_baseline" items={itItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />;
+        return <ItemGroup title="IT Baseline" track="it_baseline" items={itItems} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />;
       })()}
       {awarenessItems.length > 0 && (
-        <ItemGroup title="Security Awareness" track="awareness" items={awarenessItems} responses={responses} saving={saving} onResponse={setResponse} onClear={clearResponse} />
+        <ItemGroup title="Security Awareness" track="awareness" items={awarenessItems} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
       )}
     </>
   );
@@ -436,6 +436,7 @@ function ItemGroup({
   items,
   responses,
   saving,
+  token,
   onResponse,
   onClear,
 }: {
@@ -444,6 +445,7 @@ function ItemGroup({
   items: AssessmentItem[];
   responses: ResponseMap;
   saving: Set<string>;
+  token: string;
   onResponse: (itemId: string, status: ResponseStatus) => void;
   onClear: (itemId: string) => void;
 }) {
@@ -456,6 +458,7 @@ function ItemGroup({
             key={item.id}
             item={item}
             track={track}
+            token={token}
             response={responses[item.id] ?? null}
             isSaving={saving.has(item.id)}
             onResponse={onResponse}
@@ -470,6 +473,7 @@ function ItemGroup({
 function ChecklistItem({
   item,
   track,
+  token,
   response,
   isSaving,
   onResponse,
@@ -477,6 +481,7 @@ function ChecklistItem({
 }: {
   item: AssessmentItem;
   track: string;
+  token: string;
   response: ResponseStatus | null;
   isSaving: boolean;
   onResponse: (itemId: string, status: ResponseStatus) => void;
@@ -554,6 +559,9 @@ function ChecklistItem({
                 &#8595; {template.label}
               </a>
             )}
+            {track === "it_baseline" && (
+              <AiGuidancePanel item={item} token={token} />
+            )}
           </div>
         );
       })()}
@@ -580,6 +588,67 @@ function ChecklistItem({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function AiGuidancePanel({ item, token }: { item: AssessmentItem; token: string }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [guidance, setGuidance] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function fetchGuidance() {
+    if (guidance) { setOpen(true); return; } // already loaded
+    setOpen(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiFetch<{ guidance: string; error?: string }>("/api/guidance", token, {
+        method: "POST",
+        body: JSON.stringify({
+          item_title: item.title,
+          item_description: item.description,
+          item_why: item.why_it_matters,
+          item_steps: item.steps,
+        }),
+      });
+      setGuidance(res.guidance);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load guidance.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-1">
+      <button
+        onClick={() => open ? setOpen(false) : fetchGuidance()}
+        className="text-xs text-teal-700 font-medium hover:underline"
+      >
+        {open ? "Hide AI guidance" : "Help me do this"}
+      </button>
+
+      {open && (
+        <div className="mt-2 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2">
+          {loading && (
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-teal-700 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs text-teal-700">Generating guidance...</span>
+            </div>
+          )}
+          {error && <p className="text-xs text-red-700">{error}</p>}
+          {guidance && (
+            <>
+              <div className="text-xs text-teal-900 whitespace-pre-wrap leading-relaxed">{guidance}</div>
+              <p className="mt-2 text-xs text-teal-600 italic">
+                AI-generated guidance — verify recommendations with your IT provider.
+              </p>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
