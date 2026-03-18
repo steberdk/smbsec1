@@ -11,6 +11,7 @@ function supabaseFromAuth(req: Request) {
   // We rely on RLS + user JWT
   return createClient(url, anon, {
     global: { headers: { Authorization: auth } },
+    db: { schema: "smbsec1" },
   });
 }
 

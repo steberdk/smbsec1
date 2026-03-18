@@ -559,9 +559,7 @@ function ChecklistItem({
                 &#8595; {template.label}
               </a>
             )}
-            {track === "it_baseline" && (
-              <AiGuidancePanel item={item} token={token} />
-            )}
+            <AiGuidancePanel item={item} token={token} />
           </div>
         );
       })()}
