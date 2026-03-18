@@ -257,7 +257,8 @@ test("E2E-ITEM-04: clicking the active button clears the item back to unanswered
     await page.waitForURL(/\/workspace/);
     await page.goto("/workspace/checklist");
 
-    const doneBtn = page.getByRole("button", { name: /^done$/i }).first();
+    // Button text depends on track: IT Baseline says "Done", Awareness says "I've done this"
+    const doneBtn = page.getByRole("button", { name: /^done$|^i've done this$/i }).first();
     await expect(doneBtn).toBeVisible({ timeout: 10_000 });
 
     // Mark Done and wait for save
