@@ -89,7 +89,14 @@ export default function WorkspaceDashboardPage() {
   }
 
   if (!data) {
-    return <p className="text-sm text-gray-600">Loading...</p>;
+    return (
+      <div className="animate-pulse space-y-4">
+        <div className="h-6 bg-gray-200 rounded w-32" />
+        <div className="h-20 bg-gray-100 rounded-xl" />
+        <div className="h-40 bg-gray-100 rounded-xl" />
+        <div className="h-24 bg-gray-100 rounded-xl" />
+      </div>
+    );
   }
 
   const { stats, members, cadence, assessment } = data;
@@ -108,7 +115,8 @@ export default function WorkspaceDashboardPage() {
         )}
       </div>
 
-      {/* Cadence indicator + next review due */}
+      {/* Cadence indicator + next review due (hide "never" when there's an active assessment) */}
+      {!(cadence.status === "never" && assessment) && (
       <div className={`rounded-xl border px-4 py-3 mb-6 ${CADENCE_CLASSES[cadence.status]}`}>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{CADENCE_LABEL[cadence.status]}</span>
@@ -125,6 +133,7 @@ export default function WorkspaceDashboardPage() {
           </p>
         )}
       </div>
+      )}
 
       {!assessment ? (
         <div className="rounded-xl border border-gray-200 px-4 py-4 mb-6">

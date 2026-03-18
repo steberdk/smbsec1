@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
@@ -144,15 +145,25 @@ export default function WorkspaceAssessmentsPage() {
                 </p>
               </div>
 
-              {a.status === "active" && isManager && (
-                <button
-                  onClick={() => handleComplete(a.id)}
-                  disabled={completing === a.id}
-                  className="text-xs text-gray-700 border border-gray-300 rounded-lg px-3 py-1 hover:border-gray-500 disabled:opacity-50"
-                >
-                  {completing === a.id ? "Completing..." : "Mark complete"}
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {a.status === "active" && (
+                  <Link
+                    href="/workspace/checklist"
+                    className="text-xs text-teal-700 border border-teal-200 rounded-lg px-3 py-1 hover:bg-teal-50 transition-colors"
+                  >
+                    Go to checklist
+                  </Link>
+                )}
+                {a.status === "active" && isManager && (
+                  <button
+                    onClick={() => handleComplete(a.id)}
+                    disabled={completing === a.id}
+                    className="text-xs text-gray-700 border border-gray-300 rounded-lg px-3 py-1 hover:border-gray-500 disabled:opacity-50"
+                  >
+                    {completing === a.id ? "Completing..." : "Mark complete"}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

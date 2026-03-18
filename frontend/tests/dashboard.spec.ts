@@ -64,9 +64,9 @@ test("E2E-DASH-02: Manager dashboard shows only subtree data", async ({ page }) 
 
     await expect(page.getByRole("heading", { name: /dashboard/i })).toBeVisible();
 
-    // Dashboard should load without error
+    // Dashboard should load without error — look for assessment info or cadence banner
     await expect(
-      page.getByText(/on track|due soon|overdue|no assessment completed/i)
+      page.getByText(/on track|due soon|overdue|no assessment completed|org assessment/i)
     ).toBeVisible({ timeout: 10_000 });
   } finally {
     await employee.delete();

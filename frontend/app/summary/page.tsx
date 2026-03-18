@@ -87,19 +87,38 @@ export default function SummaryPage() {
           </p>
           <Link
             href="/login"
-            className="mt-3 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gray-900 text-white text-sm"
+            className="mt-3 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-teal-700 text-white text-sm hover:bg-teal-800 transition-colors"
           >
             Sign in
           </Link>
         </div>
-        <div className="mt-4">
-          <Link className="text-sm underline" href="/checklist">
-            ← Browse the checklist first
-          </Link>
+
+        {/* Teaser: what the summary looks like */}
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <p className="text-xs font-medium text-gray-500 mb-3">What you will see after signing in:</p>
+          <div className="space-y-2 opacity-60">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-700">Overall progress</span>
+              <span className="font-semibold">67%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-teal-600 h-2 rounded-full" style={{ width: "67%" }} />
+            </div>
+            <div className="flex gap-4 text-xs text-gray-500">
+              <span>12 Done</span>
+              <span>3 Unsure</span>
+              <span>2 Skipped</span>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-gray-400">Plus: team progress, per-item drill-down, and printable summary.</p>
         </div>
-        <div className="mt-2">
-          <Link className="text-sm underline" href="/">
-            ← Home
+
+        <div className="mt-4 flex gap-4 text-sm">
+          <Link className="underline" href="/checklist">
+            Browse the checklist first
+          </Link>
+          <Link className="underline" href="/">
+            Home
           </Link>
         </div>
       </main>

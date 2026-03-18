@@ -10,6 +10,8 @@ type OrgMember = {
   role: string;
   is_it_executor: boolean;
   manager_user_id: string | null;
+  email: string | null;
+  display_name: string | null;
 };
 
 export default function WorkspaceGdprPage() {
@@ -173,7 +175,7 @@ export default function WorkspaceGdprPage() {
                       className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3"
                     >
                       <div>
-                        <p className="text-xs font-mono text-gray-600">{m.user_id.slice(0, 12)}...</p>
+                        <p className="text-xs text-gray-600">{m.display_name ?? m.email ?? `${m.user_id.slice(0, 12)}...`}</p>
                         <p className="text-xs text-gray-500 capitalize">
                           {m.role.replace("_", " ")}
                           {m.is_it_executor && " · IT executor"}
@@ -227,7 +229,7 @@ export default function WorkspaceGdprPage() {
               <button
                 type="submit"
                 disabled={deleting || deleteConfirm !== orgData.org.name}
-                className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-40"
+                className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {deleting ? "Deleting..." : "Delete organisation permanently"}
               </button>
@@ -298,7 +300,8 @@ function SelfDeleteSection({
       <button
         onClick={handleDeleteSelf}
         disabled={deleting || (isAdmin && otherMembers.length > 0) || hasDirectReports}
-        className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-40"
+        className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+        title={(isAdmin && otherMembers.length > 0) || hasDirectReports ? "Resolve the warnings above before deleting" : undefined}
       >
         {deleting ? "Deleting..." : "Delete my account permanently"}
       </button>

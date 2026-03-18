@@ -206,7 +206,15 @@ export default function WorkspaceChecklistPage() {
   }
 
   if (!assessment || items.length === 0) {
-    return <p className="text-sm text-gray-600">Loading...</p>;
+    return (
+      <div className="animate-pulse space-y-4">
+        <div className="h-6 bg-gray-200 rounded w-40" />
+        <div className="h-3 bg-gray-100 rounded w-full" />
+        <div className="h-16 bg-gray-100 rounded-xl" />
+        <div className="h-16 bg-gray-100 rounded-xl" />
+        <div className="h-16 bg-gray-100 rounded-xl" />
+      </div>
+    );
   }
 
   const visibleItems = isItExecutor ? items : items.filter((i) => i.track === "awareness");
