@@ -111,6 +111,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   type CampaignBody = {
     template_id: string;
     recipient_user_ids: string[];
+    customisation?: Record<string, string>;
   };
 
   const body: CampaignBody | null = await req.json().catch(() => null);
@@ -137,15 +138,16 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (tplErr) return apiError(tplErr.message, 500);
   if (!template) return apiError("Template not found or inactive", 404);
 
-  // Check campaign credits
+  // Check campaign credits (paid orgs bypass credit check)
   const { data: org, error: orgErr } = await supabase
     .from("orgs")
-    .select("campaign_credits")
+    .select("campaign_credits, subscription_status")
     .eq("id", membership.org_id)
     .single();
 
   if (orgErr) return apiError(orgErr.message, 500);
-  if (!org || (org.campaign_credits ?? 0) < 1) {
+  const isPaidOrg = org?.subscription_status === "active";
+  if (!isPaidOrg && (!org || (org.campaign_credits ?? 0) < 1)) {
     return apiError("No campaign credits remaining", 402);
   }
 
@@ -185,6 +187,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       template_id: body.template_id,
       created_by: user.id,
       status: "pending",
+      customisation: body.customisation ?? {},
     })
     .select()
     .single();
@@ -209,15 +212,17 @@ export async function POST(req: Request): Promise<NextResponse> {
     return apiError("Failed to create campaign recipients: " + recipErr.message, 500);
   }
 
-  // Deduct 1 campaign credit
-  const { error: creditErr } = await supabase
-    .from("orgs")
-    .update({ campaign_credits: (org.campaign_credits ?? 1) - 1 })
-    .eq("id", membership.org_id);
+  // Deduct 1 campaign credit (skip for paid orgs)
+  if (!isPaidOrg) {
+    const { error: creditErr } = await supabase
+      .from("orgs")
+      .update({ campaign_credits: (org.campaign_credits ?? 1) - 1 })
+      .eq("id", membership.org_id);
 
-  if (creditErr) {
-    // Non-fatal — campaign is already created
-    console.error("Failed to deduct campaign credit:", creditErr.message);
+    if (creditErr) {
+      // Non-fatal — campaign is already created
+      console.error("Failed to deduct campaign credit:", creditErr.message);
+    }
   }
 
   return NextResponse.json({ campaign }, { status: 201 });

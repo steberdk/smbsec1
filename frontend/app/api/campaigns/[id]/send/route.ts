@@ -45,7 +45,7 @@ export async function POST(
   // Load campaign
   const { data: campaign, error: campErr } = await supabase
     .from("campaigns")
-    .select("id, org_id, template_id, status")
+    .select("id, org_id, template_id, status, customisation")
     .eq("id", id)
     .eq("org_id", membership.org_id)
     .maybeSingle();
@@ -137,11 +137,15 @@ export async function POST(
     text = text.replace(/\{\{RECIPIENT_NAME\}\}/g, recipientName);
     text = text.replace(/\{\{SENDER_NAME\}\}/g, senderName);
 
+    // Use custom subject if campaign has overrides
+    const customisation = (campaign.customisation ?? {}) as Record<string, string>;
+    const emailSubject = customisation.subject ?? (template.subject as string);
+
     try {
       const { error: sendErr } = await resend.emails.send({
         from,
         to: recipient.email,
-        subject: template.subject as string,
+        subject: emailSubject,
         html,
         text,
         headers: {

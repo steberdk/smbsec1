@@ -20,6 +20,7 @@ export default function CampaignsPage() {
   const { token, isAdmin } = useWorkspace();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [credits, setCredits] = useState<number | null>(null);
+  const [isPaid, setIsPaid] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,13 +35,13 @@ export default function CampaignsPage() {
       apiFetch<{ campaigns: Campaign[] }>("/api/campaigns", token).then(
         ({ campaigns: list }) => setCampaigns(list)
       ),
-      apiFetch<{ org: { campaign_credits?: number } }>(
+      apiFetch<{ org: { campaign_credits?: number; subscription_status?: string } }>(
         "/api/orgs/me",
         token
       ).then((data) => {
-        // campaign_credits may be on the org object
-        const org = data.org as { campaign_credits?: number };
+        const org = data.org as { campaign_credits?: number; subscription_status?: string };
         setCredits(org.campaign_credits ?? 0);
+        setIsPaid(org.subscription_status === "active");
       }),
     ])
       .catch((e: unknown) => {
@@ -52,7 +53,7 @@ export default function CampaignsPage() {
   const hasActiveCampaign = campaigns.some((c) =>
     ["pending", "sending", "active"].includes(c.status)
   );
-  const canCreate = isAdmin && (credits ?? 0) > 0 && !hasActiveCampaign;
+  const canCreate = isAdmin && (isPaid || (credits ?? 0) > 0) && !hasActiveCampaign;
 
   function statusBadge(status: string) {
     const styles: Record<string, string> = {

@@ -36,6 +36,7 @@ export default function CreateCampaignPage() {
     new Set()
   );
   const [loading, setLoading] = useState(true);
+  const [customSubject, setCustomSubject] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,12 +121,19 @@ export default function CreateCampaignPage() {
     setSubmitting(true);
     setError(null);
 
+    // Build customisation object (only non-empty overrides)
+    const customisation: Record<string, string> = {};
+    if (customSubject && chosenTemplate && customSubject !== chosenTemplate.subject) {
+      customisation.subject = customSubject;
+    }
+
     try {
       await apiFetch("/api/campaigns", token, {
         method: "POST",
         body: JSON.stringify({
           template_id: selectedTemplate,
           recipient_user_ids: Array.from(selectedRecipients),
+          ...(Object.keys(customisation).length > 0 && { customisation }),
         }),
       });
       router.push("/workspace/campaigns");
@@ -406,9 +414,19 @@ export default function CreateCampaignPage() {
               <p className="text-sm font-medium text-gray-900">
                 {chosenTemplate?.title ?? "\u2014"}
               </p>
-              {chosenTemplate && (
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Subject: {chosenTemplate.subject}
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Subject line (editable)</p>
+              <input
+                type="text"
+                value={customSubject || chosenTemplate?.subject || ""}
+                onChange={(e) => setCustomSubject(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-1 focus:ring-teal-200 outline-none"
+                placeholder={chosenTemplate?.subject}
+              />
+              {customSubject && chosenTemplate && customSubject !== chosenTemplate.subject && (
+                <p className="text-xs text-teal-600 mt-1">
+                  Custom subject will be used instead of the default.
                 </p>
               )}
             </div>

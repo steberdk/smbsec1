@@ -30,7 +30,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   const { data: org, error: orgErr } = await supabase
     .from("orgs")
-    .select("id, name, created_by, created_at, email_platform, primary_os, company_size")
+    .select("id, name, created_by, created_at, email_platform, primary_os, company_size, campaign_credits, subscription_status")
     .eq("id", membership.org_id)
     .single();
 
