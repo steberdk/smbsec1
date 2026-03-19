@@ -43,3 +43,6 @@ next-env.d.ts
 # Playwright artifacts
 playwright-report/
 test-results/
+
+# Migration scripts (may contain credentials)
+/scripts/
