@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
@@ -11,6 +11,8 @@ type CampaignDetail = {
   status: string;
   created_at: string;
   completed_at: string | null;
+  scheduled_for: string | null;
+  customisation: Record<string, string> | null;
   template: {
     id: string;
     title: string;
@@ -31,6 +33,7 @@ type Recipient = {
 export default function CampaignDetailPage() {
   const { token, isAdmin } = useWorkspace();
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
@@ -38,10 +41,12 @@ export default function CampaignDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [rerunning, setRerunning] = useState(false);
   const [sendResult, setSendResult] = useState<{
     sent: number;
     failed: number;
   } | null>(null);
+  const [showTimeline, setShowTimeline] = useState(false);
 
   useEffect(() => {
     document.title = "Campaign Details | SMB Security Quick-Check";
@@ -94,7 +99,6 @@ export default function CampaignDetailPage() {
       }>(`/api/campaigns/${id}/send`, token, { method: "POST" });
 
       setSendResult({ sent: result.sent, failed: result.failed });
-      // Reload campaign data to reflect new statuses
       loadCampaign();
     } catch (e: unknown) {
       setError(
@@ -105,13 +109,41 @@ export default function CampaignDetailPage() {
     }
   }
 
+  async function handleRerun() {
+    if (!token || !id || rerunning) return;
+
+    const confirmed = window.confirm(
+      "Re-run this campaign? A new campaign will be created with the same template and current team members."
+    );
+    if (!confirmed) return;
+
+    setRerunning(true);
+
+    try {
+      const result = await apiFetch<{ campaign: { id: string } }>(
+        `/api/campaigns/${id}/rerun`,
+        token,
+        { method: "POST" }
+      );
+      router.push(`/workspace/campaigns/${result.campaign.id}`);
+    } catch (e: unknown) {
+      setError(
+        e instanceof Error ? e.message : "Failed to re-run campaign."
+      );
+    } finally {
+      setRerunning(false);
+    }
+  }
+
   function statusBadge(status: string) {
     const styles: Record<string, string> = {
       draft: "bg-yellow-100 text-yellow-800",
       pending: "bg-yellow-100 text-yellow-800",
+      scheduled: "bg-purple-100 text-purple-800",
       sent: "bg-blue-100 text-blue-800",
       clicked: "bg-red-100 text-red-800",
       reported: "bg-green-100 text-green-800",
+      ignored: "bg-gray-100 text-gray-500",
       sending: "bg-blue-100 text-blue-800",
       active: "bg-teal-100 text-teal-800",
       completed: "bg-gray-100 text-gray-700",
@@ -149,6 +181,8 @@ export default function CampaignDetailPage() {
     isAdmin &&
     (campaign.status === "draft" || campaign.status === "pending");
 
+  const canRerun = isAdmin && campaign.status === "completed";
+
   const totalRecipients = recipients.length;
   const clickedCount = recipients.filter((r) => r.status === "clicked").length;
   const reportedCount = recipients.filter(
@@ -163,6 +197,26 @@ export default function CampaignDetailPage() {
           ((totalRecipients - clickedCount) / totalRecipients) * 100
         )
       : 0;
+
+  // Build timeline events
+  const timelineEvents: { time: string; label: string; type: string }[] = [];
+  for (const r of recipients) {
+    if (r.sent_at) {
+      timelineEvents.push({
+        time: r.sent_at,
+        label: `Email sent to ${r.email}`,
+        type: "sent",
+      });
+    }
+    if (r.acted_at && (r.status === "clicked" || r.status === "reported")) {
+      timelineEvents.push({
+        time: r.acted_at,
+        label: `${r.email} ${r.status === "clicked" ? "clicked the link" : "reported the email"}`,
+        type: r.status,
+      });
+    }
+  }
+  timelineEvents.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
   return (
     <>
@@ -183,18 +237,29 @@ export default function CampaignDetailPage() {
             {campaign.template && (
               <>
                 {" "}
-                &middot; {campaign.template.type} &middot;{" "}
+                &middot; {campaign.template.type.replace("_", " ")} &middot;{" "}
                 {campaign.template.difficulty}
               </>
             )}
           </p>
+          {campaign.scheduled_for && campaign.status === "scheduled" && (
+            <p className="text-xs text-purple-700 mt-1">
+              Scheduled for {new Date(campaign.scheduled_for).toLocaleDateString()}{" "}
+              at {new Date(campaign.scheduled_for).toLocaleTimeString()}
+            </p>
+          )}
+          {campaign.customisation && Object.keys(campaign.customisation).length > 0 && (
+            <p className="text-xs text-gray-400 mt-1">
+              Custom subject: {campaign.customisation.subject ?? "default"}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {statusBadge(campaign.status)}
         </div>
       </div>
 
-      {/* Send button for draft campaigns */}
+      {/* Send button for draft/pending campaigns */}
       {canSend && (
         <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-4 mb-6">
           <div className="flex items-center justify-between gap-4">
@@ -213,6 +278,30 @@ export default function CampaignDetailPage() {
               className="shrink-0 bg-teal-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? "Sending..." : "Send campaign"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Re-run button for completed campaigns */}
+      {canRerun && (
+        <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 mb-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                Campaign completed
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Re-run this campaign with the same template and current team
+                members. Fresh tracking tokens will be generated.
+              </p>
+            </div>
+            <button
+              onClick={handleRerun}
+              disabled={rerunning}
+              className="shrink-0 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {rerunning ? "Creating..." : "Re-run campaign"}
             </button>
           </div>
         </div>
@@ -287,6 +376,47 @@ export default function CampaignDetailPage() {
         <p className="text-xs text-gray-400 mb-4">
           Results update automatically every 15 seconds.
         </p>
+      )}
+
+      {/* Timeline toggle */}
+      {timelineEvents.length > 0 && (
+        <section className="mb-8">
+          <button
+            onClick={() => setShowTimeline(!showTimeline)}
+            className="text-sm text-teal-700 hover:underline mb-3 flex items-center gap-1"
+          >
+            <span style={{ transform: showTimeline ? "rotate(90deg)" : "none", display: "inline-block", transition: "transform 0.15s" }}>
+              &#9656;
+            </span>
+            {showTimeline ? "Hide timeline" : "Show timeline"} ({timelineEvents.length} events)
+          </button>
+
+          {showTimeline && (
+            <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="divide-y divide-gray-100">
+                {timelineEvents.map((evt, i) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+                    <div
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        evt.type === "clicked"
+                          ? "bg-red-400"
+                          : evt.type === "reported"
+                          ? "bg-green-400"
+                          : "bg-blue-400"
+                      }`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-gray-700 truncate">{evt.label}</p>
+                    </div>
+                    <p className="text-xs text-gray-400 shrink-0">
+                      {new Date(evt.time).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
       )}
 
       {/* Recipients table */}

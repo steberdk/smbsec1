@@ -51,13 +51,14 @@ export default function CampaignsPage() {
   }, [token]);
 
   const hasActiveCampaign = campaigns.some((c) =>
-    ["pending", "sending", "active"].includes(c.status)
+    ["pending", "scheduled", "sending", "active"].includes(c.status)
   );
   const canCreate = isAdmin && (isPaid || (credits ?? 0) > 0) && !hasActiveCampaign;
 
   function statusBadge(status: string) {
     const styles: Record<string, string> = {
       pending: "bg-yellow-100 text-yellow-800",
+      scheduled: "bg-purple-100 text-purple-800",
       sending: "bg-blue-100 text-blue-800",
       active: "bg-teal-100 text-teal-800",
       completed: "bg-gray-100 text-gray-700",

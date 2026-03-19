@@ -213,3 +213,75 @@ Decision: Simple in-memory sliding-window rate limiter (60 req/min/user).
 Not persistent across serverless cold starts — acceptable for SMB scale.
 Applied selectively to high-risk routes (dashboard, invite accept).
 Keyed by user_id (authenticated) or IP (unauthenticated).
+
+---
+
+## 13. Org Deletion Audit Log (PI 8, Iteration 1)
+
+Decision: `audit_logs` table stores org deletion events with no FK to `orgs`.
+
+The table survives CASCADE delete so GDPR compliance can be demonstrated
+(Article 5(2) accountability). Fields: `event_type`, `org_id` (UUID reference
+only), `org_name`, `actor_email`, `details` (jsonb), `created_at`.
+
+RLS has no policies — only service-role can insert/read. The API route writes
+the audit entry before performing the CASCADE delete. If the audit insert fails,
+the deletion still proceeds (GDPR right to erasure takes priority).
+
+---
+
+## 14. Campaign Templates as DB Seed Data (PI 7 + PI 8)
+
+Decision: Campaign templates live in `campaign_templates` table, seeded via
+SQL migrations. Template types: `phishing_email`, `fake_invoice`,
+`credential_harvest`, `ceo_fraud`. Total 4 templates after PI 8.
+
+Templates use mustache-style placeholders: `{{RECIPIENT_NAME}}`,
+`{{CLICK_URL}}`, `{{REPORT_URL}}`, `{{SENDER_NAME}}`. The send API resolves
+these per-recipient. `{{SENDER_NAME}}` is the org admin's display name
+(used for CEO fraud realism).
+
+---
+
+## 15. Stripe Payment Integration (PI 8, Iteration 2)
+
+Decision: Build Stripe Checkout + webhook routes. If `STRIPE_SECRET_KEY` env var
+is absent, the checkout API returns 501 and the billing page shows a waitlist
+form. This allows shipping the payment gate UI before Stefan provides the key.
+
+Org billing state stored in `orgs` table: `subscription_status` (free | active |
+cancelled), `stripe_customer_id`, `stripe_subscription_id`.
+
+Paid orgs (`subscription_status = 'active'`) bypass campaign credit checks and
+get `campaign_credits = 9999` (effectively unlimited).
+
+Pricing: EUR 15/month per organisation (not per user).
+
+---
+
+## 16. Campaign Customisation (PI 8, Iteration 2)
+
+Decision: `campaigns.customisation` is a jsonb column storing template overrides.
+Currently supports `{ subject: "..." }` to customise the email subject line.
+
+The send API merges customisation overrides with template defaults. This keeps
+templates immutable while allowing per-campaign tweaks.
+
+---
+
+## 17. Campaign Scheduling (PI 8, Iteration 3)
+
+Decision: `campaigns.scheduled_for` (timestamptz) stores a future send date.
+Campaign status is `scheduled` instead of `pending`. The existing cron endpoint
+(`/api/campaigns/complete`) also processes scheduled campaigns: when
+`scheduled_for <= now()`, it transitions them to `pending`.
+
+One campaign at a time per org applies to `scheduled` status too.
+
+---
+
+## 18. GitGuardian Security Incident (PI 8)
+
+Decision noted: DB password was leaked in committed SQL scripts. Scripts have been
+removed and .gitignore updated. Password rotation is an ops task (Supabase
+dashboard), not a code change. All future credentials must use env vars only.

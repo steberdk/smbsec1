@@ -98,14 +98,10 @@
 
 ---
 
-## PI 7 — Email/Phone Fraud Campaigns (planned)
-
-**Theme:** Simulated phishing and fraud campaigns to verify employee security awareness. Move from self-reported "I've done this" to email-verified pass/fail results.
-
-**Product Team consensus:** `docs/pi7/product_team_consensus.md`
+## Done — PI 7 (2026-03-19)
 
 ### Iteration 1: Campaign Foundation
-- Migration: campaigns, campaign_recipients, campaign_templates tables + RLS
+- Migration 013: campaigns, campaign_recipients, campaign_templates tables + RLS
 - Seed 2 campaign templates (phishing email + fake invoice)
 - API: campaign CRUD (POST, GET list, GET detail)
 - UI: "Campaigns" nav item (org_admin only)
@@ -132,27 +128,48 @@
 - Employee campaign opt-out (stored in org_members)
 - Privacy disclosure for campaign tracking in org settings
 - assessment_responses.verification_status column
-- Updated docs (domain model, decisions, acceptance criteria)
 
 ---
 
-## PI 8 — Campaign Polish & Payment (future)
+## Done — PI 8 (2026-03-19)
 
-- 2 more campaign templates: fake login page (credential harvest), CEO/authority fraud
-- Stripe payment integration (Checkout session, webhook, org subscription status)
-- Campaign scheduling (future date range)
-- Repeat campaigns ("re-run this campaign" with fresh tokens)
-- Template customisation (admin edits subject/body before sending)
-- Dashboard deep integration (campaign trend chart, cross-assessment comparison)
-- Email template preview for admin
+**Theme:** Campaign polish, payment gate, scheduling, template customisation, audit log
+
+**Product Team consensus:** `docs/pi8/product_team_consensus.md`
+
+### Iteration 1: Templates & Audit
+- Migration 014: audit_logs table + 2 new campaign templates (credential harvest, CEO fraud)
+- Org deletion audit log (email + timestamp logged before CASCADE delete)
+- Fix PI 7 Issue #1: credit messaging when no campaigns exist
+- Fix PI 7 Issue #2: client-side credit check + paid org bypass
+- Email template preview step in create campaign wizard (4-step flow)
+- SENDER_NAME placeholder support for CEO fraud template personalisation
+
+### Iteration 2: Payment Gate & Customisation
+- Migration 015: subscription_status, stripe_customer_id, stripe_subscription_id on orgs + campaigns.customisation
+- Billing page (/workspace/billing) with pricing, plan comparison, waitlist form
+- Stripe Checkout API (POST /api/billing/checkout) — 501 fallback when no key
+- Stripe webhook (POST /api/billing/webhook) — checkout.session.completed, subscription events
+- "Billing" nav link for org_admin
+- Paid orgs bypass campaign credit check (unlimited campaigns)
+- Editable subject line in campaign creation wizard
+- Campaign send uses custom subject if provided
+
+### Iteration 3: Scheduling, Repeat & Polish
+- Migration 016: campaigns.scheduled_for column + 'scheduled' status
+- Campaign scheduling: date picker in create wizard, scheduled status, cron pickup
+- Repeat campaign: "Re-run" button on completed campaigns (POST /api/campaigns/[id]/rerun)
+- Campaign results timeline on detail page (chronological event list)
+- Dashboard campaign trend chart (pass rate over time, colour-coded bars)
+- Updated docs (DECISIONS.md, backlog.md)
 
 ---
 
 ## PI 9 — Advanced Campaigns (future)
 
 - Inbound email report detection (Resend/Mailgun inbound webhook for forwarded emails)
-- Phone/vishing campaigns — AI voice call simulations (research: Twilio, GDPR, feasibility)
-- Campaign analytics over time (trend charts, improvement tracking)
+- Phone/vishing campaigns -- AI voice call simulations (research: Twilio, GDPR, feasibility)
+- Email-based knowledge testing for non-phishing checklist items (paid tier)
 - Multi-language templates (Danish, German, French, Dutch)
 - Custom campaign builder (admin creates own scenario)
 - Email client report button integration (Google Workspace / Microsoft 365 API)
@@ -165,15 +182,14 @@
 - SMS phishing (smishing) campaigns
 - Compliance reporting (cyber insurance, ISO 27001, SOC 2 evidence)
 - API access for MSPs (managed service providers)
-- Anonymous benchmarking ("Your team vs similar-size companies")
 
 ---
 
-## Deferred — Carried Forward
+## Deferred -- Carried Forward
 
 - Evidence uploads (file storage cost, GDPR surface area, low SMB value)
 - Branch delete UI (backend done; UI medium effort, low urgency for 1-20 person orgs)
-- Audit logs / event history (no security value at SMB scale)
+- Anonymous benchmarking (Stefan deferred from PI 8)
 - assessment_responses RLS tightening (SECURITY DEFINER function approach)
 - Mobile responsiveness audit (needs dedicated test pass)
 - Account recovery UI (magic link works but no visible "help" path)

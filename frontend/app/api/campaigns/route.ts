@@ -112,6 +112,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     template_id: string;
     recipient_user_ids: string[];
     customisation?: Record<string, string>;
+    scheduled_for?: string; // ISO date string for scheduling
   };
 
   const body: CampaignBody | null = await req.json().catch(() => null);
@@ -156,7 +157,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     .from("campaigns")
     .select("id")
     .eq("org_id", membership.org_id)
-    .in("status", ["pending", "sending", "active"])
+    .in("status", ["pending", "scheduled", "sending", "active"])
     .maybeSingle();
 
   if (activeCampaign) {
@@ -179,6 +180,10 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const validMembers = orgMembers as { user_id: string; email: string | null }[];
 
+  // Determine if this is a scheduled campaign
+  const isScheduled = body.scheduled_for && new Date(body.scheduled_for) > new Date();
+  const campaignStatus = isScheduled ? "scheduled" : "pending";
+
   // Create campaign
   const { data: campaign, error: campaignErr } = await supabase
     .from("campaigns")
@@ -186,8 +191,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       org_id: membership.org_id,
       template_id: body.template_id,
       created_by: user.id,
-      status: "pending",
+      status: campaignStatus,
       customisation: body.customisation ?? {},
+      ...(isScheduled && { scheduled_for: body.scheduled_for }),
     })
     .select()
     .single();

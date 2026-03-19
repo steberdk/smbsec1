@@ -64,6 +64,12 @@ const CADENCE_CLASSES: Record<CadenceStatus, string> = {
   never: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
+type CampaignTrendPoint = {
+  date: string;
+  pass_rate: number;
+  campaign_id: string;
+};
+
 type CampaignSummary = {
   total_campaigns: number;
   total_sent: number;
@@ -72,6 +78,7 @@ type CampaignSummary = {
   total_ignored: number;
   pass_rate: number;
   last_campaign_date: string | null;
+  trend?: CampaignTrendPoint[];
 };
 
 export default function WorkspaceDashboardPage() {
@@ -232,6 +239,39 @@ export default function WorkspaceDashboardPage() {
                     <p className="text-xs text-gray-500">Clicked</p>
                   </div>
                 </div>
+                {/* Campaign trend chart */}
+                {campaignSummary.trend && campaignSummary.trend.length >= 2 && (
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 mb-2">Pass rate trend</p>
+                    <div className="flex items-end gap-1 h-16">
+                      {campaignSummary.trend.map((point, i) => (
+                        <div
+                          key={i}
+                          className="flex-1 flex flex-col items-center gap-0.5"
+                          title={`${new Date(point.date).toLocaleDateString()} — ${point.pass_rate}%`}
+                        >
+                          <div
+                            className={`w-full rounded-t transition-all ${
+                              point.pass_rate >= 70
+                                ? "bg-teal-400"
+                                : point.pass_rate >= 40
+                                ? "bg-amber-400"
+                                : "bg-red-400"
+                            }`}
+                            style={{
+                              height: `${Math.max(point.pass_rate, 4)}%`,
+                              minHeight: "2px",
+                            }}
+                          />
+                          <span className="text-[9px] text-gray-400">
+                            {new Date(point.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {campaignSummary.last_campaign_date && (
                   <p className="text-xs text-gray-500 mb-3">
                     Last campaign: {new Date(campaignSummary.last_campaign_date).toLocaleDateString()}

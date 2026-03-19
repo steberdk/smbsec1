@@ -40,6 +40,25 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
   );
 
+  // Process scheduled campaigns that are due
+  const { data: scheduledCampaigns } = await supabase
+    .from("campaigns")
+    .select("id")
+    .eq("status", "scheduled")
+    .lte("scheduled_for", new Date().toISOString());
+
+  let scheduledCount = 0;
+  if (scheduledCampaigns && scheduledCampaigns.length > 0) {
+    for (const sc of scheduledCampaigns as { id: string }[]) {
+      // Transition scheduled -> pending (ready for manual or auto send)
+      await supabase
+        .from("campaigns")
+        .update({ status: "pending" })
+        .eq("id", sc.id);
+      scheduledCount++;
+    }
+  }
+
   // Find active campaigns
   const { data: activeCampaigns, error: campErr } = await supabase
     .from("campaigns")
@@ -48,7 +67,11 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   if (campErr) return apiError(campErr.message, 500);
   if (!activeCampaigns || activeCampaigns.length === 0) {
-    return NextResponse.json({ completed: 0, message: "No active campaigns to process" });
+    return NextResponse.json({
+      completed: 0,
+      scheduled_activated: scheduledCount,
+      message: `No active campaigns to process. ${scheduledCount} scheduled campaign(s) activated.`,
+    });
   }
 
   const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
@@ -146,6 +169,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   return NextResponse.json({
     completed: completedCount,
-    message: `Completed ${completedCount} campaign(s)`,
+    scheduled_activated: scheduledCount,
+    message: `Completed ${completedCount} campaign(s). ${scheduledCount} scheduled campaign(s) activated.`,
   });
 }

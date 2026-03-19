@@ -84,6 +84,33 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   const lastCampaignDate = campaignList[0]?.created_at ?? null;
 
+  // Build per-campaign trend data (completed campaigns only, most recent first)
+  const completedCampaigns = campaignList.filter(
+    (c: { status: string }) => c.status === "completed"
+  );
+
+  const trend: { date: string; pass_rate: number; campaign_id: string }[] = [];
+
+  for (const c of completedCampaigns as { id: string; created_at: string }[]) {
+    const campRecipients = recipientList.filter(
+      (r) => r.campaign_id === c.id
+    );
+    const campReported = campRecipients.filter((r) => r.status === "reported").length;
+    const campClicked = campRecipients.filter((r) => r.status === "clicked").length;
+    const campIgnored = campRecipients.filter((r) => r.status === "ignored").length;
+    const campResolved = campReported + campClicked + campIgnored;
+    const campPassRate = campResolved > 0 ? Math.round((campReported / campResolved) * 100) : 0;
+
+    trend.push({
+      date: c.created_at,
+      pass_rate: campPassRate,
+      campaign_id: c.id,
+    });
+  }
+
+  // Reverse so oldest is first (for chart rendering)
+  trend.reverse();
+
   return NextResponse.json({
     total_campaigns: totalCampaigns,
     total_sent: totalSent,
@@ -92,5 +119,6 @@ export async function GET(req: Request): Promise<NextResponse> {
     total_ignored: totalIgnored,
     pass_rate: passRate,
     last_campaign_date: lastCampaignDate,
+    trend,
   });
 }

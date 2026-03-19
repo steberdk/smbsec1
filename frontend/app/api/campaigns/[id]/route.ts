@@ -33,7 +33,7 @@ export async function GET(
   const { data: campaign, error: campErr } = await supabase
     .from("campaigns")
     .select(
-      "id, org_id, template_id, created_by, status, send_window_start, send_window_end, created_at, completed_at"
+      "id, org_id, template_id, created_by, status, send_window_start, send_window_end, created_at, completed_at, scheduled_for, customisation"
     )
     .eq("id", id)
     .eq("org_id", membership.org_id)

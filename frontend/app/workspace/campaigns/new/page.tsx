@@ -37,6 +37,7 @@ export default function CreateCampaignPage() {
   );
   const [loading, setLoading] = useState(true);
   const [customSubject, setCustomSubject] = useState<string>("");
+  const [scheduledFor, setScheduledFor] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,6 +135,7 @@ export default function CreateCampaignPage() {
           template_id: selectedTemplate,
           recipient_user_ids: Array.from(selectedRecipients),
           ...(Object.keys(customisation).length > 0 && { customisation }),
+          ...(scheduledFor && { scheduled_for: new Date(scheduledFor).toISOString() }),
         }),
       });
       router.push("/workspace/campaigns");
@@ -443,10 +445,56 @@ export default function CreateCampaignPage() {
             </div>
           </div>
 
+          {/* Scheduling */}
+          <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm space-y-3 mb-6">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Timing</p>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="timing"
+                    checked={!scheduledFor}
+                    onChange={() => setScheduledFor("")}
+                    className="accent-teal-700"
+                  />
+                  <span className="text-sm text-gray-700">Send now (manual)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="timing"
+                    checked={!!scheduledFor}
+                    onChange={() => {
+                      // Default to tomorrow at 9am
+                      const tomorrow = new Date();
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+                      tomorrow.setHours(9, 0, 0, 0);
+                      setScheduledFor(tomorrow.toISOString().slice(0, 16));
+                    }}
+                    className="accent-teal-700"
+                  />
+                  <span className="text-sm text-gray-700">Schedule for later</span>
+                </label>
+              </div>
+              {scheduledFor && (
+                <input
+                  type="datetime-local"
+                  value={scheduledFor}
+                  onChange={(e) => setScheduledFor(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-1 focus:ring-teal-200 outline-none"
+                />
+              )}
+            </div>
+          </div>
+
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-6">
             <p className="text-sm text-amber-800">
-              This will use 1 campaign credit. The simulated phishing email will
-              be queued for delivery to the selected recipients.
+              This will use 1 campaign credit.{" "}
+              {scheduledFor
+                ? "The campaign will be created and sent automatically at the scheduled time."
+                : "The simulated phishing email will be queued for delivery to the selected recipients."}
             </p>
           </div>
 
