@@ -28,6 +28,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
     { href: "/workspace/dashboard", label: "Dashboard", show: true },
     { href: "/workspace/team", label: "Team", show: isManager },
     { href: "/workspace/assessments", label: "Assessments", show: isManager },
+    { href: "/workspace/campaigns", label: "Campaigns", show: isAdmin },
     { href: "/workspace/settings", label: "Settings", show: isAdmin },
   ];
 
