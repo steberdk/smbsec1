@@ -101,8 +101,8 @@ export default function CampaignsPage() {
         )}
       </div>
 
-      {/* Credit info / upgrade gate — only show upgrade prompt if user has actually used a campaign */}
-      {isAdmin && credits !== null && (credits > 0 || campaigns.length > 0) && (
+      {/* Credit info / upgrade gate */}
+      {isAdmin && credits !== null && (
         <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm mb-6">
           {credits > 0 ? (
             <>
@@ -117,7 +117,7 @@ export default function CampaignsPage() {
                 </p>
               )}
             </>
-          ) : (
+          ) : campaigns.length > 0 ? (
             <div className="text-center py-2">
               <p className="text-sm font-medium text-gray-800">
                 You&apos;ve used your free campaign.
@@ -125,10 +125,18 @@ export default function CampaignsPage() {
               <p className="text-sm text-gray-600 mt-1">
                 Upgrade to continue testing your team.
               </p>
-              <p className="text-xs text-gray-400 mt-2">
-                Paid plans coming soon.
-              </p>
+              <Link
+                href="/workspace/billing"
+                className="mt-3 inline-block rounded-lg bg-teal-700 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-teal-800 hover:shadow-md transition-all"
+              >
+                View plans
+              </Link>
             </div>
+          ) : (
+            <p className="text-sm text-gray-600">
+              You have <span className="font-semibold text-teal-700">1 free campaign</span> to
+              test your team&apos;s phishing awareness. Create your first campaign below.
+            </p>
           )}
         </div>
       )}

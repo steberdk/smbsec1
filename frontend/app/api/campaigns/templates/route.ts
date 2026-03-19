@@ -20,7 +20,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   const { data, error } = await supabase
     .from("campaign_templates")
-    .select("id, title, type, subject, preview_text, difficulty, checklist_item_id")
+    .select("id, title, type, subject, preview_text, body_html, difficulty, checklist_item_id")
     .eq("active", true)
     .order("title", { ascending: true });
 

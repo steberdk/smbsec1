@@ -11,6 +11,7 @@ type Template = {
   type: string;
   subject: string;
   preview_text: string;
+  body_html: string;
   difficulty: string;
   checklist_item_id: string | null;
 };
@@ -27,7 +28,7 @@ export default function CreateCampaignPage() {
   const { token, isAdmin, userId } = useWorkspace();
   const router = useRouter();
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -45,11 +46,13 @@ export default function CreateCampaignPage() {
   useEffect(() => {
     if (!token) return;
 
-    // Check campaign credits first
-    apiFetch<{ org: { campaign_credits?: number } }>("/api/orgs/me", token)
+    // Check campaign credits first — redirect if none
+    apiFetch<{ org: { campaign_credits?: number; subscription_status?: string } }>("/api/orgs/me", token)
       .then((data) => {
-        const credits = (data.org as { campaign_credits?: number }).campaign_credits ?? 0;
-        if (credits <= 0) {
+        const org = data.org as { campaign_credits?: number; subscription_status?: string };
+        const credits = org.campaign_credits ?? 0;
+        const isPaid = org.subscription_status === "active";
+        if (credits <= 0 && !isPaid) {
           router.replace("/workspace/campaigns");
           return;
         }
@@ -152,6 +155,18 @@ export default function CreateCampaignPage() {
     );
   }
 
+  /** Render the template HTML with sample placeholder values for preview */
+  function renderPreviewHtml(html: string): string {
+    return html
+      .replace(/\{\{tracking_url\}\}/g, "#")
+      .replace(/\{\{CLICK_URL\}\}/g, "#")
+      .replace(/\{\{REPORT_URL\}\}/g, "#")
+      .replace(/\{\{RECIPIENT_NAME\}\}/g, "Employee")
+      .replace(/\{\{SENDER_NAME\}\}/g, "Your Manager");
+  }
+
+  const stepLabels = ["Template", "Preview", "Recipients", "Review"];
+
   if (loading) {
     return <p className="text-sm text-gray-600">Loading...</p>;
   }
@@ -164,7 +179,7 @@ export default function CreateCampaignPage() {
 
       {/* Step indicator */}
       <div className="flex items-center gap-2 mb-8">
-        {[1, 2, 3].map((s) => (
+        {[1, 2, 3, 4].map((s) => (
           <div key={s} className="flex items-center gap-2">
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${
@@ -182,9 +197,9 @@ export default function CreateCampaignPage() {
                 step === s ? "text-teal-800" : "text-gray-400"
               }`}
             >
-              {s === 1 ? "Template" : s === 2 ? "Recipients" : "Review"}
+              {stepLabels[s - 1]}
             </span>
-            {s < 3 && <div className="w-8 h-px bg-gray-200" />}
+            {s < 4 && <div className="w-8 h-px bg-gray-200" />}
           </div>
         ))}
       </div>
@@ -233,7 +248,7 @@ export default function CreateCampaignPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs text-gray-500 capitalize">
-                        {t.type}
+                        {t.type.replace("_", " ")}
                       </span>
                       {difficultyBadge(t.difficulty)}
                     </div>
@@ -249,14 +264,67 @@ export default function CreateCampaignPage() {
               disabled={!selectedTemplate}
               className="rounded-lg bg-teal-700 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-teal-800 hover:shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
+              Next: Preview email
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Step 2: Email preview */}
+      {step === 2 && chosenTemplate && (
+        <section>
+          <h2 className="text-base font-semibold mb-4">Email preview</h2>
+          <p className="text-xs text-gray-500 mb-4">
+            This is what your team members will receive. Placeholders are shown
+            with sample values.
+          </p>
+
+          {/* Subject line */}
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm mb-4 overflow-hidden">
+            <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+              <p className="text-xs text-gray-500">
+                <span className="font-medium">Subject:</span>{" "}
+                {chosenTemplate.subject}
+              </p>
+            </div>
+
+            {/* Rendered HTML preview */}
+            <div
+              className="px-4 py-4 overflow-x-auto"
+              dangerouslySetInnerHTML={{
+                __html: renderPreviewHtml(chosenTemplate.body_html),
+              }}
+            />
+          </div>
+
+          <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 mb-6">
+            <p className="text-xs text-teal-800">
+              <strong>Note:</strong> Links in the actual email will point to
+              unique tracking URLs. The &ldquo;Report this email&rdquo; link is
+              included at the bottom of the email for employees to report it as
+              suspicious.
+            </p>
+          </div>
+
+          <div className="flex justify-between">
+            <button
+              onClick={() => setStep(1)}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Back
+            </button>
+            <button
+              onClick={() => setStep(3)}
+              className="rounded-lg bg-teal-700 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-teal-800 hover:shadow-md transition-all"
+            >
               Next: Select recipients
             </button>
           </div>
         </section>
       )}
 
-      {/* Step 2: Select recipients */}
-      {step === 2 && (
+      {/* Step 3: Select recipients */}
+      {step === 3 && (
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold">Select recipients</h2>
@@ -311,13 +379,13 @@ export default function CreateCampaignPage() {
 
           <div className="mt-6 flex justify-between">
             <button
-              onClick={() => setStep(1)}
+              onClick={() => setStep(2)}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
               Back
             </button>
             <button
-              onClick={() => setStep(3)}
+              onClick={() => setStep(4)}
               disabled={selectedRecipients.size === 0}
               className="rounded-lg bg-teal-700 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-teal-800 hover:shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
@@ -327,8 +395,8 @@ export default function CreateCampaignPage() {
         </section>
       )}
 
-      {/* Step 3: Review & send */}
-      {step === 3 && (
+      {/* Step 4: Review & send */}
+      {step === 4 && (
         <section>
           <h2 className="text-base font-semibold mb-4">Review & send</h2>
 
@@ -336,7 +404,7 @@ export default function CreateCampaignPage() {
             <div>
               <p className="text-xs text-gray-500">Template</p>
               <p className="text-sm font-medium text-gray-900">
-                {chosenTemplate?.title ?? "—"}
+                {chosenTemplate?.title ?? "\u2014"}
               </p>
               {chosenTemplate && (
                 <p className="text-xs text-gray-500 mt-0.5">
@@ -366,7 +434,7 @@ export default function CreateCampaignPage() {
 
           <div className="flex justify-between">
             <button
-              onClick={() => setStep(2)}
+              onClick={() => setStep(3)}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
               Back

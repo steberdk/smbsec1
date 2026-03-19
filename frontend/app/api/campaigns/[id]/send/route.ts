@@ -71,6 +71,15 @@ export async function POST(
   if (tplErr) return apiError(tplErr.message, 500);
   if (!template) return apiError("Campaign template not found", 404);
 
+  // Load sender display name (org admin) for CEO fraud template personalisation
+  const { data: senderMember } = await supabase
+    .from("org_members")
+    .select("display_name, email")
+    .eq("user_id", user.id)
+    .eq("org_id", membership.org_id)
+    .maybeSingle();
+  const senderName = senderMember?.display_name ?? senderMember?.email?.split("@")[0] ?? "Management";
+
   // Load pending recipients
   const { data: recipients, error: recipErr } = await supabase
     .from("campaign_recipients")
@@ -118,6 +127,7 @@ export async function POST(
     html = html.replace(/\{\{CLICK_URL\}\}/g, clickUrl);
     html = html.replace(/\{\{REPORT_URL\}\}/g, reportUrl);
     html = html.replace(/\{\{RECIPIENT_NAME\}\}/g, recipientName);
+    html = html.replace(/\{\{SENDER_NAME\}\}/g, senderName);
 
     // Replace placeholders in text body
     let text = template.body_text as string;
@@ -125,6 +135,7 @@ export async function POST(
     text = text.replace(/\{\{CLICK_URL\}\}/g, clickUrl);
     text = text.replace(/\{\{REPORT_URL\}\}/g, reportUrl);
     text = text.replace(/\{\{RECIPIENT_NAME\}\}/g, recipientName);
+    text = text.replace(/\{\{SENDER_NAME\}\}/g, senderName);
 
     try {
       const { error: sendErr } = await resend.emails.send({
