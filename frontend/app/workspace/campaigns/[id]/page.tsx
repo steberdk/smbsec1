@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useWorkspace } from "@/lib/hooks/useWorkspace";
@@ -29,7 +29,7 @@ type Recipient = {
 };
 
 export default function CampaignDetailPage() {
-  const { token } = useWorkspace();
+  const { token, isAdmin } = useWorkspace();
   const params = useParams();
   const id = params.id as string;
 
@@ -37,12 +37,17 @@ export default function CampaignDetailPage() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState<{
+    sent: number;
+    failed: number;
+  } | null>(null);
 
   useEffect(() => {
     document.title = "Campaign Details | SMB Security Quick-Check";
   }, []);
 
-  useEffect(() => {
+  const loadCampaign = useCallback(() => {
     if (!token || !id) return;
 
     apiFetch<{ campaign: CampaignDetail; recipients: Recipient[] }>(
@@ -59,8 +64,50 @@ export default function CampaignDetailPage() {
       .finally(() => setLoading(false));
   }, [token, id]);
 
+  useEffect(() => {
+    loadCampaign();
+  }, [loadCampaign]);
+
+  // Auto-refresh when campaign is active (every 15 seconds)
+  useEffect(() => {
+    if (!campaign || campaign.status !== "active") return;
+    const interval = setInterval(loadCampaign, 15_000);
+    return () => clearInterval(interval);
+  }, [campaign, loadCampaign]);
+
+  async function handleSend() {
+    if (!token || !id || sending) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to send this campaign? Emails will be sent to all recipients."
+    );
+    if (!confirmed) return;
+
+    setSending(true);
+    setSendResult(null);
+
+    try {
+      const result = await apiFetch<{
+        ok: boolean;
+        sent: number;
+        failed: number;
+      }>(`/api/campaigns/${id}/send`, token, { method: "POST" });
+
+      setSendResult({ sent: result.sent, failed: result.failed });
+      // Reload campaign data to reflect new statuses
+      loadCampaign();
+    } catch (e: unknown) {
+      setError(
+        e instanceof Error ? e.message : "Failed to send campaign."
+      );
+    } finally {
+      setSending(false);
+    }
+  }
+
   function statusBadge(status: string) {
     const styles: Record<string, string> = {
+      draft: "bg-yellow-100 text-yellow-800",
       pending: "bg-yellow-100 text-yellow-800",
       sent: "bg-blue-100 text-blue-800",
       clicked: "bg-red-100 text-red-800",
@@ -97,6 +144,10 @@ export default function CampaignDetailPage() {
       </div>
     );
   }
+
+  const canSend =
+    isAdmin &&
+    (campaign.status === "draft" || campaign.status === "pending");
 
   const totalRecipients = recipients.length;
   const clickedCount = recipients.filter((r) => r.status === "clicked").length;
@@ -138,8 +189,60 @@ export default function CampaignDetailPage() {
             )}
           </p>
         </div>
-        {statusBadge(campaign.status)}
+        <div className="flex items-center gap-2">
+          {statusBadge(campaign.status)}
+        </div>
       </div>
+
+      {/* Send button for draft campaigns */}
+      {canSend && (
+        <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-4 mb-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-teal-900">
+                Ready to send
+              </p>
+              <p className="text-xs text-teal-700 mt-0.5">
+                {totalRecipients} recipient{totalRecipients !== 1 ? "s" : ""}{" "}
+                will receive the simulated phishing email.
+              </p>
+            </div>
+            <button
+              onClick={handleSend}
+              disabled={sending}
+              className="shrink-0 bg-teal-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sending ? "Sending..." : "Send campaign"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Send result notification */}
+      {sendResult && (
+        <div
+          className={`rounded-xl border px-4 py-3 mb-6 ${
+            sendResult.failed > 0
+              ? "border-amber-200 bg-amber-50"
+              : "border-green-200 bg-green-50"
+          }`}
+        >
+          <p
+            className={`text-sm font-medium ${
+              sendResult.failed > 0 ? "text-amber-800" : "text-green-800"
+            }`}
+          >
+            {sendResult.sent} email{sendResult.sent !== 1 ? "s" : ""} sent
+            successfully.
+            {sendResult.failed > 0 && (
+              <span className="text-amber-800">
+                {" "}
+                {sendResult.failed} failed to send.
+              </span>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
@@ -178,6 +281,13 @@ export default function CampaignDetailPage() {
           not click the simulated phishing link.
         </p>
       </div>
+
+      {/* Auto-refresh indicator */}
+      {campaign.status === "active" && (
+        <p className="text-xs text-gray-400 mb-4">
+          Results update automatically every 15 seconds.
+        </p>
+      )}
 
       {/* Recipients table */}
       <section>
