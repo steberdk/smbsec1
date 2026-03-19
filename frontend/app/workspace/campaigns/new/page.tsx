@@ -45,6 +45,17 @@ export default function CreateCampaignPage() {
   useEffect(() => {
     if (!token) return;
 
+    // Check campaign credits first
+    apiFetch<{ org: { campaign_credits?: number } }>("/api/orgs/me", token)
+      .then((data) => {
+        const credits = (data.org as { campaign_credits?: number }).campaign_credits ?? 0;
+        if (credits <= 0) {
+          router.replace("/workspace/campaigns");
+          return;
+        }
+      })
+      .catch(() => {});
+
     Promise.all([
       apiFetch<{ templates: Template[] }>(
         "/api/campaigns/templates",
@@ -67,7 +78,7 @@ export default function CreateCampaignPage() {
         setError(e instanceof Error ? e.message : "Failed to load data.");
       })
       .finally(() => setLoading(false));
-  }, [token, userId]);
+  }, [token, userId, router]);
 
   if (!isAdmin) {
     return (

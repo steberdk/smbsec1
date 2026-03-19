@@ -101,8 +101,8 @@ export default function CampaignsPage() {
         )}
       </div>
 
-      {/* Credit info / upgrade gate */}
-      {isAdmin && credits !== null && (
+      {/* Credit info / upgrade gate — only show upgrade prompt if user has actually used a campaign */}
+      {isAdmin && credits !== null && (credits > 0 || campaigns.length > 0) && (
         <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm mb-6">
           {credits > 0 ? (
             <>
