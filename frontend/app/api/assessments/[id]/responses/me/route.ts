@@ -33,7 +33,7 @@ export async function GET(
 
   const { data: responses, error } = await supabase
     .from("assessment_responses")
-    .select("assessment_item_id, status, updated_at")
+    .select("assessment_item_id, status, updated_at, verification_status")
     .eq("assessment_id", assessmentId)
     .eq("user_id", user.id);
 

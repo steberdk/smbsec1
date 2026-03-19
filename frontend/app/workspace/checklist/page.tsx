@@ -33,7 +33,9 @@ type Assessment = {
 };
 
 type ResponseStatus = "done" | "unsure" | "skipped";
+type VerificationStatus = "verified" | "failed" | null;
 type ResponseMap = Record<string, ResponseStatus>;
+type VerificationMap = Record<string, VerificationStatus>;
 
 // Template downloads for content-creation items (matched by title substring)
 const ITEM_TEMPLATES: { match: string; label: string; href: string }[] = [
@@ -87,6 +89,7 @@ export default function WorkspaceChecklistPage() {
   const [items, setItems] = useState<AssessmentItem[]>([]);
   const [groups, setGroups] = useState<ChecklistGroup[]>([]);
   const [responses, setResponses] = useState<ResponseMap>({});
+  const [verifications, setVerifications] = useState<VerificationMap>({});
   const [saving, setSaving] = useState<Set<string>>(new Set());
   const [loadError, setLoadError] = useState<string | null>(null);
   const [noAssessment, setNoAssessment] = useState(false);
@@ -123,7 +126,7 @@ export default function WorkspaceChecklistPage() {
               `/api/assessments/${active.id}`,
               token
             ),
-            apiFetch<{ responses: { assessment_item_id: string; status: ResponseStatus }[] }>(
+            apiFetch<{ responses: { assessment_item_id: string; status: ResponseStatus; verification_status?: VerificationStatus }[] }>(
               `/api/assessments/${active.id}/responses/me`,
               token
             ),
@@ -132,8 +135,13 @@ export default function WorkspaceChecklistPage() {
         setItems(itemList);
         setGroups(groupList ?? []);
         const map: ResponseMap = {};
-        for (const r of myResponses) map[r.assessment_item_id] = r.status;
+        const vMap: VerificationMap = {};
+        for (const r of myResponses) {
+          map[r.assessment_item_id] = r.status;
+          if (r.verification_status) vMap[r.assessment_item_id] = r.verification_status;
+        }
         setResponses(map);
+        setVerifications(vMap);
       })
       .catch((e: unknown) => {
         setLoadError(e instanceof Error ? e.message : "Failed to load checklist.");
@@ -310,10 +318,10 @@ export default function WorkspaceChecklistPage() {
         {showChecklist && (
           <div className="mt-6">
             {itItems.length > 0 && (
-              <ItemGroup title="IT Baseline" track="it_baseline" items={itItems} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
+              <ItemGroup title="IT Baseline" track="it_baseline" items={itItems} responses={responses} verifications={verifications} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
             )}
             {awarenessItems.length > 0 && (
-              <ItemGroup title="Security Awareness" track="awareness" items={awarenessItems} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
+              <ItemGroup title="Security Awareness" track="awareness" items={awarenessItems} responses={responses} verifications={verifications} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
             )}
           </div>
         )}
@@ -407,7 +415,7 @@ export default function WorkspaceChecklistPage() {
                 const groupItems = itItems.filter((i) => i.group_id === g.id);
                 if (groupItems.length === 0) return null;
                 return (
-                  <ItemGroup key={g.id} title={g.title} track="it_baseline" items={groupItems} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
+                  <ItemGroup key={g.id} title={g.title} track="it_baseline" items={groupItems} responses={responses} verifications={verifications} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
                 );
               })}
               {/* Items without a matching group */}
@@ -415,16 +423,16 @@ export default function WorkspaceChecklistPage() {
                 const groupIds = new Set(itGroups.map((g) => g.id));
                 const ungrouped = itItems.filter((i) => !groupIds.has(i.group_id));
                 return ungrouped.length > 0 ? (
-                  <ItemGroup title="Other" track="it_baseline" items={ungrouped} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
+                  <ItemGroup title="Other" track="it_baseline" items={ungrouped} responses={responses} verifications={verifications} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
                 ) : null;
               })()}
             </>
           );
         }
-        return <ItemGroup title="IT Baseline" track="it_baseline" items={itItems} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />;
+        return <ItemGroup title="IT Baseline" track="it_baseline" items={itItems} responses={responses} verifications={verifications} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />;
       })()}
       {awarenessItems.length > 0 && (
-        <ItemGroup title="Security Awareness" track="awareness" items={awarenessItems} responses={responses} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
+        <ItemGroup title="Security Awareness" track="awareness" items={awarenessItems} responses={responses} verifications={verifications} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
       )}
     </>
   );
@@ -435,6 +443,7 @@ function ItemGroup({
   track,
   items,
   responses,
+  verifications,
   saving,
   token,
   onResponse,
@@ -444,6 +453,7 @@ function ItemGroup({
   track: string;
   items: AssessmentItem[];
   responses: ResponseMap;
+  verifications: VerificationMap;
   saving: Set<string>;
   token: string;
   onResponse: (itemId: string, status: ResponseStatus) => void;
@@ -460,6 +470,7 @@ function ItemGroup({
             track={track}
             token={token}
             response={responses[item.id] ?? null}
+            verification={verifications[item.id] ?? null}
             isSaving={saving.has(item.id)}
             onResponse={onResponse}
             onClear={onClear}
@@ -475,6 +486,7 @@ function ChecklistItem({
   track,
   token,
   response,
+  verification,
   isSaving,
   onResponse,
   onClear,
@@ -483,6 +495,7 @@ function ChecklistItem({
   track: string;
   token: string;
   response: ResponseStatus | null;
+  verification: VerificationStatus;
   isSaving: boolean;
   onResponse: (itemId: string, status: ResponseStatus) => void;
   onClear: (itemId: string) => void;
@@ -524,7 +537,19 @@ function ChecklistItem({
             </span>
           </span>
         </button>
-        {isSaving && <span className="text-xs text-gray-400">saving...</span>}
+        <div className="flex items-center gap-2 shrink-0">
+          {verification === "verified" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 border border-green-200 px-2 py-0.5 text-xs font-medium text-green-800">
+              Verified — passed campaign test
+            </span>
+          )}
+          {verification === "failed" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-800">
+              Failed campaign test
+            </span>
+          )}
+          {isSaving && <span className="text-xs text-gray-400">saving...</span>}
+        </div>
       </div>
 
       {expanded && (() => {

@@ -64,9 +64,20 @@ const CADENCE_CLASSES: Record<CadenceStatus, string> = {
   never: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
+type CampaignSummary = {
+  total_campaigns: number;
+  total_sent: number;
+  total_reported: number;
+  total_clicked: number;
+  total_ignored: number;
+  pass_rate: number;
+  last_campaign_date: string | null;
+};
+
 export default function WorkspaceDashboardPage() {
-  const { token } = useWorkspace();
+  const { token, isAdmin } = useWorkspace();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [campaignSummary, setCampaignSummary] = useState<CampaignSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => { document.title = "Dashboard | SMB Security Quick-Check"; }, []);
@@ -78,7 +89,16 @@ export default function WorkspaceDashboardPage() {
       .catch((e: unknown) => {
         setLoadError(e instanceof Error ? e.message : "Failed to load dashboard.");
       });
-  }, [token]);
+
+    // Load campaign summary for admins
+    if (isAdmin) {
+      apiFetch<CampaignSummary>("/api/campaigns/summary", token)
+        .then(setCampaignSummary)
+        .catch(() => {
+          // Non-fatal — campaign summary is supplementary
+        });
+    }
+  }, [token, isAdmin]);
 
   if (loadError) {
     return (
@@ -185,6 +205,44 @@ export default function WorkspaceDashboardPage() {
                 {members.map((m) => (
                   <MemberRow key={m.user_id} member={m} token={token} />
                 ))}
+              </div>
+            </section>
+          )}
+
+          {/* Campaign summary — admin only */}
+          {isAdmin && campaignSummary && campaignSummary.total_campaigns > 0 && (
+            <section className="mt-6">
+              <h2 className="text-base font-semibold mb-3">Campaigns</h2>
+              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-center mb-4">
+                  <div className="rounded-lg bg-gray-50 border border-gray-100 py-2">
+                    <p className="text-lg font-bold text-gray-900">{campaignSummary.total_campaigns}</p>
+                    <p className="text-xs text-gray-500">Campaigns</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 border border-gray-100 py-2">
+                    <p className="text-lg font-bold text-teal-700">{campaignSummary.pass_rate}%</p>
+                    <p className="text-xs text-gray-500">Pass rate</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 border border-gray-100 py-2">
+                    <p className="text-lg font-bold text-green-700">{campaignSummary.total_reported}</p>
+                    <p className="text-xs text-gray-500">Reported</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 border border-gray-100 py-2">
+                    <p className="text-lg font-bold text-amber-700">{campaignSummary.total_clicked}</p>
+                    <p className="text-xs text-gray-500">Clicked</p>
+                  </div>
+                </div>
+                {campaignSummary.last_campaign_date && (
+                  <p className="text-xs text-gray-500 mb-3">
+                    Last campaign: {new Date(campaignSummary.last_campaign_date).toLocaleDateString()}
+                  </p>
+                )}
+                <Link
+                  href="/workspace/campaigns"
+                  className="inline-block text-sm text-teal-700 font-medium hover:underline"
+                >
+                  View all campaigns &rarr;
+                </Link>
               </div>
             </section>
           )}

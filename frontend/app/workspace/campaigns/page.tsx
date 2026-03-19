@@ -101,18 +101,34 @@ export default function CampaignsPage() {
         )}
       </div>
 
-      {/* Credit info */}
+      {/* Credit info / upgrade gate */}
       {isAdmin && credits !== null && (
         <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm mb-6">
-          <p className="text-sm text-gray-600">
-            Campaign credits remaining:{" "}
-            <span className="font-semibold text-gray-900">{credits}</span>
-          </p>
-          {hasActiveCampaign && (
-            <p className="text-xs text-amber-600 mt-1">
-              A campaign is currently active. You can create a new one after it
-              completes.
-            </p>
+          {credits > 0 ? (
+            <>
+              <p className="text-sm text-gray-600">
+                Campaign credits remaining:{" "}
+                <span className="font-semibold text-gray-900">{credits}</span>
+              </p>
+              {hasActiveCampaign && (
+                <p className="text-xs text-amber-600 mt-1">
+                  A campaign is currently active. You can create a new one after it
+                  completes.
+                </p>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-2">
+              <p className="text-sm font-medium text-gray-800">
+                You&apos;ve used your free campaign.
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                Upgrade to continue testing your team.
+              </p>
+              <p className="text-xs text-gray-400 mt-2">
+                Paid plans coming soon.
+              </p>
+            </div>
           )}
         </div>
       )}

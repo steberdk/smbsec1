@@ -201,6 +201,17 @@ async function deleteOrgData(supabase: SupabaseClient, orgId: string): Promise<v
     await supabase.from("assessments").delete().eq("org_id", orgId);
   }
 
+  // Clean up campaigns
+  const { data: campaigns } = await supabase
+    .from("campaigns")
+    .select("id")
+    .eq("org_id", orgId);
+  if (campaigns?.length) {
+    const cIds = (campaigns as { id: string }[]).map((c) => c.id);
+    await supabase.from("campaign_recipients").delete().in("campaign_id", cIds);
+    await supabase.from("campaigns").delete().eq("org_id", orgId);
+  }
+
   await supabase.from("invites").delete().eq("org_id", orgId);
   await supabase.from("org_members").delete().eq("org_id", orgId);
   await supabase.from("orgs").delete().eq("id", orgId);
