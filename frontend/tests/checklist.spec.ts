@@ -248,7 +248,8 @@ test.describe.serial("Checklist item state", () => {
 
 test("E2E-ITEM-04: clicking the active button clears the item back to unanswered", async ({
   page,
-}) => {
+}, testInfo) => {
+  testInfo.setTimeout(60_000); // Allow more time for isolated org setup
   // Uses isolated org to guarantee a clean (unanswered) state
   const iso = await createIsolatedOrg("ITEM04 Org");
   try {

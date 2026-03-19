@@ -19,7 +19,8 @@ import {
 
 test("E2E-AWARE-01: user can mark Awareness track items and see progress", async ({
   page,
-}) => {
+}, testInfo) => {
+  testInfo.setTimeout(60_000);
   const orgId = await getAdminOrgId();
   const adminUserId = await getAdminUserId();
   await startAssessment(orgId, adminUserId);
