@@ -30,7 +30,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   const { data: org, error: orgErr } = await supabase
     .from("orgs")
-    .select("id, name, created_by, created_at, email_platform, primary_os, company_size, campaign_credits, subscription_status")
+    .select("id, name, created_by, created_at, email_platform, primary_os, company_size, campaign_credits, subscription_status, locale")
     .eq("id", membership.org_id)
     .single();
 
@@ -64,6 +64,7 @@ export async function PATCH(req: Request): Promise<NextResponse> {
     email_platform?: EmailPlatform | null;
     primary_os?: PrimaryOs | null;
     company_size?: CompanySize | null;
+    locale?: string;
   };
 
   const body: PatchBody = await req.json().catch(() => null);
@@ -80,6 +81,13 @@ export async function PATCH(req: Request): Promise<NextResponse> {
   if (body.email_platform !== undefined) update.email_platform = body.email_platform;
   if (body.primary_os !== undefined) update.primary_os = body.primary_os;
   if (body.company_size !== undefined) update.company_size = body.company_size;
+  if (body.locale !== undefined) {
+    const validLocales = ["en", "da"];
+    if (!validLocales.includes(body.locale)) {
+      return apiError("locale must be one of: en, da", 400);
+    }
+    update.locale = body.locale;
+  }
 
   if (Object.keys(update).length === 0) {
     return apiError("No valid fields to update", 400);

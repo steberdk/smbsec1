@@ -165,23 +165,53 @@
 
 ---
 
-## PI 9 — Advanced Campaigns (future)
+## Done — PI 9 (2026-03-19)
 
-- Inbound email report detection (Resend/Mailgun inbound webhook for forwarded emails)
-- Phone/vishing campaigns -- AI voice call simulations (research: Twilio, GDPR, feasibility)
-- Email-based knowledge testing for non-phishing checklist items (paid tier)
-- Multi-language templates (Danish, German, French, Dutch)
-- Custom campaign builder (admin creates own scenario)
-- Email client report button integration (Google Workspace / Microsoft 365 API)
+**Theme:** Email knowledge testing, campaign analytics, multi-language, custom builder
+
+**Product Team consensus:** `docs/pi9/product_team_consensus.md`
+
+### Iteration 1: Knowledge Test Templates & Enhanced Landing Pages
+- Migration 017: extend `campaign_templates.type` CHECK to include `knowledge_test`
+- 3 new knowledge test templates: password sharing, MFA reset, macro document
+- Template-aware educational landing page (`/campaign/[token]`) with topic-specific content
+- Knowledge tests map to specific checklist items (acct-password-manager, acct-enable-mfa-email, email-disable-macros)
+- Report page adapted for knowledge test context
+
+### Iteration 2: Campaign Analytics & Multi-Language
+- Migration 018: `locale` column on `campaign_templates` and `orgs`
+- 7 Danish template translations (4 phishing + 3 knowledge tests)
+- Per-user campaign history API (`GET /api/campaigns/user-history`) with performance scores
+- Team performance table on campaigns page (reported/clicked/ignored per user)
+- Response time metrics on campaign detail page (avg/min/max time-to-click and time-to-report)
+- Org language setting on settings page
+- Template filter by locale in create campaign wizard
+
+### Iteration 3: Custom Campaign Builder
+- Migration 019: `org_id` and `custom` columns on `campaign_templates` + RLS
+- Custom template CRUD API (`POST/GET /api/campaigns/templates/custom`, `DELETE /api/campaigns/templates/custom/[id]`)
+- Custom template creation UI (`/workspace/campaigns/templates/new`) with HTML editor, placeholder docs, live preview
+- Template management page (`/workspace/campaigns/templates`) with delete support
+- Templates API updated to return system + org-custom templates
+- Soft-delete for custom templates in use by existing campaigns
 
 ---
 
-## PI 10+ — Platform Expansion (vision)
+## PI 10+ — Advanced Campaigns (future)
 
+---
+
+## PI 10+ — Platform Expansion (future)
+
+- Inbound email report detection (Resend/Mailgun inbound webhook for forwarded emails)
+- Phone/vishing campaigns -- AI voice call simulations (research: Twilio, GDPR, feasibility)
+- Email client report button integration (Google Workspace / Microsoft 365 API)
 - AI-generated campaign content (LLM-based contextual phishing emails)
 - SMS phishing (smishing) campaigns
 - Compliance reporting (cyber insurance, ISO 27001, SOC 2 evidence)
 - API access for MSPs (managed service providers)
+- More language templates (German, French, Dutch)
+- Campaign template marketplace (community-contributed templates)
 
 ---
 

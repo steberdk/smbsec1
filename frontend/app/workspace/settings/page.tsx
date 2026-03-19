@@ -21,11 +21,17 @@ const PLATFORM_OPTIONS = [
   { value: "other", label: "Other" },
 ];
 
+const LOCALE_OPTIONS = [
+  { value: "en", label: "English" },
+  { value: "da", label: "Dansk (Danish)" },
+];
+
 export default function OrgSettingsPage() {
   const { token, orgData, isAdmin, refresh } = useWorkspace();
 
   const [members, setMembers] = useState<MemberInfo[]>([]);
   const [platform, setPlatform] = useState(orgData.org.email_platform ?? "");
+  const [locale, setLocale] = useState(orgData.org.locale ?? "en");
   const [executor, setExecutor] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -55,6 +61,7 @@ export default function OrgSettingsPage() {
         method: "PATCH",
         body: JSON.stringify({
           email_platform: platform || null,
+          locale,
         }),
       });
       await apiFetch("/api/orgs/executor", token, {
@@ -107,6 +114,23 @@ export default function OrgSettingsPage() {
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
           >
             {PLATFORM_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Language / Locale */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Campaign language</label>
+          <p className="text-xs text-gray-500 mb-2">
+            Sets the default language for campaign email templates. You can always choose other languages when creating a campaign.
+          </p>
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          >
+            {LOCALE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>

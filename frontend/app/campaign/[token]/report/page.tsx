@@ -4,15 +4,22 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
+type ActionResponse = {
+  ok?: boolean;
+  error?: string;
+  template_type?: string | null;
+};
+
 export default function CampaignReportPage() {
   const params = useParams();
   const token = params.token as string;
 
   const [recorded, setRecorded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isKnowledgeTest, setIsKnowledgeTest] = useState(false);
 
   useEffect(() => {
-    document.title = "Phishing Report | SMB Security Quick-Check";
+    document.title = "Report Received | SMB Security Quick-Check";
   }, []);
 
   useEffect(() => {
@@ -24,9 +31,10 @@ export default function CampaignReportPage() {
       body: JSON.stringify({ token, action: "reported" }),
     })
       .then((res) => res.json())
-      .then((data: { ok?: boolean; error?: string }) => {
+      .then((data: ActionResponse) => {
         if (data.ok) {
           setRecorded(true);
+          setIsKnowledgeTest(data.template_type === "knowledge_test");
         } else {
           setError(data.error ?? "Something went wrong");
         }
@@ -70,15 +78,16 @@ export default function CampaignReportPage() {
               Well done!
             </p>
             <p className="text-green-700 text-sm">
-              You correctly identified this as a simulated phishing email and
-              chose to report it instead of clicking the suspicious link.
+              {isKnowledgeTest
+                ? "You correctly identified this as a suspicious email and chose to report it. This is exactly the right response when something doesn't feel right."
+                : "You correctly identified this as a simulated phishing email and chose to report it instead of clicking the suspicious link."}
             </p>
           </div>
 
           <p className="text-gray-700 text-sm">
-            Reporting suspicious emails is one of the most important things
-            you can do to protect your organisation. Every report helps your
-            IT team identify threats faster and keep everyone safe.
+            {isKnowledgeTest
+              ? "Reporting suspicious emails and unusual requests is one of the most important things you can do. Whether it's a phishing attempt, a social engineering trick, or an unsafe practice like shared passwords, your awareness helps keep the whole team safe."
+              : "Reporting suspicious emails is one of the most important things you can do to protect your organisation. Every report helps your IT team identify threats faster and keep everyone safe."}
           </p>
 
           <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4">
@@ -97,7 +106,7 @@ export default function CampaignReportPage() {
                 <span className="shrink-0 font-bold text-teal-600">2.</span>
                 <span>
                   Share what you know with colleagues &mdash; help them
-                  recognise phishing too.
+                  recognise security risks too.
                 </span>
               </li>
               <li className="flex gap-2">

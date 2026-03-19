@@ -16,6 +16,15 @@ type Campaign = {
   recipient_acted: number;
 };
 
+type UserHistory = {
+  user_id: string;
+  email: string;
+  total_campaigns: number;
+  times_reported: number;
+  times_clicked: number;
+  times_ignored: number;
+};
+
 export default function CampaignsPage() {
   const { token, isAdmin } = useWorkspace();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -23,6 +32,8 @@ export default function CampaignsPage() {
   const [isPaid, setIsPaid] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userHistory, setUserHistory] = useState<UserHistory[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     document.title = "Campaigns | SMB Security Quick-Check";
@@ -43,6 +54,9 @@ export default function CampaignsPage() {
         setCredits(org.campaign_credits ?? 0);
         setIsPaid(org.subscription_status === "active");
       }),
+      apiFetch<{ users: UserHistory[] }>("/api/campaigns/user-history", token)
+        .then(({ users }) => setUserHistory(users))
+        .catch(() => {}), // Non-fatal
     ])
       .catch((e: unknown) => {
         setError(e instanceof Error ? e.message : "Failed to load campaigns.");
@@ -88,19 +102,29 @@ export default function CampaignsPage() {
     <>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Campaigns</h1>
-        {isAdmin && (
-          <Link
-            href="/workspace/campaigns/new"
-            className={`rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition-all ${
-              canCreate
-                ? "bg-teal-700 text-white hover:bg-teal-800 hover:shadow-md"
-                : "bg-gray-200 text-gray-400 cursor-not-allowed pointer-events-none"
-            }`}
-            aria-disabled={!canCreate}
-          >
-            Create campaign
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Link
+              href="/workspace/campaigns/templates"
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:shadow-sm transition-all"
+            >
+              Templates
+            </Link>
+          )}
+          {isAdmin && (
+            <Link
+              href="/workspace/campaigns/new"
+              className={`rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition-all ${
+                canCreate
+                  ? "bg-teal-700 text-white hover:bg-teal-800 hover:shadow-md"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed pointer-events-none"
+              }`}
+              aria-disabled={!canCreate}
+            >
+              Create campaign
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Credit info / upgrade gate */}
@@ -152,7 +176,7 @@ export default function CampaignsPage() {
       {campaigns.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white px-6 py-10 shadow-sm text-center">
           <p className="text-gray-500 text-sm">
-            No campaigns yet. Send your first simulated phishing test to see how
+            No campaigns yet. Send your first security test to see how
             your team responds.
           </p>
           {isAdmin && canCreate && (
@@ -196,6 +220,78 @@ export default function CampaignsPage() {
             </Link>
           ))}
         </div>
+      )}
+
+      {/* Per-user campaign history */}
+      {isAdmin && userHistory.length > 0 && (
+        <section className="mt-8">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="text-sm text-teal-700 hover:underline mb-3 flex items-center gap-1"
+          >
+            <span style={{ transform: showHistory ? "rotate(90deg)" : "none", display: "inline-block", transition: "transform 0.15s" }}>
+              &#9656;
+            </span>
+            {showHistory ? "Hide" : "Show"} team performance ({userHistory.length} members)
+          </button>
+
+          {showHistory && (
+            <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Employee</th>
+                      <th className="text-center px-3 py-2 text-xs font-medium text-gray-500">Campaigns</th>
+                      <th className="text-center px-3 py-2 text-xs font-medium text-green-600">Reported</th>
+                      <th className="text-center px-3 py-2 text-xs font-medium text-red-600">Clicked</th>
+                      <th className="text-center px-3 py-2 text-xs font-medium text-gray-400">Ignored</th>
+                      <th className="text-center px-3 py-2 text-xs font-medium text-gray-500">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {userHistory
+                      .sort((a, b) => {
+                        const scoreA = a.total_campaigns > 0 ? (a.times_reported / a.total_campaigns) * 100 : 0;
+                        const scoreB = b.total_campaigns > 0 ? (b.times_reported / b.total_campaigns) * 100 : 0;
+                        return scoreB - scoreA;
+                      })
+                      .map((u) => {
+                        const score = u.total_campaigns > 0
+                          ? Math.round((u.times_reported / u.total_campaigns) * 100)
+                          : 0;
+                        return (
+                          <tr key={u.user_id}>
+                            <td className="px-4 py-2 text-gray-900 truncate max-w-[200px]">
+                              {u.email || u.user_id.slice(0, 8)}
+                            </td>
+                            <td className="px-3 py-2 text-center text-gray-700">{u.total_campaigns}</td>
+                            <td className="px-3 py-2 text-center text-green-700 font-medium">{u.times_reported}</td>
+                            <td className="px-3 py-2 text-center text-red-700 font-medium">{u.times_clicked}</td>
+                            <td className="px-3 py-2 text-center text-gray-400">{u.times_ignored}</td>
+                            <td className="px-3 py-2 text-center">
+                              <span className={`font-semibold ${
+                                score >= 75 ? "text-green-700" :
+                                score >= 50 ? "text-yellow-700" :
+                                "text-red-700"
+                              }`}>
+                                {score}%
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
+                <p className="text-xs text-gray-500">
+                  Score = percentage of campaigns where the employee correctly reported the test email.
+                </p>
+              </div>
+            </div>
+          )}
+        </section>
       )}
     </>
   );

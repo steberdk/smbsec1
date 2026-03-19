@@ -73,12 +73,34 @@ export async function POST(req: Request): Promise<NextResponse> {
     return apiError("Campaign is not active", 400);
   }
 
+  // Look up the campaign's template for context
+  const { data: campaignWithTemplate } = await supabase
+    .from("campaigns")
+    .select("template_id")
+    .eq("id", recipient.campaign_id)
+    .maybeSingle();
+
+  let templateInfo: { type: string; id: string; checklist_item_id: string | null } | null = null;
+  if (campaignWithTemplate?.template_id) {
+    const { data: tpl } = await supabase
+      .from("campaign_templates")
+      .select("id, type, checklist_item_id")
+      .eq("id", campaignWithTemplate.template_id)
+      .maybeSingle();
+    if (tpl) {
+      templateInfo = tpl as { type: string; id: string; checklist_item_id: string | null };
+    }
+  }
+
   // Only record if recipient hasn't already acted
   if (recipient.status === "clicked" || recipient.status === "reported") {
     return NextResponse.json({
       ok: true,
       action: recipient.status,
       alreadyActed: true,
+      template_type: templateInfo?.type ?? null,
+      template_id: templateInfo?.id ?? null,
+      checklist_item_id: templateInfo?.checklist_item_id ?? null,
     });
   }
 
@@ -93,5 +115,11 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   if (updateErr) return apiError(updateErr.message, 500);
 
-  return NextResponse.json({ ok: true, action: body.action });
+  return NextResponse.json({
+    ok: true,
+    action: body.action,
+    template_type: templateInfo?.type ?? null,
+    template_id: templateInfo?.id ?? null,
+    checklist_item_id: templateInfo?.checklist_item_id ?? null,
+  });
 }

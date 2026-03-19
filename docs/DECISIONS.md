@@ -285,3 +285,56 @@ One campaign at a time per org applies to `scheduled` status too.
 Decision noted: DB password was leaked in committed SQL scripts. Scripts have been
 removed and .gitignore updated. Password rotation is an ops task (Supabase
 dashboard), not a code change. All future credentials must use env vars only.
+
+---
+
+## 19. Knowledge Test Templates (PI 9, Iteration 1)
+
+Decision: Extend `campaign_templates.type` CHECK to include `knowledge_test`.
+
+Knowledge tests use the same infrastructure as phishing simulations (sending,
+tracking, click/report recording) but have topic-specific educational landing
+pages. Each knowledge test maps to a specific checklist item (e.g. password
+manager, MFA, macros) rather than an awareness-track item.
+
+The click landing page (`/campaign/[token]`) now renders template-aware
+educational content based on `template_type` and `template_id` returned from
+the action API.
+
+---
+
+## 20. Multi-Language Campaign Templates (PI 9, Iteration 2)
+
+Decision: `campaign_templates.locale` (TEXT, default 'en') + separate rows
+per language. Danish (`da`) translations seeded for all 7 templates.
+
+`orgs.locale` stores the organisation's default campaign language. The template
+selection UI in the create wizard filters by org locale with manual override.
+The templates API supports `?locale=xx` query parameter.
+
+Rationale: Separate rows per language is simpler than jsonb translations and
+provides cleaner template selection UX.
+
+---
+
+## 21. Custom Campaign Templates (PI 9, Iteration 3)
+
+Decision: Custom templates stored in same `campaign_templates` table with
+`custom = true` and `org_id` set. RLS policies allow org admins to manage
+their own custom templates.
+
+Template IDs are auto-generated (`custom-{org_id_prefix}-{timestamp}`).
+Custom templates used by existing campaigns are soft-deleted (marked inactive)
+rather than hard-deleted to preserve campaign history.
+
+---
+
+## 22. Per-User Campaign Analytics (PI 9, Iteration 2)
+
+Decision: Per-user campaign history computed at query time from
+`campaign_recipients` table. No new tables needed.
+
+The `/api/campaigns/user-history` endpoint returns per-user aggregates
+(total campaigns, times reported/clicked/ignored, score percentage).
+Response time metrics (time-to-click, time-to-report) computed from
+`sent_at` and `acted_at` timestamps on campaign detail pages.

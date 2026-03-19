@@ -367,9 +367,77 @@ export default function CampaignDetailPage() {
         </div>
         <p className="text-xs text-gray-500 mt-2">
           {totalRecipients - clickedCount} of {totalRecipients} recipients did
-          not click the simulated phishing link.
+          not click the simulated link.
         </p>
       </div>
+
+      {/* Response time metrics */}
+      {(() => {
+        const actedRecipients = recipients.filter(
+          (r) => r.sent_at && r.acted_at && (r.status === "clicked" || r.status === "reported")
+        );
+        if (actedRecipients.length === 0) return null;
+
+        const responseTimes = actedRecipients.map((r) =>
+          new Date(r.acted_at!).getTime() - new Date(r.sent_at!).getTime()
+        );
+        const avgMs = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+        const minMs = Math.min(...responseTimes);
+        const maxMs = Math.max(...responseTimes);
+
+        function formatDuration(ms: number): string {
+          if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
+          if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
+          return `${(ms / 3_600_000).toFixed(1)}h`;
+        }
+
+        const clickTimes = actedRecipients
+          .filter((r) => r.status === "clicked")
+          .map((r) => new Date(r.acted_at!).getTime() - new Date(r.sent_at!).getTime());
+        const reportTimes = actedRecipients
+          .filter((r) => r.status === "reported")
+          .map((r) => new Date(r.acted_at!).getTime() - new Date(r.sent_at!).getTime());
+
+        return (
+          <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm mb-8">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Response time</h3>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-xs text-gray-500">Average</p>
+                <p className="text-sm font-bold text-gray-900">{formatDuration(avgMs)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Fastest</p>
+                <p className="text-sm font-bold text-gray-900">{formatDuration(minMs)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Slowest</p>
+                <p className="text-sm font-bold text-gray-900">{formatDuration(maxMs)}</p>
+              </div>
+            </div>
+            {(clickTimes.length > 0 || reportTimes.length > 0) && (
+              <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-3 text-center">
+                {clickTimes.length > 0 && (
+                  <div>
+                    <p className="text-xs text-red-500">Avg time to click</p>
+                    <p className="text-sm font-semibold text-red-700">
+                      {formatDuration(clickTimes.reduce((a, b) => a + b, 0) / clickTimes.length)}
+                    </p>
+                  </div>
+                )}
+                {reportTimes.length > 0 && (
+                  <div>
+                    <p className="text-xs text-green-500">Avg time to report</p>
+                    <p className="text-sm font-semibold text-green-700">
+                      {formatDuration(reportTimes.reduce((a, b) => a + b, 0) / reportTimes.length)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Auto-refresh indicator */}
       {campaign.status === "active" && (

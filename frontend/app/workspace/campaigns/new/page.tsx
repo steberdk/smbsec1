@@ -14,6 +14,7 @@ type Template = {
   body_html: string;
   difficulty: string;
   checklist_item_id: string | null;
+  locale?: string;
 };
 
 type OrgMember = {
@@ -38,6 +39,8 @@ export default function CreateCampaignPage() {
   const [loading, setLoading] = useState(true);
   const [customSubject, setCustomSubject] = useState<string>("");
   const [scheduledFor, setScheduledFor] = useState<string>("");
+  const [orgLocale, setOrgLocale] = useState<string>("en");
+  const [localeFilter, setLocaleFilter] = useState<string>("auto");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,15 +51,18 @@ export default function CreateCampaignPage() {
   useEffect(() => {
     if (!token) return;
 
-    // Check campaign credits first — redirect if none
-    apiFetch<{ org: { campaign_credits?: number; subscription_status?: string } }>("/api/orgs/me", token)
+    // Check campaign credits first — redirect if none; also get org locale
+    apiFetch<{ org: { campaign_credits?: number; subscription_status?: string; locale?: string } }>("/api/orgs/me", token)
       .then((data) => {
-        const org = data.org as { campaign_credits?: number; subscription_status?: string };
+        const org = data.org as { campaign_credits?: number; subscription_status?: string; locale?: string };
         const credits = org.campaign_credits ?? 0;
         const isPaid = org.subscription_status === "active";
         if (credits <= 0 && !isPaid) {
           router.replace("/workspace/campaigns");
           return;
+        }
+        if (org.locale) {
+          setOrgLocale(org.locale);
         }
       })
       .catch(() => {});
@@ -148,6 +154,12 @@ export default function CreateCampaignPage() {
 
   const chosenTemplate = templates.find((t) => t.id === selectedTemplate);
 
+  // Filter templates by locale: "auto" uses org locale, otherwise the selected locale
+  const effectiveLocale = localeFilter === "auto" ? orgLocale : localeFilter;
+  const visibleTemplates = effectiveLocale === "all"
+    ? templates
+    : templates.filter((t) => (t.locale ?? "en") === effectiveLocale);
+
   function difficultyBadge(difficulty: string) {
     const styles: Record<string, string> = {
       easy: "bg-green-100 text-green-800",
@@ -223,16 +235,30 @@ export default function CreateCampaignPage() {
       {/* Step 1: Select template */}
       {step === 1 && (
         <section>
-          <h2 className="text-base font-semibold mb-4">
-            Select a phishing template
-          </h2>
-          {templates.length === 0 ? (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold">
+              Select a template
+            </h2>
+            <select
+              value={localeFilter}
+              onChange={(e) => setLocaleFilter(e.target.value)}
+              className="rounded-lg border border-gray-200 px-2 py-1 text-xs"
+            >
+              <option value="auto">
+                {orgLocale === "da" ? "Dansk" : "English"} (org default)
+              </option>
+              <option value="en">English</option>
+              <option value="da">Dansk</option>
+              <option value="all">All languages</option>
+            </select>
+          </div>
+          {visibleTemplates.length === 0 ? (
             <p className="text-sm text-gray-500">
-              No templates available. Contact support.
+              No templates available for this language. Try selecting a different language.
             </p>
           ) : (
             <div className="space-y-3">
-              {templates.map((t) => (
+              {visibleTemplates.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setSelectedTemplate(t.id)}
@@ -257,10 +283,24 @@ export default function CreateCampaignPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-gray-500 capitalize">
-                        {t.type.replace("_", " ")}
+                      <span className={`text-xs capitalize px-1.5 py-0.5 rounded ${
+                        t.type === "knowledge_test"
+                          ? "bg-blue-50 text-blue-700"
+                          : "text-gray-500"
+                      }`}>
+                        {t.type === "knowledge_test" ? "knowledge test" : t.type.replace("_", " ")}
                       </span>
                       {difficultyBadge(t.difficulty)}
+                      {t.locale && t.locale !== "en" && (
+                        <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded uppercase">
+                          {t.locale}
+                        </span>
+                      )}
+                      {(t as Template & { custom?: boolean }).custom && (
+                        <span className="text-xs bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">
+                          custom
+                        </span>
+                      )}
                     </div>
                   </div>
                 </button>
