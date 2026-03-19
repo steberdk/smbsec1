@@ -197,21 +197,56 @@
 
 ---
 
+## Done — PI 10 (2026-03-19)
+
+**Theme:** Platform Expansion (final PI in current roadmap)
+
+**Product Team consensus:** `docs/pi10/product_team_consensus.md`
+
+### Iteration 1: Security Posture Report
+- Security report page (`/workspace/report`) — org_admin only
+- Assessment overview with per-track completion stats (IT Baseline + Awareness)
+- Per-member team progress table in report
+- Campaign results summary (pass rate, click rate, emails sent)
+- Recommendations section based on unsure/skipped items and campaign performance
+- Print-optimised CSS with `window.print()` ("Download as PDF" button)
+- Report header with org name, date, confidential marking
+- Disclaimer footer (point-in-time self-assessment snapshot)
+- "Security Report" nav item for org_admin
+
+### Iteration 2: i18n Foundation + Danish Workspace
+- `lib/i18n/` module with `translate(key, locale)` function and `useTranslation()` hook
+- English (`en.json`) and Danish (`da.json`) translation files
+- Workspace navigation labels translated (Home, Checklist, Dashboard, Team, etc.)
+- Security report fully translated to Danish (all sections, labels, headings)
+- Dashboard key labels translated
+- Locale-aware rendering based on `orgs.locale` setting (already stored in DB)
+
+### Iteration 3: Privacy Policy + Polish
+- Comprehensive privacy policy page with 11 sections
+- GDPR compliance: legal basis, data retention, sub-processors table, security measures
+- Rights section: access, rectification, erasure, portability, objection
+- Campaign tracking disclosure in privacy policy
+- Sub-processor table (Supabase, Vercel, Resend) with data locations
+
+---
+
 ## PI 10+ — Advanced Campaigns (future)
 
 ---
 
-## PI 10+ — Platform Expansion (future)
+## Future — Platform Expansion
 
 - Inbound email report detection (Resend/Mailgun inbound webhook for forwarded emails)
 - Phone/vishing campaigns -- AI voice call simulations (research: Twilio, GDPR, feasibility)
 - Email client report button integration (Google Workspace / Microsoft 365 API)
 - AI-generated campaign content (LLM-based contextual phishing emails)
 - SMS phishing (smishing) campaigns
-- Compliance reporting (cyber insurance, ISO 27001, SOC 2 evidence)
+- ~~Compliance reporting (cyber insurance, ISO 27001, SOC 2 evidence)~~ DONE (PI 10)
 - API access for MSPs (managed service providers)
 - More language templates (German, French, Dutch)
 - Campaign template marketplace (community-contributed templates)
+- Full UI i18n (public pages, checklist, all labels)
 
 ---
 

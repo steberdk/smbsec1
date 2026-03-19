@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { WorkspaceProvider, useWorkspace } from "@/lib/hooks/useWorkspace";
+import { useTranslation } from "@/lib/i18n";
 
 export default function WorkspaceLayout({
   children,
@@ -21,16 +22,18 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const { orgData, isManager, isAdmin, logout } = useWorkspace();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const t = useTranslation();
 
   const navItems = [
-    { href: "/workspace", label: "Home", show: true },
-    { href: "/workspace/checklist", label: "Checklist", show: true },
-    { href: "/workspace/dashboard", label: "Dashboard", show: true },
-    { href: "/workspace/team", label: "Team", show: isManager },
-    { href: "/workspace/assessments", label: "Assessments", show: isManager },
-    { href: "/workspace/campaigns", label: "Campaigns", show: isAdmin },
-    { href: "/workspace/billing", label: "Billing", show: isAdmin },
-    { href: "/workspace/settings", label: "Settings", show: isAdmin },
+    { href: "/workspace", label: t("nav.home"), show: true },
+    { href: "/workspace/checklist", label: t("nav.checklist"), show: true },
+    { href: "/workspace/dashboard", label: t("nav.dashboard"), show: true },
+    { href: "/workspace/team", label: t("nav.team"), show: isManager },
+    { href: "/workspace/assessments", label: t("nav.assessments"), show: isManager },
+    { href: "/workspace/campaigns", label: t("nav.campaigns"), show: isAdmin },
+    { href: "/workspace/report", label: t("nav.report"), show: isAdmin },
+    { href: "/workspace/billing", label: t("nav.billing"), show: isAdmin },
+    { href: "/workspace/settings", label: t("nav.settings"), show: isAdmin },
   ];
 
   function isActive(href: string) {
@@ -75,7 +78,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
                 onClick={logout}
                 className="ml-2 px-3 py-1.5 text-xs text-gray-400 hover:text-gray-600 whitespace-nowrap"
               >
-                Log out
+                {t("nav.logout")}
               </button>
             </nav>
 
@@ -114,7 +117,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
                 onClick={() => { setMenuOpen(false); logout(); }}
                 className="block w-full text-left px-3 py-2 text-sm text-gray-400 hover:text-gray-600"
               >
-                Log out
+                {t("nav.logout")}
               </button>
             </nav>
           </div>
