@@ -47,7 +47,8 @@ export function baseUrl(): string {
 /**
  * Log in as any email via Supabase Admin magic link.
  * The admin API generates a one-time action_link; navigating to it causes
- * Supabase to redirect back to the app with #access_token=... (implicit flow).
+ * Supabase to redirect back to the app with ?code=... (PKCE flow).
+ * The callback page exchanges the code for a session.
  */
 export async function loginWithEmail(page: Page, email: string): Promise<void> {
   const supabase = getServiceClient();
@@ -60,13 +61,13 @@ export async function loginWithEmail(page: Page, email: string): Promise<void> {
     throw new Error(`Failed to generate magic link for ${email}: ${error?.message}`);
   }
   await page.goto(data.properties.action_link);
-  await page.waitForURL(/\/(workspace|onboarding)/, { timeout: 20_000 });
+  // PKCE flow: Supabase redirects to /auth/callback?code=... which exchanges
+  // the code for a session, then redirects to /workspace or /onboarding.
+  await page.waitForURL(/\/(workspace|onboarding)/, { timeout: 30_000 });
   // Wait for Supabase to finish writing the session to localStorage.
-  // waitForURL fires when the URL changes, but the implicit-flow token exchange
-  // (hash → localStorage) happens asynchronously on the client side.
   await page.waitForFunction(
     () => Object.keys(localStorage).some((k) => k.startsWith("sb-") && k.endsWith("-auth-token")),
-    { timeout: 10_000 }
+    { timeout: 15_000 }
   );
 }
 
