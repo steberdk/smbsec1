@@ -45,10 +45,10 @@ test("E2E-AWARE-01: user can mark Awareness track items and see progress", async
   await firstDone.click();
   await saveResponse;
 
-  // Progress count should have increased
-  const afterText = await page.getByText(/\d+ \/ \d+ answered/i).textContent();
-  const afterAnswered = parseInt(afterText?.match(/(\d+) \//)?.[1] ?? "0");
-  expect(afterAnswered).toBeGreaterThan(beforeAnswered);
+  // Wait for the UI counter to update (re-render after API response)
+  const expectedCount = beforeAnswered + 1;
+  await expect(page.getByText(new RegExp(`${expectedCount} \\/ \\d+ answered`, "i")))
+    .toBeVisible({ timeout: 10_000 });
 
   await completeAnyActiveAssessment(orgId);
 });
