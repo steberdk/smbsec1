@@ -146,7 +146,7 @@ function LoginInner() {
               <div className="mt-6 space-y-4">
                 <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2">
                   <p className="text-sm text-green-700">
-                    Sent! Check your email for a sign-in link or enter the 6-digit code below.
+                    Sent! Check your email for a sign-in link or enter the code below.
                   </p>
                 </div>
 
