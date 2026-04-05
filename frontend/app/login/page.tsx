@@ -62,15 +62,29 @@ function LoginInner() {
     setError(null);
 
     const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase.auth.verifyOtp({
+
+    // Try "magiclink" type first (existing users), then "signup" (new users).
+    // Supabase uses different token types depending on whether the email is new.
+    const { error: mlError } = await supabase.auth.verifyOtp({
       email,
       token: otpCode,
-      type: "email",
+      type: "magiclink",
     });
 
-    if (error) {
+    if (!mlError) {
+      router.replace(next);
+      return;
+    }
+
+    const { error: signupError } = await supabase.auth.verifyOtp({
+      email,
+      token: otpCode,
+      type: "signup",
+    });
+
+    if (signupError) {
       setStatus("sent");
-      setError(error.message);
+      setError(signupError.message);
       return;
     }
 
