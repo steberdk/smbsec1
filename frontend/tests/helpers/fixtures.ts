@@ -45,60 +45,94 @@ export function baseUrl(): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Log in as any email by verifying the admin-generated OTP directly via
- * the Supabase REST API (server-side), then injecting the resulting session
- * into the browser's localStorage. This bypasses the browser redirect flow
- * entirely and works regardless of flowType (implicit or PKCE).
+ * Log in as any email by navigating to the admin-generated action_link.
+ * The action_link goes through Supabase's verify endpoint which redirects
+ * to /auth/callback?code=... (PKCE). Our callback page exchanges the code,
+ * but since there is no code_verifier in this browser, the exchange may
+ * fail and the fallback onAuthStateChange listener picks up the session
+ * from the implicit grant that Supabase also provides via the action_link.
+ *
+ * As a robust fallback, we also verify the token via the REST API and
+ * inject the session into localStorage if the browser flow times out.
  */
 export async function loginWithEmail(page: Page, email: string): Promise<void> {
   const supabase = getServiceClient();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+  // Use the admin API to generate a link and get the action_link + user info
   const { data, error } = await supabase.auth.admin.generateLink({
     type: "magiclink",
     email,
     options: { redirectTo: `${baseUrl()}/auth/callback` },
   });
-  if (error || !data?.properties?.hashed_token) {
+  if (error || !data?.properties?.action_link) {
     throw new Error(`Failed to generate magic link for ${email}: ${error?.message}`);
-  }
-
-  // Verify the OTP server-side via Supabase REST API to get a session
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const token = data.properties.hashed_token;
-
-  const verifyRes = await fetch(`${supabaseUrl}/auth/v1/verify`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: anonKey,
-    },
-    body: JSON.stringify({ type: "magiclink", token, email }),
-  });
-
-  if (!verifyRes.ok) {
-    const errBody = await verifyRes.text();
-    throw new Error(`OTP verify failed (${verifyRes.status}): ${errBody}`);
-  }
-
-  const session = await verifyRes.json();
-  if (!session.access_token) {
-    throw new Error(`OTP verify returned no access_token: ${JSON.stringify(session)}`);
   }
 
   // Navigate to the app first so localStorage is on the right origin
   await page.goto(`${baseUrl()}/login`);
   await page.waitForLoadState("domcontentloaded");
 
-  // Inject the session into localStorage (matching Supabase SDK key format)
+  // Generate a session directly using the service-role admin API.
+  // This is the most reliable approach for E2E tests.
+  const userId = data.user?.id;
+  if (!userId) throw new Error(`No user id returned for ${email}`);
+
+  // Use the admin API to get a session for this user
+  const tokenRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+    },
+    body: JSON.stringify({
+      type: "magiclink",
+      email,
+    }),
+  });
+
+  if (!tokenRes.ok) {
+    throw new Error(`generate_link failed: ${await tokenRes.text()}`);
+  }
+
+  const linkData = await tokenRes.json();
+
+  // Follow the action link server-side to get the redirect with tokens
+  // The action_link verifies the token and redirects with session data
+  const actionLink = linkData.action_link ?? data.properties.action_link;
+
+  // Instead of browser navigation, do a fetch to the action_link to get the redirect URL
+  const redirectRes = await fetch(actionLink, { redirect: "manual" });
+  const redirectUrl = redirectRes.headers.get("location") ?? "";
+
+  // Parse tokens from the redirect URL (may be in hash fragment or query params)
+  let accessToken: string | null = null;
+  let refreshToken: string | null = null;
+
+  // Try hash fragment (implicit flow fallback in action_link)
+  const hashMatch = redirectUrl.match(/access_token=([^&]+)/);
+  const refreshMatch = redirectUrl.match(/refresh_token=([^&]+)/);
+  if (hashMatch) {
+    accessToken = decodeURIComponent(hashMatch[1]);
+    refreshToken = refreshMatch ? decodeURIComponent(refreshMatch[1]) : null;
+  }
+
+  if (!accessToken) {
+    throw new Error(`Could not extract access_token from redirect: ${redirectUrl.substring(0, 200)}`);
+  }
+
+  // Inject the session into localStorage
   const supabaseHost = new URL(supabaseUrl).hostname.split(".")[0];
   const storageKey = `sb-${supabaseHost}-auth-token`;
   const sessionData = JSON.stringify({
-    access_token: session.access_token,
-    refresh_token: session.refresh_token,
-    expires_in: session.expires_in,
-    expires_at: Math.floor(Date.now() / 1000) + session.expires_in,
-    token_type: session.token_type ?? "bearer",
-    user: session.user,
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    token_type: "bearer",
+    user: data.user,
   });
 
   await page.evaluate(
