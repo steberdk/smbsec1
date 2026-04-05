@@ -87,14 +87,22 @@ docker compose up --build
 Every PR must pass before merge:
 1. `npm run lint` — zero warnings
 2. `npm run build` — TypeScript + build must pass
-3. `npm run test:e2e` — E2E must pass for any changed user flows
-4. **Docs updated** — before a feature is considered complete, update the relevant docs:
+3. `npm run test:e2e` — E2E must pass **locally** for any changed user flows
+4. **CI green after every push** — after `git push`, immediately run `gh run list --limit 1` and wait for the workflow to complete. **Never push a second commit until the first one's CI is green.** If CI fails, fix it before pushing more code. Do not stack commits on a broken CI.
+5. **Verify deployment** — after CI green, check the Vercel deployment is live and working (use Playwright MCP to verify key pages)
+6. **Docs updated** — before a feature is considered complete, update the relevant docs:
    - `docs/DECISIONS.md` — any new architectural or product decisions made during implementation
    - `docs/20_user-journeys.md` — if a journey changes or a new one is added
    - `docs/40_acceptance-criteria.md` — mark completed ACs, add new ones for the feature
    - `docs/product/backlog.md` — move delivered items from backlog to done
 
 New user-facing flows require at least one Playwright happy-path test.
+
+**Per-iteration checklist** (do not skip any step):
+1. Code changes + local lint/build/test
+2. `git push` → wait for CI green (mandatory gate)
+3. Verify Vercel deployment with Playwright
+4. Only then start the next task or iteration
 
 ## Architecture
 
