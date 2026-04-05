@@ -45,10 +45,10 @@ export function baseUrl(): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Log in as any email via Supabase Admin magic link.
- * The admin API generates a one-time action_link; navigating to it causes
- * Supabase to redirect back to the app with ?code=... (PKCE flow).
- * The callback page exchanges the code for a session.
+ * Log in as any email by verifying the admin-generated OTP directly via
+ * the Supabase REST API (server-side), then injecting the resulting session
+ * into the browser's localStorage. This bypasses the browser redirect flow
+ * entirely and works regardless of flowType (implicit or PKCE).
  */
 export async function loginWithEmail(page: Page, email: string): Promise<void> {
   const supabase = getServiceClient();
@@ -57,18 +57,58 @@ export async function loginWithEmail(page: Page, email: string): Promise<void> {
     email,
     options: { redirectTo: `${baseUrl()}/auth/callback` },
   });
-  if (error || !data?.properties?.action_link) {
+  if (error || !data?.properties?.hashed_token) {
     throw new Error(`Failed to generate magic link for ${email}: ${error?.message}`);
   }
-  await page.goto(data.properties.action_link);
-  // PKCE flow: Supabase redirects to /auth/callback?code=... which exchanges
-  // the code for a session, then redirects to /workspace or /onboarding.
-  await page.waitForURL(/\/(workspace|onboarding)/, { timeout: 30_000 });
-  // Wait for Supabase to finish writing the session to localStorage.
-  await page.waitForFunction(
-    () => Object.keys(localStorage).some((k) => k.startsWith("sb-") && k.endsWith("-auth-token")),
-    { timeout: 15_000 }
+
+  // Verify the OTP server-side via Supabase REST API to get a session
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const token = data.properties.hashed_token;
+
+  const verifyRes = await fetch(`${supabaseUrl}/auth/v1/verify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: anonKey,
+    },
+    body: JSON.stringify({ type: "magiclink", token, email }),
+  });
+
+  if (!verifyRes.ok) {
+    const errBody = await verifyRes.text();
+    throw new Error(`OTP verify failed (${verifyRes.status}): ${errBody}`);
+  }
+
+  const session = await verifyRes.json();
+  if (!session.access_token) {
+    throw new Error(`OTP verify returned no access_token: ${JSON.stringify(session)}`);
+  }
+
+  // Navigate to the app first so localStorage is on the right origin
+  await page.goto(`${baseUrl()}/login`);
+  await page.waitForLoadState("domcontentloaded");
+
+  // Inject the session into localStorage (matching Supabase SDK key format)
+  const supabaseHost = new URL(supabaseUrl).hostname.split(".")[0];
+  const storageKey = `sb-${supabaseHost}-auth-token`;
+  const sessionData = JSON.stringify({
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+    expires_in: session.expires_in,
+    expires_at: Math.floor(Date.now() / 1000) + session.expires_in,
+    token_type: session.token_type ?? "bearer",
+    user: session.user,
+  });
+
+  await page.evaluate(
+    ({ key, value }) => localStorage.setItem(key, value),
+    { key: storageKey, value: sessionData }
   );
+
+  // Navigate to workspace — the app should pick up the session
+  await page.goto(`${baseUrl()}/workspace`);
+  await page.waitForURL(/\/(workspace|onboarding)/, { timeout: 15_000 });
 }
 
 /** Log in as a pre-configured role (email from env vars). */
