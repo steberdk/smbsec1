@@ -114,10 +114,13 @@ export default function SecurityReportPage() {
   }
 
   const { assessment, stats, members, cadence } = dashboard;
-  const reportDate = new Date().toLocaleDateString("en-GB", {
+  const reportDate = new Date().toLocaleString("en-GB", {
     year: "numeric",
     month: "long",
     day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
 
   const platformKey = orgData.org.email_platform
@@ -217,10 +220,13 @@ export default function SecurityReportPage() {
                 <div>
                   <span className="text-gray-500">{t("report.assessmentDate")}</span>
                   <p className="font-medium text-gray-900">
-                    {new Date(assessment.created_at).toLocaleDateString("en-GB", {
+                    {new Date(assessment.created_at).toLocaleString("en-GB", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
                     })}
                   </p>
                 </div>

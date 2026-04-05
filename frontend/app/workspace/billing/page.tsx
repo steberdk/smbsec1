@@ -260,6 +260,7 @@ export default function BillingPage() {
                   ["Template customisation", "cross", "check"],
                   ["Campaign scheduling", "cross", "check"],
                   ["Re-run campaigns", "cross", "check"],
+                  ["AI security guidance", "Basic", "Advanced"],
                 ].map(([feature, free, pro]) => (
                   <tr key={feature}>
                     <td className="px-4 py-2 text-gray-700">{feature}</td>

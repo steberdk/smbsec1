@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { AuthAwareCTA, AuthAwareHeaderLinks } from "@/components/AuthAwareCTA";
 
 export const metadata: Metadata = {
   title: "Security Checklist for Small Business",
@@ -22,6 +23,7 @@ export default function HomePage() {
       {/* Hero section with gradient */}
       <section className="hero-gradient border-b border-gray-200/40">
         <div className="max-w-3xl mx-auto px-4 py-16 sm:py-20">
+          <AuthAwareCTA />
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
             Find your biggest cyber risks in 30 minutes
           </h1>
@@ -30,28 +32,7 @@ export default function HomePage() {
             No enterprise complexity. Just the highest-impact steps.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 mt-8">
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-teal-700 text-white font-medium shadow-sm hover:bg-teal-800 hover:shadow-md transition-all"
-            >
-              Sign up free
-            </Link>
-
-            <Link
-              href="/checklist"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-gray-300 bg-white font-medium text-gray-700 shadow-sm hover:border-gray-400 hover:shadow-md transition-all"
-            >
-              Browse the checklist
-            </Link>
-
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-gray-300 bg-white font-medium text-gray-700 shadow-sm hover:border-gray-400 hover:shadow-md transition-all"
-            >
-              Log in
-            </Link>
-          </div>
+          <AuthAwareHeaderLinks />
         </div>
       </section>
 
@@ -145,6 +126,9 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+        <p className="mt-4 text-xs text-gray-400 text-center">
+          *Security checklist and team dashboard are always free. Some advanced features (e.g. phishing campaigns) require a paid plan.
+        </p>
       </section>
 
       {/* CTA band */}

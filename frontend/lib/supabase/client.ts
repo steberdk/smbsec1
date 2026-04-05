@@ -20,7 +20,7 @@ export function getSupabaseBrowserClient(): SupabaseClient {
   if (!anonKey) throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is required.");
 
   const client = createClient(url, anonKey, {
-    auth: { flowType: "implicit" },
+    auth: { flowType: "pkce" },
     db: { schema: "smbsec1" },
   });
   _browserClient = client as unknown as SupabaseClient;

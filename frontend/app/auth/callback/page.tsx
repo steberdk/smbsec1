@@ -5,6 +5,11 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
+function sanitizeNext(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/workspace";
+  return raw;
+}
+
 export default function AuthCallbackPage() {
   return (
     <Suspense
@@ -25,13 +30,25 @@ export default function AuthCallbackPage() {
 function AuthCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/workspace";
+  const next = sanitizeNext(searchParams.get("next"));
+  const code = searchParams.get("code");
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
     let done = false;
 
+    // PKCE flow: exchange the ?code= parameter for a session
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (!error && !done) {
+          done = true;
+          router.replace(next);
+        }
+      });
+    }
+
+    // Fallback: listen for auth state change (handles edge cases)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -53,10 +70,11 @@ function AuthCallbackInner() {
     }, 10000);
 
     return () => {
+      done = true;
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, [next, router]);
+  }, [code, next, router]);
 
   if (timedOut) {
     return (

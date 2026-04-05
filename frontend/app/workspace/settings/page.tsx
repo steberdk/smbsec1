@@ -37,7 +37,7 @@ export default function OrgSettingsPage() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => { document.title = "Org Settings | SMB Security Quick-Check"; }, []);
+  useEffect(() => { document.title = "Settings & Data | SMB Security Quick-Check"; }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -80,7 +80,7 @@ export default function OrgSettingsPage() {
   if (!isAdmin) {
     return (
       <>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Org Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings & Data</h1>
         <p className="text-sm text-gray-600">Only organisation admins can change settings.</p>
       </>
     );
@@ -89,7 +89,7 @@ export default function OrgSettingsPage() {
   if (loadError) {
     return (
       <>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Org Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings & Data</h1>
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
           <p className="text-sm text-red-800">{loadError}</p>
         </div>
@@ -99,7 +99,7 @@ export default function OrgSettingsPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Org Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings & Data</h1>
 
       <div className="space-y-6">
         {/* Email Platform */}

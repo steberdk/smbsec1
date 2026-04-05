@@ -94,8 +94,11 @@ export default function SummaryPage() {
         </div>
 
         {/* Teaser: what the summary looks like */}
-        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <p className="text-xs font-medium text-gray-500 mb-3">What you will see after signing in:</p>
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 relative">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-medium text-gray-500">What you will see after signing in:</p>
+            <span className="text-[10px] uppercase tracking-wide text-gray-400 bg-gray-200 px-2 py-0.5 rounded">Example</span>
+          </div>
           <div className="space-y-2 opacity-60">
             <div className="flex justify-between text-sm">
               <span className="text-gray-700">Overall progress</span>
