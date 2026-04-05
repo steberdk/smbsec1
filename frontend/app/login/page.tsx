@@ -57,7 +57,7 @@ function LoginInner() {
   }
 
   async function handleVerifyOtp() {
-    if (otpCode.length !== 6) return;
+    if (otpCode.length < 6) return;
     setStatus("verifying");
     setError(null);
 
@@ -162,26 +162,26 @@ function LoginInner() {
                     Sign-in code
                   </label>
                   <p className="text-xs text-gray-500">
-                    Enter the 6-digit code from your email. This works even if you opened the email on a different device.
+                    Enter the code from your email. This works even if you opened the email on a different device.
                   </p>
                   <div className="flex gap-2 mt-1">
                     <input
                       className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-center tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow"
                       type="text"
                       inputMode="numeric"
-                      pattern="[0-9]{6}"
-                      maxLength={6}
+                      pattern="[0-9]{6,8}"
+                      maxLength={8}
                       value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      placeholder="000000"
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                      placeholder="00000000"
                       autoComplete="one-time-code"
                       disabled={status === "verifying"}
-                      onKeyDown={(e) => { if (e.key === "Enter" && otpCode.length === 6) handleVerifyOtp(); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && otpCode.length >= 6) handleVerifyOtp(); }}
                     />
                     <button
                       type="button"
                       onClick={handleVerifyOtp}
-                      disabled={otpCode.length !== 6 || status === "verifying"}
+                      disabled={otpCode.length < 6 || status === "verifying"}
                       className="rounded-lg bg-teal-700 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-teal-800 transition-all disabled:opacity-60"
                     >
                       {status === "verifying" ? "Verifying..." : "Verify"}
