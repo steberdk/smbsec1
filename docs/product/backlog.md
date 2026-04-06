@@ -231,33 +231,46 @@
 
 ---
 
-## PI 10+ — Advanced Campaigns (future)
+## Done — PI 11 (2026-04-05)
+
+**Theme:** Auth UX overhaul, landing page fixes, copy/naming polish
+
+**Based on:** Stefan's PROD testing report (20260405a_Stefan_test.pdf, 11 findings)
+
+### Iteration 1: PKCE Auth + OTP Fallback + UX Fixes
+- Migrate auth from implicit flow to PKCE (`flowType: "pkce"`) — tokens no longer in URLs
+- Add OTP code entry on login page (8-digit code, cross-browser/device fallback)
+- Open redirect protection (`sanitizeNext()` on auth callback + login)
+- Auth-aware landing page: logged-in users see "Go to workspace" (client island pattern)
+- Rename settings heading "Org Settings" → "Settings & Data" (match privacy page)
+- Add HH:MM timestamp to security report dates
+- Add paid-features footnote below landing page trust signals
+- Add "Example" badge to summary page teaser mockup
+- Add "AI security guidance: Basic / Advanced" row to billing comparison
+- E2E test helper rewritten for PKCE (server-side action_link + session injection)
+- Fix flaky E2E-AWARE-01 test (wait for UI counter update)
+- CLAUDE.md rewritten (lean, accurate, documentation map)
+- Supabase SMTP configured via Resend (branded sender)
 
 ---
 
-## Future — Platform Expansion
+## Not yet prioritized
 
-- Inbound email report detection (Resend/Mailgun inbound webhook for forwarded emails)
-- Phone/vishing campaigns -- AI voice call simulations (research: Twilio, GDPR, feasibility)
-- Email client report button integration (Google Workspace / Microsoft 365 API)
-- AI-generated campaign content (LLM-based contextual phishing emails)
-- SMS phishing (smishing) campaigns
-- ~~Compliance reporting (cyber insurance, ISO 27001, SOC 2 evidence)~~ DONE (PI 10)
-- API access for MSPs (managed service providers)
-- More language templates (German, French, Dutch)
-- Campaign template marketplace (community-contributed templates)
-- Full UI i18n (public pages, checklist, all labels)
+Features below are defined in `features.md` with full detail. Listed here by feature number for roadmap visibility.
 
----
+### Platform Expansion
+- F-001: Full UI internationalisation (i18n)
+- F-002: More language templates (German, French, Dutch)
+- F-003: AI-generated campaign content
+- F-004: Inbound email report detection
+- F-005: SMS phishing (smishing) campaigns
+- F-006: API access for MSPs
+- F-007: Campaign template marketplace
 
-## Deferred -- Carried Forward
-
-- Evidence uploads (file storage cost, GDPR surface area, low SMB value)
-- Branch delete UI (backend done; UI medium effort, low urgency for 1-20 person orgs)
-- Anonymous benchmarking (Stefan deferred from PI 8)
-- assessment_responses RLS tightening (SECURITY DEFINER function approach)
-- Mobile responsiveness audit (needs dedicated test pass)
-- Account recovery UI (magic link works but no visible "help" path)
-- E2E: self-deletion blocker test (user with direct reports)
-- E2E: data residency notice visible to non-admin users
-- SEO / Open Graph (og:title, og:description, og:image)
+### Product Polish
+- F-008: Evidence uploads for checklist items
+- F-009: Mobile responsiveness audit
+- F-010: Account recovery UX
+- F-011: Anonymous benchmarking
+- F-012: Tighten AI guidance guardrails
+- F-013: SEO and Open Graph metadata

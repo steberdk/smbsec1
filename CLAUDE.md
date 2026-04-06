@@ -1,15 +1,80 @@
 # CLAUDE.md
-
 Guidance for Claude Code when working in this repository.
 
+## Product Vision
+Goal: Help SMB owners address top security risks in 30 minutes - without creating account (user/password) and without payment, but with guidance. If owner logs in and creates organisation then it will provide more guidance, learn organisation, and collect/document about security topics.
+Primary user: Business Owner.
+Core loop: Assess → Fix → Track → Reassess
+MVP (already provided): Guided checklist + progress + company workspace
+Constraints: Free tier must work. Simple and cool UX. GDPR native/transparent.
+Acceptance criteria:
+- For non-logged in users:
+   - Explanation why and how.
+   - Checklist.
+   - Account creation (no payment).
+   - GDPR and data
+- For logged in users:
+   - Explanation and checklist available as for non-logged in.
+   - Can set himself as owner, define who is IT responsible, and add employees to all be included in security assessment, learning and improvement.
+   - User can see progress of his team.
+   - GDPR and data
+   - Guided checklist
+
+## Development Process
+### Features
+All development must bemaintained in a Feature (in \docs\product\features.md) after every work related to feature, from idea to finished accept tested delivery, according to \docs\product\feature_rules.md
+Read \docs\product\feature_rules.md before maintaining features.
+### Feature Backlog
+In \docs\product\backlog.md
+ in Backlog (after every work related to feature, from idea to finished accept tested delivery), according to \docs\product\backlog_rules.md
+Read \docs\product\backlog_rules.md before maintaining features in backlog to do it right.
+
+### PI's and iterations
+To be followed for all development.
+Work is conducted in SAFe (Scaled Agile) manner, but with one PI having 3 iterations (if there is enough features for 3 iterations). After one PI the next starts.
+The process of a PI:
+1. PI-START:
+1a. Each PI starts with Product Team analyzing what to do in this PI based on product vision, knowledge of current functionality (team, maybe apart from Product manager) must see and use the actual solution, e.g. with playwright, to assess what makes most sense.
+    The Product team is described in section below. Product team iterates as many times as needed until they agree on next features - at least 3 team internal iterations before they had a chance to consider each others ideas/analysis and subsequent comments.
+1b. Based on Product Teams decisions, you provide a summary of Backlog and next PI's features to me/Stefan, so I can assess if I agree.
+    A focus point is if it contains all Feature sections, including test expectations.
+    Either I ask stuff you must take back for more team-internal iterations with the Product Team, or I approve and you run the 3 iterations without asking me/Stefan anything - unless there is a hard stop somehow.
+2. PI-DEV:
+2a. In each iteration included features go from status Ready to Developed IF tests in local environment succeed. All tests that can be done in local environment should be done here also, because finding defects in DEV is much cheaper than finding them in PROD.
+    During start/dev/test/.. you keep backlog and feature status updated (and feature updated in case something more than expected pops up. The Feature definition is the place for information about the feature.
+    When iteration 1 is done, you start iteration 2, and then iteration 3. In each iteration and for each feature, the feature cannot be set to status Developed unless all tests according to feature Risk and amount of Test has been covered.
+    All testing in iterations is done by IT Dev Team. Preferably with automatic tests, alternatively with browser control. All tests are documented, so they can be read and re-executed any time. Defining what tests are to be done is high level a Product Team responsibility (see section "Risk and amount of Test" in Feature), but lower level whitebox and exact test case definition e.g. in browser must wait until after exact implementation, and is a IT Dev responsibility. No feature is set into Develped state before all tests are documented and ready for execution - and test IT Dev team can do in lower env are done. Also all defects found are handled (and all planned tests are redone) inside iteration before feature is set to Developed.
+3. PI-END:
+3a. All PI features are deployed (in one go at the end to preserve resources).
+    All tests must succeed. In case of defects a feature and defect goes back to IT Dev team and must be remediated, including possible new test cases to cover possible new code, before PI can be closed and features can be set to Deployed or Done. In case of defects the PI goes back into 2. PI-DEV state.
+3b. Business Test Team is started and conducts tests according to "Business Test Team" below.
+Features in Ready state can be prioritized for a PI by Product Team for IT Dev team. I.e. features must be in Ready state to be prioritized for PI.
+One feature must fit into one iteration. One iteration can have multiple features. All features to be tested locally within iteration before moving feature to Developed state. No errors are allowed.
+In the start of PI coordinator starts Product Team to 
+
+### Product Team
+Consists of individual AI agents (not you rotating), coordinated by you. Each time Product Team is used, start 5 single/individual agents with roles of:
+Product Manager, UX/UI designer, Security Expert, Architect, Business Analyst.
+
+### IT Dev Team
+You coordinating and doing development and testing.
+
+### Business Test Team
+You coordinate a number of independent/single AI agents (not you rotating) to test full solution at end of PI.
+Reason: Too many times have I used half or full days to test, and find things that were not entirely according to features.
+Goal:
+- Walkthrough of all combinations of user types, creatings of new users, existing users, ANON and logged in, menu options, options to select, checklist usage, choices.
+- Also check for inconsistencies in naming/description on menu items/links/topics.
+- Also check if it all looks and functions nice/easy.
+Issues found:
+- To be put in issues log (issue number, name, description, percieved priority) to be presented for Product Team at the start of next PI for their consideration. Product Team can chose to put it into 1..n feature(s).
+- Put issue log in separate PI named file.
+
 ## Stack
-
 Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Supabase · Playwright
-
 All code lives in `frontend/`. No separate backend.
 
 ## Commands
-
 Run inside `frontend/`:
 
 ```bash
@@ -20,14 +85,14 @@ npm run test:e2e  # Playwright E2E tests
 ```
 
 ## Definition of Done
-
+This is the technical definition. You must 
 Every change must pass — in this order:
 
 1. `npm run lint` — zero warnings
 2. `npm run build` — clean
 3. `npm run test:e2e` — locally, for any changed user flows
 4. **`git push` → wait for CI green** — run `gh run list --limit 1` and poll until complete. **Never push a second commit until the first one passes.** If CI fails, fix before pushing more code.
-5. **Verify Vercel deployment** — after CI green, spot-check the live app (Playwright MCP or browser)
+5. **Verify Vercel deployment** — after CI green, regression test live app (Playwright MCP or browser)
 6. **Update docs** — `docs/DECISIONS.md` for new decisions; `docs/product/backlog.md` for delivered items
 
 New user-facing flows require at least one Playwright happy-path test.
