@@ -198,3 +198,61 @@ See `feature_rules.md` for how to maintain this file.
 **Dependencies:** None.
 **Risk and amount of Test:** Chance: 3, Impact: 2. High chance of recurrence if not fixed — already caused 2 CI failures in PI 11 (AWARE-01, checklist clear-response). Each failure wastes 45 min CI time and triggers false-alarm emails.
 **Complexity estimate:** Small-Medium.
+
+---
+
+## F-016
+**Status:** Created
+**Feature name:** As Product and IT Dev teams, we want to take in user suggestions and complaints, to improve our product.
+**Business Value Hypothesis:** As Product and IT Dev teams, we want to take in user suggestions and complaints, i.e. take in their experience and perception, to make solution better and more usable, to better achieve product vision.
+**Acceptance Criteria:** To be defined.
+**Scope:** To be defined.
+**Not in Scope:** To be defined.
+**Dependencies:** To be defined.
+**Risk and amount of Test:** To be defined.
+**Complexity estimate:** To be defined.
+
+---
+
+## F-017
+**Status:** Created
+**Feature name:** Figure out if users (possibly paid users) should be able to paste in screen shots to better explain to AI agent when going through checklist items.
+**Business Value Hypothesis:** Figure out if users (possibly paid users) should be able to paste in screen shots to better explain to AI agent when going through checklist items.
+**Acceptance Criteria:** To be defined.
+**Scope:** To be defined.
+**Not in Scope:** To be defined.
+**Dependencies:** To be defined.
+**Risk and amount of Test:** To be defined.
+**Complexity estimate:** To be defined.
+
+---
+
+## F-018
+**Status:** Created
+**Feature name:** Enforce role-based page access for employees on workspace pages
+**Business Value Hypothesis:** As a security product, we must enforce that employees cannot access admin/manager pages even via direct URL navigation, so the access model is trustworthy and consistent with what the nav shows.
+**Acceptance Criteria:**
+- `/workspace/team`: employees see "access restricted" message, not the invite form
+- `/workspace/campaigns`: employees see "access restricted" message, not "No campaigns yet"
+- `/workspace/assessments`: employees see "access restricted" message, not assessment details
+- All three pages return proper restricted view for employee role, consistent with how `/workspace/report`, `/workspace/billing`, and `/workspace/settings` already handle it
+**Scope:** UI-level role checks on 3 workspace pages. API already blocks actions — this is about the UI matching.
+**Not in Scope:** API changes (already correctly restricted).
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 2. E2E test: employee navigates to each restricted page, verify access-denied shown.
+**Complexity estimate:** Small.
+
+---
+
+## F-019
+**Status:** Created
+**Feature name:** Fix privacy page title duplication and login form email retention
+**Business Value Hypothesis:** As a user, I expect consistent page titles and a clean login form, so the product feels polished and trustworthy.
+**Acceptance Criteria:**
+- Privacy page title reads "Privacy Policy | SMB Security Quick-Check" (no duplicate suffix)
+- Login form email field is cleared when user clicks "Use a different email" and when navigating to /login fresh
+**Scope:** 2 small fixes: privacy page metadata, login form state reset.
+**Not in Scope:** N/A.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 1. Verify title in browser tab. Test login flow with multiple accounts.
+**Complexity estimate:** Small.

@@ -268,7 +268,9 @@ Features below are defined in `features.md` with full detail. Listed here by fea
 - F-007: Campaign template marketplace
 
 ### Product Polish
+- F-018: Enforce role-based page access for employees (team, campaigns, assessments pages) — **Medium** from Business Test
 - F-015: Fix flaky E2E tests — race conditions in response waits (caused 2 CI failures in PI 11)
+- F-019: Fix privacy page title duplication + login form email retention — **Low** from Business Test
 - F-014: Fix inconsistencies from PI 11 BA review (summary page, campaign access, billing waitlist, settings naming)
 - F-008: Evidence uploads for checklist items
 - F-009: Mobile responsiveness audit
@@ -276,3 +278,5 @@ Features below are defined in `features.md` with full detail. Listed here by fea
 - F-011: Anonymous benchmarking
 - F-012: Tighten AI guidance guardrails
 - F-013: SEO and Open Graph metadata
+- F-016: As Product and IT Dev teams, we want to take in user suggestions and complaints, to improve our product.
+- F-017: Figure out if users (possibly paid users) should be able to paste in screen shots to better explain to AI agent when going through checklist items.
