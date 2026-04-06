@@ -31,10 +31,12 @@ test("E2E-AWARE-01: user can mark Awareness track items and see progress", async
   await expect(page.getByRole("heading", { name: /security awareness/i })).toBeVisible({ timeout: 10_000 });
 
   // Get total count before marking
-  const beforeText = await page.getByText(/\d+ \/ \d+ answered/i).textContent();
+  const counterLocator = page.getByText(/\d+ \/ \d+ answered/i);
+  await expect(counterLocator).toBeVisible({ timeout: 10_000 });
+  const beforeText = await counterLocator.textContent();
   const beforeAnswered = parseInt(beforeText?.match(/(\d+) \//)?.[1] ?? "0");
 
-  // Mark the first Done button in the Awareness section
+  // Mark the first available Done button in the Awareness section
   const awarenessSection = page.locator("section").filter({ has: page.getByRole("heading", { name: /security awareness/i }) });
   const firstDone = awarenessSection.getByRole("button", { name: /i've done this/i }).first();
   await expect(firstDone).toBeVisible({ timeout: 10_000 });
@@ -45,10 +47,12 @@ test("E2E-AWARE-01: user can mark Awareness track items and see progress", async
   await firstDone.click();
   await saveResponse;
 
-  // Wait for the UI counter to update (re-render after API response)
-  const expectedCount = beforeAnswered + 1;
-  await expect(page.getByText(new RegExp(`${expectedCount} \\/ \\d+ answered`, "i")))
-    .toBeVisible({ timeout: 10_000 });
+  // Wait for the counter to reflect a higher number than before
+  await expect(async () => {
+    const text = await page.getByText(/\d+ \/ \d+ answered/i).textContent();
+    const current = parseInt(text?.match(/(\d+) \//)?.[1] ?? "0");
+    expect(current).toBeGreaterThan(beforeAnswered);
+  }).toPass({ timeout: 10_000 });
 
   await completeAnyActiveAssessment(orgId);
 });

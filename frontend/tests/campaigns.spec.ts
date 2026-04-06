@@ -49,14 +49,14 @@ test("E2E-CAMP-02: employee cannot access campaigns create button", async ({
     await page.waitForURL(/\/workspace/);
 
     await page.goto("/workspace/campaigns");
-    await expect(
-      page.getByRole("heading", { name: /campaigns/i })
-    ).toBeVisible({ timeout: 15_000 });
 
-    // Employee should not see the "Create campaign" link
+    // Employee should see access restricted, not the campaigns page
     await expect(
-      page.getByRole("link", { name: /create campaign/i })
-    ).toHaveCount(0);
+      page.getByText(/access restricted/i)
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByText(/only organisation admins/i)
+    ).toBeVisible();
   } finally {
     await employee.delete();
     await iso.cleanup();
