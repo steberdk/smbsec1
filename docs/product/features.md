@@ -228,7 +228,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-018
-**Status:** Created
+**Status:** Done
 **Feature name:** Enforce role-based page access for employees on workspace pages
 **Business Value Hypothesis:** As a security product, we must enforce that employees cannot access admin/manager pages even via direct URL navigation, so the access model is trustworthy and consistent with what the nav shows.
 **Acceptance Criteria:**
