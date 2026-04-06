@@ -182,3 +182,19 @@ See `feature_rules.md` for how to maintain this file.
 **Dependencies:** None.
 **Risk and amount of Test:** Chance: 1, Impact: 2. Regression test each fixed page. Campaign access check needs E2E test.
 **Complexity estimate:** Small.
+
+---
+
+## F-015
+**Status:** Created
+**Feature name:** Fix flaky E2E tests (race conditions in response waits)
+**Business Value Hypothesis:** As a development team, we need reliable CI so that test failures signal real bugs, not random timing issues — otherwise we lose trust in CI and stop catching regressions.
+**Acceptance Criteria:**
+- All `waitForResponse` calls in E2E tests are replaced with or supplemented by UI-state assertions (e.g. `expect(element).toBeVisible()` or `expect(counter).toHaveText()`), so tests wait for the DOM to update rather than racing against API responses.
+- Specifically fix: `checklist.spec.ts:274` (clear response DELETE timeout), and audit all other `waitForResponse` patterns across the test suite for the same race condition.
+- CI passes 10 consecutive runs without flaky failures.
+**Scope:** E2E test files only (`frontend/tests/*.spec.ts`). No production code changes.
+**Not in Scope:** Adding new E2E tests. Changing test infrastructure.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 3, Impact: 2. High chance of recurrence if not fixed — already caused 2 CI failures in PI 11 (AWARE-01, checklist clear-response). Each failure wastes 45 min CI time and triggers false-alarm emails.
+**Complexity estimate:** Small-Medium.

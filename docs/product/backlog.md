@@ -268,6 +268,7 @@ Features below are defined in `features.md` with full detail. Listed here by fea
 - F-007: Campaign template marketplace
 
 ### Product Polish
+- F-015: Fix flaky E2E tests — race conditions in response waits (caused 2 CI failures in PI 11)
 - F-014: Fix inconsistencies from PI 11 BA review (summary page, campaign access, billing waitlist, settings naming)
 - F-008: Evidence uploads for checklist items
 - F-009: Mobile responsiveness audit
