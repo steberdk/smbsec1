@@ -40,7 +40,7 @@ export default function CampaignsPage() {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !isAdmin) return;
 
     Promise.all([
       apiFetch<{ campaigns: Campaign[] }>("/api/campaigns", token).then(
@@ -62,7 +62,7 @@ export default function CampaignsPage() {
         setError(e instanceof Error ? e.message : "Failed to load campaigns.");
       })
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, isAdmin]);
 
   const hasActiveCampaign = campaigns.some((c) =>
     ["pending", "scheduled", "sending", "active"].includes(c.status)
@@ -92,6 +92,15 @@ export default function CampaignsPage() {
     if (total === 0) return "---";
     const passed = total - acted;
     return `${Math.round((passed / total) * 100)}%`;
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="text-center py-16 text-gray-500">
+        <p className="text-lg font-medium">Access restricted</p>
+        <p className="text-sm mt-1">Only organisation admins can manage campaigns.</p>
+      </div>
+    );
   }
 
   if (loading) {

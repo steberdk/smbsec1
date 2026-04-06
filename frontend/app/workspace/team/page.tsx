@@ -30,7 +30,7 @@ type InviteForm = {
 };
 
 export default function WorkspaceTeamPage() {
-  const { token } = useWorkspace();
+  const { token, isManager } = useWorkspace();
 
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -102,6 +102,15 @@ export default function WorkspaceTeamPage() {
     } finally {
       setRevoking(null);
     }
+  }
+
+  if (!isManager) {
+    return (
+      <div className="text-center py-16 text-gray-500">
+        <p className="text-lg font-medium">Access restricted</p>
+        <p className="text-sm mt-1">Only managers and admins can manage the team.</p>
+      </div>
+    );
   }
 
   return (

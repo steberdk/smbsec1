@@ -80,6 +80,15 @@ export default function WorkspaceAssessmentsPage() {
     }
   }
 
+  if (!isManager) {
+    return (
+      <div className="text-center py-16 text-gray-500">
+        <p className="text-lg font-medium">Access restricted</p>
+        <p className="text-sm mt-1">Only managers and admins can manage assessments.</p>
+      </div>
+    );
+  }
+
   if (loadError) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
