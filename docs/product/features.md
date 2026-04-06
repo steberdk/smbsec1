@@ -165,3 +165,20 @@ See `feature_rules.md` for how to maintain this file.
 **Not in Scope:** Paid advertising.
 **Risk and amount of Test:** Chance: 1, Impact: 1. Validate with social card previewer.
 **Complexity estimate:** Small.
+
+---
+
+## F-014
+**Status:** Created
+**Feature name:** Fix inconsistencies found during PI 11 BA review
+**Business Value Hypothesis:** As a user, I want the app to behave consistently across pages — correct naming, working data flows, proper access checks — so I can trust it as a security tool.
+**Acceptance Criteria:**
+- `/summary` page reads from assessment responses (not legacy `user_checklists` table), or is removed/redirected for workspace users.
+- Campaign detail page (`/workspace/campaigns/[id]`) enforces `isAdmin` server-side, not just via nav visibility.
+- Billing waitlist email is persisted (API call or at minimum localStorage), not lost on page refresh.
+- "Settings & Data" naming is consistent: both `/workspace/settings` heading and `/workspace/settings/gdpr` heading use the same casing and wording.
+**Scope:** 4 targeted fixes across summary, campaigns, billing, and settings pages.
+**Not in Scope:** Redesigning any of these pages.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 2. Regression test each fixed page. Campaign access check needs E2E test.
+**Complexity estimate:** Small.

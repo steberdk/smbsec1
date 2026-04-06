@@ -268,6 +268,7 @@ Features below are defined in `features.md` with full detail. Listed here by fea
 - F-007: Campaign template marketplace
 
 ### Product Polish
+- F-014: Fix inconsistencies from PI 11 BA review (summary page, campaign access, billing waitlist, settings naming)
 - F-008: Evidence uploads for checklist items
 - F-009: Mobile responsiveness audit
 - F-010: Account recovery UX
