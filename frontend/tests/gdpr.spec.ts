@@ -6,7 +6,6 @@
 
 import { test, expect } from "@playwright/test";
 import {
-  loginAsRole,
   loginWithEmail,
   createIsolatedOrg,
   createTempUser,
@@ -14,30 +13,35 @@ import {
 } from "./helpers/fixtures";
 
 test("E2E-GDPR-01: Org Admin exports all org data as a JSON download", async ({ page }) => {
-  await loginAsRole(page, "org_admin");
-  await page.goto("/workspace/settings/gdpr");
+  const iso = await createIsolatedOrg("GDPR01 Org");
+  try {
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.goto("/workspace/settings/gdpr");
 
-  await expect(page.getByRole("heading", { name: /data & privacy/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /data & privacy/i })).toBeVisible();
 
-  // Set up download listener before clicking
-  const [download] = await Promise.all([
-    page.waitForEvent("download"),
-    page.getByRole("button", { name: /download json export/i }).click(),
-  ]);
+    // Set up download listener before clicking
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: /download json export/i }).click(),
+    ]);
 
-  // A file was downloaded
-  expect(download.suggestedFilename()).toBe("org-data-export.json");
+    // A file was downloaded
+    expect(download.suggestedFilename()).toBe("org-data-export.json");
 
-  // Read content and validate structure
-  const stream = await download.createReadStream();
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream) chunks.push(chunk as Buffer);
-  const json = JSON.parse(Buffer.concat(chunks).toString("utf-8")) as Record<string, unknown>;
+    // Read content and validate structure
+    const stream = await download.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(chunk as Buffer);
+    const json = JSON.parse(Buffer.concat(chunks).toString("utf-8")) as Record<string, unknown>;
 
-  // Must contain org and members
-  expect(json).toHaveProperty("org");
-  expect(json).toHaveProperty("members");
-  expect(Array.isArray(json.members)).toBe(true);
+    // Must contain org and members
+    expect(json).toHaveProperty("org");
+    expect(json).toHaveProperty("members");
+    expect(Array.isArray(json.members)).toBe(true);
+  } finally {
+    await iso.cleanup();
+  }
 });
 
 test("E2E-GDPR-02: Settings & data page shows EU data residency notice to all users", async ({

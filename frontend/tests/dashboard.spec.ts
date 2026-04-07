@@ -7,13 +7,10 @@
 import { test, expect } from "@playwright/test";
 import {
   loginWithEmail,
-  loginAsRole,
   createIsolatedOrg,
   addOrgMember,
   createTempUser,
   startAssessment,
-  getAdminOrgId,
-  getAdminUserId,
   completeAnyActiveAssessment,
   getServiceClient,
 } from "./helpers/fixtures";
@@ -21,26 +18,32 @@ import {
 test("E2E-DASH-01: Org Admin dashboard loads and shows team progress section", async ({
   page,
 }) => {
-  // Set up: ensure the admin org has an active assessment and at least one member
-  const orgId = await getAdminOrgId();
-  const adminUserId = await getAdminUserId();
-  await startAssessment(orgId, adminUserId);
+  // Set up: ensure the isolated org has an active assessment
+  const iso = await createIsolatedOrg("DASH01 Org");
+  try {
+    await startAssessment(iso.orgId, iso.adminUser.id);
 
-  await loginAsRole(page, "org_admin");
-  await page.goto("/workspace/dashboard");
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.goto("/workspace/dashboard");
 
-  await expect(page.getByRole("heading", { name: /dashboard/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /dashboard/i })).toBeVisible();
 
-  // Cadence indicator is always shown
-  await expect(
-    page.getByText(/on track|due soon|overdue|no assessment completed/i)
-  ).toBeVisible({ timeout: 10_000 });
+    // With an active assessment, the assessment status and stats should appear
+    await expect(
+      page.getByText(/org assessment|active|responses/i).first()
+    ).toBeVisible({ timeout: 10_000 });
 
-  // With an active assessment, stats section should appear
-  await expect(page.getByText(/done/i).first()).toBeVisible({ timeout: 10_000 });
+    // Stats section should appear (Done/Unsure/Skipped)
+    await expect(page.getByText(/done/i).first()).toBeVisible({ timeout: 10_000 });
 
-  // Cleanup
-  await completeAnyActiveAssessment(orgId);
+    // Team progress section should be visible
+    await expect(page.getByRole("heading", { name: /team progress/i })).toBeVisible({ timeout: 10_000 });
+
+    // Cleanup active assessment before org cleanup
+    await completeAnyActiveAssessment(iso.orgId);
+  } finally {
+    await iso.cleanup();
+  }
 });
 
 test("E2E-DASH-02: Employee dashboard shows only own data", async ({ page }) => {

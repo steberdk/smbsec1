@@ -6,16 +6,14 @@
 
 import { test, expect } from "@playwright/test";
 import {
-  loginAsRole,
   loginWithEmail,
-  getAdminOrgId,
-  getAdminUserId,
   startAssessment,
   completeAnyActiveAssessment,
   createIsolatedOrg,
   createTempUser,
   addOrgMember,
   getServiceClient,
+  type IsolatedOrg,
 } from "./helpers/fixtures";
 
 // ---------------------------------------------------------------------------
@@ -68,16 +66,19 @@ test("E2E-TRACK-02: Regular employee does NOT see IT Baseline track", async ({ p
 
 test("E2E-TRACK-03: All member roles see the Awareness track", async ({ page }) => {
   // Ensure there is an active assessment with items
-  const orgId = await getAdminOrgId();
-  const adminUserId = await getAdminUserId();
-  await startAssessment(orgId, adminUserId);
+  const iso = await createIsolatedOrg("TRACK03 Org");
+  try {
+    await startAssessment(iso.orgId, iso.adminUser.id);
 
-  await loginAsRole(page, "org_admin");
-  await page.goto("/workspace/checklist");
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.goto("/workspace/checklist");
 
-  await expect(page.getByRole("heading", { name: /my checklist/i })).toBeVisible();
-  // Security Awareness group heading should be present
-  await expect(page.getByRole("heading", { name: /security awareness/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /my checklist/i })).toBeVisible();
+    // Security Awareness group heading should be present
+    await expect(page.getByRole("heading", { name: /security awareness/i })).toBeVisible({ timeout: 10_000 });
+  } finally {
+    await iso.cleanup();
+  }
 });
 
 test("E2E-TRACK-04: IT Executor can expand item and see steps list", async ({ page }) => {
@@ -153,19 +154,20 @@ test("E2E-TRACK-06: Expanded item renders steps from DB snapshot", async ({ page
 // ---------------------------------------------------------------------------
 
 test.describe.serial("Checklist item state", () => {
+  let iso: IsolatedOrg;
+
   test.beforeAll(async () => {
-    const orgId = await getAdminOrgId();
-    const adminUserId = await getAdminUserId();
-    await startAssessment(orgId, adminUserId);
+    iso = await createIsolatedOrg("ITEM State Org");
+    await startAssessment(iso.orgId, iso.adminUser.id);
   });
 
   test.afterAll(async () => {
-    const orgId = await getAdminOrgId();
-    await completeAnyActiveAssessment(orgId);
+    await completeAnyActiveAssessment(iso.orgId);
+    await iso.cleanup();
   });
 
   test("E2E-ITEM-01: marking an item Done persists across page reload", async ({ page }) => {
-    await loginAsRole(page, "org_admin");
+    await loginWithEmail(page, iso.adminUser.email);
     await page.goto("/workspace/checklist");
 
     // Wait for items to load — button text depends on track
@@ -196,7 +198,7 @@ test.describe.serial("Checklist item state", () => {
   test("E2E-ITEM-02: marking an item Unsure shows it in a distinct state", async ({
     page,
   }) => {
-    await loginAsRole(page, "org_admin");
+    await loginWithEmail(page, iso.adminUser.email);
     await page.goto("/workspace/checklist");
 
     // Use the second item to avoid collision with ITEM-01's Done state
@@ -211,7 +213,7 @@ test.describe.serial("Checklist item state", () => {
   test("E2E-ITEM-03: skipping an item does not count toward Done progress", async ({
     page,
   }) => {
-    await loginAsRole(page, "org_admin");
+    await loginWithEmail(page, iso.adminUser.email);
     await page.goto("/workspace/checklist");
 
     // Read the current answered/total counts from progress text
@@ -280,22 +282,25 @@ test("E2E-ITEM-04: clicking the active button clears the item back to unanswered
 });
 
 test("E2E-AI-01: workspace checklist items show 'Help me do this' AI guidance button", async ({ page }) => {
-  const orgId = await getAdminOrgId();
-  const adminUserId = await getAdminUserId();
-  await startAssessment(orgId, adminUserId);
+  const iso = await createIsolatedOrg("AI01 Org");
+  try {
+    await startAssessment(iso.orgId, iso.adminUser.id);
 
-  await loginAsRole(page, "org_admin");
-  await page.goto("/workspace/checklist");
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.goto("/workspace/checklist");
 
-  // Wait for items to load and expand the first one
-  const firstItem = page.locator("[id^='item-']").first();
-  await expect(firstItem).toBeVisible({ timeout: 10_000 });
-  await firstItem.locator("button").first().click();
+    // Wait for items to load and expand the first one
+    const firstItem = page.locator("[id^='item-']").first();
+    await expect(firstItem).toBeVisible({ timeout: 10_000 });
+    await firstItem.locator("button").first().click();
 
-  // "Help me do this" AI guidance button should appear in expanded item
-  await expect(page.getByText(/help me do this/i).first()).toBeVisible({ timeout: 5_000 });
+    // "Help me do this" AI guidance button should appear in expanded item
+    await expect(page.getByText(/help me do this/i).first()).toBeVisible({ timeout: 5_000 });
 
-  await completeAnyActiveAssessment(orgId);
+    await completeAnyActiveAssessment(iso.orgId);
+  } finally {
+    await iso.cleanup();
+  }
 });
 
 test("E2E-ITEM-05: completion banner appears when all items are answered", async ({ page }) => {

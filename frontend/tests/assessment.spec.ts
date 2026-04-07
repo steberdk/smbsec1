@@ -3,22 +3,20 @@
  * Covers: AC-ASMT-1 through AC-ASMT-5, AC-SCOPE-1, AC-SCOPE-2
  * E2E scenarios: E2E-ASMT-01 through E2E-ASMT-04, E2E-SCOPE-01
  *
- * The lifecycle tests (ASMT-01 through ASMT-03) run serially against the real
- * admin org and leave it in a clean state (no active assessment) on exit.
+ * The lifecycle tests (ASMT-01 through ASMT-03) run serially against an
+ * isolated org created for the test group, leaving no state behind.
  */
 
 import { test, expect } from "@playwright/test";
 import {
-  loginAsRole,
   loginWithEmail,
-  getAdminOrgId,
-  getAdminUserId,
   completeAnyActiveAssessment,
   createIsolatedOrg,
   addOrgMember,
   createTempUser,
   getServiceClient,
   baseUrl,
+  type IsolatedOrg,
 } from "./helpers/fixtures";
 
 // ---------------------------------------------------------------------------
@@ -26,14 +24,20 @@ import {
 // ---------------------------------------------------------------------------
 
 test.describe.serial("Assessment lifecycle", () => {
+  let iso: IsolatedOrg;
+
   test.beforeAll(async () => {
-    // Ensure a clean slate: no active assessment on the admin org
-    const orgId = await getAdminOrgId();
-    await completeAnyActiveAssessment(orgId);
+    iso = await createIsolatedOrg("ASMT Lifecycle Org");
+    // Ensure clean slate: no active assessment
+    await completeAnyActiveAssessment(iso.orgId);
+  });
+
+  test.afterAll(async () => {
+    await iso.cleanup();
   });
 
   test("E2E-ASMT-01: Org Admin starts an org-wide assessment", async ({ page }) => {
-    await loginAsRole(page, "org_admin");
+    await loginWithEmail(page, iso.adminUser.email);
     await page.goto("/workspace/assessments");
 
     await expect(
@@ -54,7 +58,7 @@ test.describe.serial("Assessment lifecycle", () => {
   test("E2E-ASMT-02: cannot start a second assessment while one is active", async ({
     page,
   }) => {
-    await loginAsRole(page, "org_admin");
+    await loginWithEmail(page, iso.adminUser.email);
     await page.goto("/workspace/assessments");
 
     // Start button must be disabled when there is already an active assessment
@@ -68,7 +72,7 @@ test.describe.serial("Assessment lifecycle", () => {
   });
 
   test("E2E-ASMT-03: Org Admin can complete an active assessment", async ({ page }) => {
-    await loginAsRole(page, "org_admin");
+    await loginWithEmail(page, iso.adminUser.email);
     await page.goto("/workspace/assessments");
 
     await page.getByRole("button", { name: /mark complete/i }).click();

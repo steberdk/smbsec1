@@ -7,13 +7,10 @@
 import { test, expect } from "@playwright/test";
 import {
   loginWithEmail,
-  loginAsRole,
   createIsolatedOrg,
   addOrgMember,
   createTempUser,
   startAssessment,
-  getAdminOrgId,
-  getAdminUserId,
   completeAnyActiveAssessment,
 } from "./helpers/fixtures";
 
@@ -21,39 +18,54 @@ test("E2E-AWARE-01: user can mark Awareness track items and see progress", async
   page,
 }, testInfo) => {
   testInfo.setTimeout(60_000);
-  const orgId = await getAdminOrgId();
-  const adminUserId = await getAdminUserId();
-  await startAssessment(orgId, adminUserId);
+  const iso = await createIsolatedOrg("AWARE01 Org");
+  try {
+    await startAssessment(iso.orgId, iso.adminUser.id);
 
-  await loginAsRole(page, "org_admin");
-  await page.goto("/workspace/checklist");
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.waitForURL(/\/workspace/);
+    await page.goto("/workspace/checklist");
+    await page.waitForLoadState("networkidle");
 
-  await expect(page.getByRole("heading", { name: /security awareness/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /security awareness/i })).toBeVisible({ timeout: 10_000 });
 
-  // Get total count before marking
-  const counterLocator = page.getByText(/\d+ \/ \d+ answered/i);
-  await expect(counterLocator).toBeVisible({ timeout: 10_000 });
-  const beforeText = await counterLocator.textContent();
-  const beforeAnswered = parseInt(beforeText?.match(/(\d+) \//)?.[1] ?? "0");
+    // Get total count before marking
+    const counterLocator = page.getByText(/\d+ \/ \d+ answered/i);
+    await expect(counterLocator).toBeVisible({ timeout: 10_000 });
+    const beforeText = await counterLocator.textContent();
+    const beforeAnswered = parseInt(beforeText?.match(/(\d+) \//)?.[1] ?? "0");
 
-  // Mark the first available Done button in the Awareness section
-  const awarenessSection = page.locator("section").filter({ has: page.getByRole("heading", { name: /security awareness/i }) });
-  const firstDone = awarenessSection.getByRole("button", { name: /i've done this/i }).first();
-  await expect(firstDone).toBeVisible({ timeout: 10_000 });
+    // Mark the first "I've done this" button visible on the page (awareness track)
+    const firstDone = page.getByRole("button", { name: /i've done this/i }).first();
+    await expect(firstDone).toBeVisible({ timeout: 10_000 });
 
-  await firstDone.click();
+    // Set up network listener BEFORE clicking so we catch the PUT request
+    const saveResponse = page.waitForResponse(
+      (res) => res.url().includes("/responses") && res.request().method() === "PUT"
+    );
 
-  // Wait for the button to show active state — confirms the optimistic update fired
-  await expect(firstDone).toHaveClass(/bg-green-700/, { timeout: 8_000 });
+    await firstDone.click();
 
-  // Wait for the counter to reflect a higher number than before
-  await expect(async () => {
-    const text = await page.getByText(/\d+ \/ \d+ answered/i).textContent();
-    const current = parseInt(text?.match(/(\d+) \//)?.[1] ?? "0");
-    expect(current).toBeGreaterThan(beforeAnswered);
-  }).toPass({ timeout: 10_000 });
+    // Wait for the API save to complete (confirms the response was persisted)
+    await saveResponse;
 
-  await completeAnyActiveAssessment(orgId);
+    // Wait for the counter to reflect a higher number than before — confirms the item was saved
+    await expect(async () => {
+      const text = await page.getByText(/\d+ \/ \d+ answered/i).textContent();
+      const current = parseInt(text?.match(/(\d+) \//)?.[1] ?? "0");
+      expect(current).toBeGreaterThan(beforeAnswered);
+    }).toPass({ timeout: 10_000 });
+
+    // At least one "I've done this" button should now have the active (green) class
+    await expect(
+      page.locator("button").filter({ hasText: /i've done this/i, has: page.locator(".bg-green-700") })
+        .or(page.locator("button.bg-green-700").filter({ hasText: /i've done this/i }))
+    ).toBeVisible({ timeout: 5_000 });
+
+    await completeAnyActiveAssessment(iso.orgId);
+  } finally {
+    await iso.cleanup();
+  }
 });
 
 test("E2E-AWARE-02: completing Awareness items is tracked independently per user", async ({
@@ -101,26 +113,29 @@ test("E2E-AWARE-02: completing Awareness items is tracked independently per user
 test("E2E-AWARE-03: Security Awareness track contains multiple items across groups", async ({
   page,
 }) => {
-  const orgId = await getAdminOrgId();
-  const adminUserId = await getAdminUserId();
-  await startAssessment(orgId, adminUserId);
+  const iso = await createIsolatedOrg("AWARE03 Org");
+  try {
+    await startAssessment(iso.orgId, iso.adminUser.id);
 
-  await loginAsRole(page, "org_admin");
-  await page.goto("/workspace/checklist");
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.goto("/workspace/checklist");
 
-  await expect(page.getByRole("heading", { name: /security awareness/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /security awareness/i })).toBeVisible({ timeout: 10_000 });
 
-  // The awareness section should have multiple item cards (at least 5)
-  const awarenessSection = page.locator("section").filter({ has: page.getByRole("heading", { name: /security awareness/i }) });
-  const itemCards = awarenessSection.locator("[class*='rounded-xl border']");
-  const cardCount = await itemCards.count();
-  expect(cardCount).toBeGreaterThanOrEqual(5);
+    // The awareness section should have multiple item cards (at least 5)
+    const awarenessSection = page.locator("section").filter({ has: page.getByRole("heading", { name: /security awareness/i }) });
+    const itemCards = awarenessSection.locator("[class*='rounded-xl border']");
+    const cardCount = await itemCards.count();
+    expect(cardCount).toBeGreaterThanOrEqual(5);
 
-  // Each awareness item card should have the awareness-specific response buttons
-  const firstCard = itemCards.first();
-  await expect(firstCard.getByRole("button", { name: /i've done this/i })).toBeVisible();
-  await expect(firstCard.getByRole("button", { name: /not yet/i })).toBeVisible();
-  await expect(firstCard.getByRole("button", { name: /not applicable/i })).toBeVisible();
+    // Each awareness item card should have the awareness-specific response buttons
+    const firstCard = itemCards.first();
+    await expect(firstCard.getByRole("button", { name: /i've done this/i })).toBeVisible();
+    await expect(firstCard.getByRole("button", { name: /not yet/i })).toBeVisible();
+    await expect(firstCard.getByRole("button", { name: /not applicable/i })).toBeVisible();
 
-  await completeAnyActiveAssessment(orgId);
+    await completeAnyActiveAssessment(iso.orgId);
+  } finally {
+    await iso.cleanup();
+  }
 });

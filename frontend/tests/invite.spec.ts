@@ -6,47 +6,54 @@
 
 import { test, expect } from "@playwright/test";
 import {
-  loginAsRole,
   loginWithEmail,
   createIsolatedOrg,
   addOrgMember,
   createTempUser,
   getServiceClient,
-  getAdminOrgId,
 } from "./helpers/fixtures";
 
 test("E2E-INV-01: Org Admin can invite an employee", async ({ page }) => {
   const inviteEmail = `inv-emp-${Date.now()}@example.com`;
   const supabase = getServiceClient();
-  const orgId = await getAdminOrgId();
+  const iso = await createIsolatedOrg("INV01 Org");
 
-  await loginAsRole(page, "org_admin");
-  await page.goto("/workspace/team");
+  try {
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.goto("/workspace/team");
 
-  await page.getByPlaceholder(/colleague@company\.com/i).fill(inviteEmail);
-  await page.getByRole("button", { name: /send invite/i }).click();
+    await page.getByPlaceholder(/colleague@company\.com/i).fill(inviteEmail);
+    await page.getByRole("button", { name: /send invite/i }).click();
 
-  // Success message and invite appears in pending list
-  await expect(page.getByText(/invite sent/i)).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText(inviteEmail, { exact: true }).first()).toBeVisible();
-  // Confirm the employee role badge appears in the invite list
-  await expect(page.locator("p, td, span").filter({ hasText: /employee/i }).first()).toBeVisible();
+    // Success message and invite appears in pending list
+    await expect(page.getByText(/invite sent/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(inviteEmail, { exact: true }).first()).toBeVisible();
+    // Confirm the employee role badge appears in the invite list
+    await expect(page.locator("p, td, span").filter({ hasText: /employee/i }).first()).toBeVisible();
 
-  // Cleanup
-  await supabase.from("invites").delete().eq("email", inviteEmail).eq("org_id", orgId);
+    // Cleanup invite before org cleanup
+    await supabase.from("invites").delete().eq("email", inviteEmail).eq("org_id", iso.orgId);
+  } finally {
+    await iso.cleanup();
+  }
 });
 
 test("E2E-INV-02: Invite form has no role dropdown — role is always employee", async ({
   page,
 }) => {
-  await loginAsRole(page, "org_admin");
-  await page.goto("/workspace/team");
+  const iso = await createIsolatedOrg("INV02 Org");
+  try {
+    await loginWithEmail(page, iso.adminUser.email);
+    await page.goto("/workspace/team");
 
-  // No role combobox should exist (role is hardcoded to employee)
-  await expect(page.getByRole("combobox")).toHaveCount(0);
+    // No role combobox should exist (role is hardcoded to employee)
+    await expect(page.getByRole("combobox")).toHaveCount(0);
 
-  // Invite form is still present
-  await expect(page.getByPlaceholder(/colleague@company\.com/i)).toBeVisible({ timeout: 10_000 });
+    // Invite form is still present
+    await expect(page.getByPlaceholder(/colleague@company\.com/i)).toBeVisible({ timeout: 10_000 });
+  } finally {
+    await iso.cleanup();
+  }
 });
 
 test("E2E-INV-03: Employee has no invite capability", async ({ page }) => {
