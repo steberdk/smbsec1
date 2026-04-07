@@ -8,7 +8,7 @@ type Invite = {
   id: string;
   token: string;
   email: string;
-  role: "manager" | "employee";
+  role: "employee";
   is_it_executor: boolean;
   created_at: string;
   expires_at: string;
@@ -25,17 +25,16 @@ type OrgMember = {
 
 type InviteForm = {
   email: string;
-  role: "manager" | "employee";
   is_it_executor: boolean;
 };
 
 export default function WorkspaceTeamPage() {
-  const { token, isManager } = useWorkspace();
+  const { token, isAdmin } = useWorkspace();
 
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [form, setForm] = useState<InviteForm>({ email: "", role: "employee", is_it_executor: false });
+  const [form, setForm] = useState<InviteForm>({ email: "", is_it_executor: false });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
@@ -72,10 +71,10 @@ export default function WorkspaceTeamPage() {
     try {
       await apiFetch("/api/invites", token, {
         method: "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, role: "employee" }),
       });
       setSubmitSuccess(`Invite sent to ${form.email}.`);
-      setForm({ email: "", role: "employee", is_it_executor: false });
+      setForm({ email: "", is_it_executor: false });
       loadData();
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Failed to send invite.");
@@ -104,11 +103,11 @@ export default function WorkspaceTeamPage() {
     }
   }
 
-  if (!isManager) {
+  if (!isAdmin) {
     return (
       <div className="text-center py-16 text-gray-500">
         <p className="text-lg font-medium">Access restricted</p>
-        <p className="text-sm mt-1">Only managers and admins can manage the team.</p>
+        <p className="text-sm mt-1">Only org admins can manage the team.</p>
       </div>
     );
   }
@@ -134,17 +133,7 @@ export default function WorkspaceTeamPage() {
           </div>
 
           <div className="flex flex-wrap gap-4 items-end">
-            <div className="space-y-1">
-              <label className="block text-xs text-gray-600">Role</label>
-              <select
-                className="border rounded-lg px-3 py-2 text-sm"
-                value={form.role}
-                onChange={(e) => setForm((p) => ({ ...p, role: e.target.value as "manager" | "employee" }))}
-              >
-                <option value="employee">Employee</option>
-                <option value="manager">Manager</option>
-              </select>
-            </div>
+            <input type="hidden" value="employee" />
 
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input

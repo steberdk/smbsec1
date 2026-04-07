@@ -43,22 +43,16 @@ test("E2E-DASH-01: Org Admin dashboard loads and shows team progress section", a
   await completeAnyActiveAssessment(orgId);
 });
 
-test("E2E-DASH-02: Manager dashboard shows only subtree data", async ({ page }) => {
+test("E2E-DASH-02: Employee dashboard shows only own data", async ({ page }) => {
   const iso = await createIsolatedOrg("DASH02 Org");
-  const manager = await createTempUser("e2e-mgr-dash");
   const employee = await createTempUser("e2e-emp-dash");
 
   try {
-    await addOrgMember(iso.orgId, manager, "manager", {
-      managerUserId: iso.adminUser.id,
-    });
-    await addOrgMember(iso.orgId, employee, "employee", {
-      managerUserId: manager.id,
-    });
+    await addOrgMember(iso.orgId, employee, "employee");
 
     await startAssessment(iso.orgId, iso.adminUser.id);
 
-    await loginWithEmail(page, manager.email);
+    await loginWithEmail(page, employee.email);
     await page.waitForURL(/\/workspace/);
     await page.goto("/workspace/dashboard");
 
@@ -70,7 +64,6 @@ test("E2E-DASH-02: Manager dashboard shows only subtree data", async ({ page }) 
     ).toBeVisible({ timeout: 10_000 });
   } finally {
     await employee.delete();
-    await manager.delete();
     await iso.cleanup();
   }
 });
@@ -133,7 +126,6 @@ test("E2E-TRACK-AGG-01: non-IT-executor shows 100% when all awareness items answ
   const employee = await createTempUser("e2e-emp-agg");
   try {
     await addOrgMember(iso.orgId, employee, "employee", {
-      managerUserId: iso.adminUser.id,
       isItExecutor: false,
     });
 
@@ -187,7 +179,6 @@ test("E2E-NAMES-01: dashboard shows member email instead of UUID", async ({ page
       org_id: iso.orgId,
       user_id: employee.id,
       role: "employee",
-      manager_user_id: iso.adminUser.id,
       is_it_executor: false,
       email: employee.email,
     });

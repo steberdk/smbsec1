@@ -19,10 +19,8 @@ import {
   apiError,
   getUser,
   getOrgMembership,
-  buildSubtree,
 } from "../../../lib/api/helpers";
 import { rateLimit, rateLimitKey } from "../../../lib/api/rateLimit";
-import { type OrgMemberRow } from "../../../lib/db/types";
 
 export const runtime = "nodejs";
 
@@ -52,10 +50,10 @@ export async function GET(req: Request): Promise<NextResponse> {
   const membership = await getOrgMembership(supabase, user.id);
   if (!membership) return apiError("Not a member of any organisation", 404);
 
-  // Load all org members (needed for subtree computation and member breakdown)
+  // Load all org members (needed for member breakdown)
   const { data: allMembers, error: membersErr } = await supabase
     .from("org_members")
-    .select("user_id, manager_user_id, role, is_it_executor, email, display_name")
+    .select("user_id, role, is_it_executor, email, display_name")
     .eq("org_id", membership.org_id);
 
   if (membersErr || !allMembers) return apiError("Failed to load org members", 500);
@@ -64,11 +62,6 @@ export async function GET(req: Request): Promise<NextResponse> {
   let scopedUserIds: string[];
   if (membership.role === "org_admin") {
     scopedUserIds = allMembers.map((m) => m.user_id);
-  } else if (membership.role === "manager") {
-    scopedUserIds = buildSubtree(
-      allMembers as Pick<OrgMemberRow, "user_id" | "manager_user_id">[],
-      user.id
-    );
   } else {
     // employee: own responses only
     scopedUserIds = [user.id];

@@ -84,35 +84,28 @@ test.describe.serial("Assessment lifecycle", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Manager subtree assessment
+// Employee cannot start assessments
 // ---------------------------------------------------------------------------
 
-test("E2E-ASMT-04: Manager starts a subtree assessment", async ({ page }) => {
+test("E2E-ASMT-04: Employee cannot start an assessment", async ({ page }) => {
   const iso = await createIsolatedOrg("ASMT04 Org");
-  const manager = await createTempUser("e2e-mgr");
+  const employee = await createTempUser("e2e-emp-asmt");
   try {
-    await addOrgMember(iso.orgId, manager, "manager", {
-      managerUserId: iso.adminUser.id,
-    });
+    await addOrgMember(iso.orgId, employee, "employee");
 
-    await loginWithEmail(page, manager.email);
+    await loginWithEmail(page, employee.email);
     await page.waitForURL(/\/workspace/);
     await page.goto("/workspace/assessments");
 
+    // Employee should see the access restricted message, not the start button
+    await expect(
+      page.getByText(/access restricted/i)
+    ).toBeVisible({ timeout: 10_000 });
     await expect(
       page.getByRole("button", { name: /start new assessment/i })
-    ).toBeVisible({ timeout: 10_000 });
-
-    await page.getByRole("button", { name: /start new assessment/i }).click();
-
-    await expect(
-      page.getByRole("button", { name: /assessment already in progress/i })
-    ).toBeVisible({ timeout: 10_000 });
-
-    // The created assessment should list as a subtree assessment
-    await expect(page.getByText(/subtree/i).first()).toBeVisible();
+    ).toHaveCount(0);
   } finally {
-    await manager.delete();
+    await employee.delete();
     await iso.cleanup();
   }
 });

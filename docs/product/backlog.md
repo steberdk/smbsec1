@@ -254,6 +254,23 @@
 
 ---
 
+## PI 12 (2026-04-07 — planned)
+
+**Theme:** Fix broken invite/onboarding flow, simplify roles, stabilise CI
+
+**Product Team consensus:** `docs/product/pi12/product_team_consensus.md`
+
+| Priority | Feature | Status |
+|---|---|---|
+| P0 | F-021: Funnel — Fix broken invite/onboarding flow (invited employees must join existing org) | Funnel |
+| P0 | F-020: Funnel — Reduce invite friction + simplified onboarding (3 fields) | Funnel |
+| P1 | F-022: Funnel — Remove Manager role (full: UI + server guard + DB migration) | Funnel |
+| P2 | F-014: Funnel — Fix inconsistencies from PI 11 BA review | Funnel |
+| P2 | F-019: Funnel — Fix privacy title + login form email retention | Funnel |
+| P2 | F-015: Funnel — Fix flaky E2E tests (race conditions) | Funnel |
+
+---
+
 ## Not yet prioritized
 
 Features below are defined in `features.md` with full detail. Listed here by feature number for roadmap visibility.
@@ -268,10 +285,7 @@ Features below are defined in `features.md` with full detail. Listed here by fea
 - F-007: Campaign template marketplace
 
 ### Product Polish
-- F-018: Enforce role-based page access for employees (team, campaigns, assessments pages) — **Medium** from Business Test
-- F-015: Fix flaky E2E tests — race conditions in response waits (caused 2 CI failures in PI 11)
-- F-019: Fix privacy page title duplication + login form email retention — **Low** from Business Test
-- F-014: Fix inconsistencies from PI 11 BA review (summary page, campaign access, billing waitlist, settings naming)
+- F-018: Done — Enforce role-based page access for employees
 - F-008: Evidence uploads for checklist items
 - F-009: Mobile responsiveness audit
 - F-010: Account recovery UX

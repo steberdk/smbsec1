@@ -41,9 +41,7 @@ test("E2E-CAMP-02: employee cannot access campaigns create button", async ({
   const iso = await createIsolatedOrg("CAMP02 Org");
   const employee = await createTempUser("e2e-emp-camp");
   try {
-    await addOrgMember(iso.orgId, employee, "employee", {
-      managerUserId: iso.adminUser.id,
-    });
+    await addOrgMember(iso.orgId, employee, "employee");
 
     await loginWithEmail(page, employee.email);
     await page.waitForURL(/\/workspace/);

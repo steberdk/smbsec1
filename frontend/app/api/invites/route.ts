@@ -24,24 +24,17 @@ export async function GET(req: Request): Promise<NextResponse> {
   const membership = await getOrgMembership(supabase, user.id);
   if (!membership) return apiError("Not a member of any organisation", 404);
 
-  // Employees cannot view invites
-  if (!hasRole(membership, "manager")) return apiError("Forbidden", 403);
+  // Only org_admin can view invites
+  if (!hasRole(membership, "org_admin")) return apiError("Forbidden", 403);
 
-  let query = supabase
+  const { data, error } = await supabase
     .from("invites")
     .select(
-      "id, token, org_id, invited_by, email, role, manager_user_id, is_it_executor, created_at, expires_at, accepted_at"
+      "id, token, org_id, invited_by, email, role, is_it_executor, created_at, expires_at, accepted_at"
     )
     .eq("org_id", membership.org_id)
     .is("accepted_at", null) // pending only
     .order("created_at", { ascending: false });
-
-  // Managers only see their own invites; org_admin sees all
-  if (membership.role === "manager") {
-    query = query.eq("invited_by", user.id);
-  }
-
-  const { data, error } = await query;
   if (error) return apiError(error.message, 500);
 
   return NextResponse.json({ invites: data ?? [] });
@@ -55,11 +48,10 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const membership = await getOrgMembership(supabase, user.id);
   if (!membership) return apiError("Not a member of any organisation", 404);
-  if (!hasRole(membership, "manager")) return apiError("Forbidden", 403);
+  if (!hasRole(membership, "org_admin")) return apiError("Forbidden", 403);
 
   type InviteBody = {
     email: string;
-    role: "manager" | "employee";
     is_it_executor?: boolean;
   };
 
@@ -68,9 +60,6 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   if (!body.email || typeof body.email !== "string") {
     return apiError("email is required", 400);
-  }
-  if (!body.role || !["manager", "employee"].includes(body.role)) {
-    return apiError("role must be manager or employee", 400);
   }
 
   const email = body.email.trim().toLowerCase();
@@ -102,12 +91,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       org_id: membership.org_id,
       invited_by: user.id,
       email,
-      role: body.role,
-      manager_user_id: user.id, // invitee reports to inviter
+      role: "employee",
       is_it_executor: body.is_it_executor ?? false,
     })
     .select(
-      "id, token, org_id, invited_by, email, role, manager_user_id, is_it_executor, created_at, expires_at"
+      "id, token, org_id, invited_by, email, role, is_it_executor, created_at, expires_at"
     )
     .single();
 

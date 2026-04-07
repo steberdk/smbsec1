@@ -148,11 +148,10 @@ export async function loginWithEmail(page: Page, email: string): Promise<void> {
 /** Log in as a pre-configured role (email from env vars). */
 export async function loginAsRole(
   page: Page,
-  role: "org_admin" | "manager" | "employee" | "it_executor"
+  role: "org_admin" | "employee" | "it_executor"
 ): Promise<void> {
   const emails: Record<string, string | undefined> = {
     org_admin: process.env.PLAYWRIGHT_ADMIN_EMAIL,
-    manager: process.env.PLAYWRIGHT_MANAGER_EMAIL,
     employee: process.env.PLAYWRIGHT_EMPLOYEE_EMAIL,
     it_executor: process.env.PLAYWRIGHT_IT_EMAIL,
   };
@@ -222,7 +221,6 @@ export async function createIsolatedOrg(name?: string): Promise<IsolatedOrg> {
     user_id: admin.id,
     role: "org_admin",
     is_it_executor: true,
-    manager_user_id: null,
   });
 
   return {
@@ -240,8 +238,8 @@ export async function createIsolatedOrg(name?: string): Promise<IsolatedOrg> {
 export async function addOrgMember(
   orgId: string,
   user: TempUser,
-  role: "org_admin" | "manager" | "employee",
-  opts: { isItExecutor?: boolean; managerUserId?: string | null } = {}
+  role: "org_admin" | "employee",
+  opts: { isItExecutor?: boolean } = {}
 ): Promise<void> {
   const supabase = getServiceClient();
   await supabase.from("org_members").insert({
@@ -249,7 +247,6 @@ export async function addOrgMember(
     user_id: user.id,
     role,
     is_it_executor: opts.isItExecutor ?? false,
-    manager_user_id: opts.managerUserId ?? null,
   });
 }
 

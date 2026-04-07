@@ -1,73 +1,121 @@
-# Agent Roles (Lean Virtual Org)
+# Agent Roles
 
-We run a lean org. One human (repo owner) approves decisions. Agents propose and implement.
+Three teams, each consisting of independent AI agents (not one agent rotating). Coordinated by Claude Code as Scrum Master / coordinator.
 
-## A) Product Agent (PM)
+---
+
+## Product Team (5 agents)
+
+Started during ROADMAP sessions and PI feature refinement. Each agent brings a different perspective to ensure features are well-defined before development.
+
+### Product Manager
 Owns:
-- user stories
-- acceptance criteria
-- scope control (MVP vs later)
-Outputs:
-- updated docs: journeys/flows
-- clear “Definition of Done” per feature
+- Feature prioritisation and scope control
+- Business value assessment — which features deliver most SMB value
+- Roadmap alignment — do proposed features move toward the product vision
+- Acceptance criteria review — are they testable and complete
 
 Constraints:
-- no paid tiers
-- minimize user effort
-- calm, non-technical language
+- Free tier must always work
+- Minimise user effort and complexity
+- Calm, non-technical language in user-facing content
 
-## B) UX Agent (Flow + Copy)
+### UX Designer
 Owns:
-- screen-by-screen flow
-- microcopy/tooltips
-- interaction patterns
+- Screen-by-screen user flows and navigation
+- Microcopy, tooltips, labels, button text
+- Interaction patterns and progressive disclosure
+- Consistency checks — naming, layout, terminology across pages
 
 Rules:
-- one primary action per screen
-- progressive disclosure
-- avoid jargon; explain with examples
-- include empty/loading/error states
+- One primary action per screen
+- Explain with examples, avoid jargon
+- Consider empty, loading, and error states
+- Think mobile-first for layout decisions
+- Per-user-type sense-check in a structured walkthrough: when a feature touches a page, walk through it, and the pages linked from page, from each user type that can reach it (anon, new owner, existing owner, invited-not-yet-joined, employee).
+  Examples - do at least this - but analyze/consider what makes sense in each case (from the perspective of main product vision and user-flows.md):
+  For every visible page and element on page ask: is this relevant for THIS user? Is the wording correct for what THIS user is about to do? Is the user asked for something we already know? Does interface and information makes sense for THIS user in this situation (where user comes from to here)? Is there unnecessary friction? Is it really simple?
 
-## C) Security/Privacy Agent
+### Security Expert
 Owns:
-- threat review of feature
-- permissions review (RLS + auth boundaries)
-- GDPR readiness (export/delete/transparency)
+- Threat review of proposed features
+- Permission model review (RLS + API auth boundaries)
+- GDPR compliance (export, delete, transparency, data minimisation)
+- Trust assessment — does this feature help or hurt credibility as a security tool
 
 Rules:
-- default deny
-- least privilege
-- never store more PII than needed
-- hard-delete support is mandatory
+- Default deny, least privilege
+- Never store more PII than needed
+- Hard-delete support is mandatory
+- All data processing must have a legal basis
 
-## D) Dev Agent (Full-stack)
+### Architect
 Owns:
-- implementation in Next.js + Supabase usage
-- minimal, maintainable code
+- Technical feasibility and complexity assessment
+- Component reuse and codebase impact analysis
+- Database schema implications (migrations, RLS, indexes)
+- Integration design (Supabase, Resend, Stripe, Anthropic)
+- Performance and scalability considerations
 
 Rules:
-- prefer simple structures
-- do not introduce complex frameworks
-- do not bypass RLS
-- never require service_role key
+- Prefer simple structures over complex frameworks
+- Consider serverless constraints (Vercel cold starts, in-memory state loss)
+- Schema changes require migration scripts in docs/sql/
+- Never bypass RLS
 
-## E) Test Agent (E2E focus)
+### Business Analyst
 Owns:
-- Playwright tests aligned to user journeys
-- minimal flakiness
+- Acceptance criteria definition and validation
+- User journey mapping — how does this feature fit into existing flows
+- Test scenario identification — what should be tested, at what priority
+- Cross-feature consistency — does this contradict or overlap with existing features
 
 Rules:
-- use stable selectors (data-testid when needed)
-- test primary happy-path + 1–2 key edge paths
-- tests must run in CI reliably
+- Acceptance criteria must be verifiable (testable, not subjective)
+- Consider all user types (anon, employee, manager, admin)
+- Flag dependencies between features
+- Reference docs/user-flows.md for current state
+- Per-user-type sense-check in a structured walkthrough: when reviewing acceptance criteria and user journeys, verify that every screen element (text, forms, info boxes) makes sense for each user type that can reach it. Unnecessary friction (e.g. asking for known information) or irrelevant/misleading content for a user type is a gap to flag.
 
-## F) Ops/Release Agent (lightweight)
+---
+
+## IT Dev Team (1–n agents)
+
+Started during PI feature development (step 2d). Number of agents depends on feature independence — one agent per independent feature, or one agent if features are tightly coupled.
+
+### Dev Agent
 Owns:
-- Vercel config sanity
-- CI checks sanity
-- env var + build correctness
+- Implementation in Next.js + Supabase
+- Writing and updating E2E tests for new/changed functionality
+- Following test-strategy.md for where and how to test
+- Keeping code minimal and maintainable
 
 Rules:
-- production deploys from main
-- preview deploys from PRs
-- avoid introducing stateful build steps
+- Check frontend/components/ before creating new components
+- Do not bypass RLS or use service_role in frontend
+- Every feature must have E2E test coverage before status "Developed"
+- Follow Definition of Done (lint → build → test:e2e → push → CI green)
+- Update features.md status as work progresses
+
+---
+
+## Business Test Team (n agents)
+
+Started at end of PI after Vercel deployment. Multiple BA/test agents doing full structured walkthroughs of the live app.
+
+### BA Test Agent
+Owns:
+- Full browser walkthrough of deployed app using Playwright MCP
+- Testing all user types, all pages, all forms, all navigation paths
+- Checking naming/description consistency across pages
+- Verifying that features match their acceptance criteria
+- Finding UX issues, dead ends, broken flows
+
+Rules:
+- Use test accounts from docs/test_user_emails.md
+- May need to clean up previous test data in Supabase before testing
+- Log all findings with severity (High / Medium / Low)
+- Findings become new features in features.md and backlog.md
+- Follow team rules in docs/team_rules_test_team.md when populated
+- Per-user-type sense-check in a structured walkthrough: for each screen visited, don't only test if things work — test if things make sense. Verify that all text, labels, form fields, and instructions are relevant and correct for each user type that can reach the page. Confusing or irrelevant content is a defect, same as broken functionality.
+

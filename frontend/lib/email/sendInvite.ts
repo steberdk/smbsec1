@@ -44,7 +44,7 @@ export async function sendInviteEmail(opts: {
     day: "numeric", month: "long", year: "numeric",
   });
 
-  const roleLabel = opts.role === "manager" ? "Manager" : "Employee";
+  const roleLabel = "Employee";
   const itNote = opts.isItExecutor ? " (IT Executor)" : "";
 
   const html = `

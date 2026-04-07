@@ -45,7 +45,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 
       supabase
         .from("org_members")
-        .select("user_id, role, manager_user_id, is_it_executor, created_at")
+        .select("user_id, role, is_it_executor, created_at")
         .eq("org_id", orgId),
 
       supabase

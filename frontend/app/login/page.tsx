@@ -3,13 +3,28 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 function sanitizeNext(raw: string | null): string {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/workspace";
   return raw;
+}
+
+/** Extract invite token from a next= param that points to /accept-invite */
+function extractInviteToken(next: string): string | null {
+  try {
+    const url = new URL(next, "http://localhost");
+    if (url.pathname === "/accept-invite") {
+      return url.searchParams.get("token");
+    }
+  } catch {
+    // not a URL — try simple string check
+    const match = next.match(/\/accept-invite\?.*token=([^&]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+  return null;
 }
 
 export default function LoginPage() {
@@ -25,10 +40,29 @@ function LoginInner() {
   const router = useRouter();
   const next = sanitizeNext(searchParams.get("next"));
 
-  const [email, setEmail] = useState("");
+  // Detect invite context
+  const inviteToken = extractInviteToken(next);
+  const isInviteContext = Boolean(inviteToken);
+
+  // Email pre-fill from ?email= param
+  const emailParam = searchParams.get("email") ?? "";
+
+  const [email, setEmail] = useState(emailParam);
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error" | "verifying">("idle");
   const [error, setError] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState("");
+
+  // If we have an invite token, persist it to sessionStorage so it survives
+  // any auth redirect that might hit WorkspaceProvider or onboarding first.
+  useEffect(() => {
+    if (inviteToken) {
+      try {
+        sessionStorage.setItem("smbsec_pending_invite_token", inviteToken);
+      } catch {
+        // sessionStorage unavailable — ignore
+      }
+    }
+  }, [inviteToken]);
 
   async function handleSendLink(e: React.FormEvent) {
     e.preventDefault();
@@ -56,8 +90,9 @@ function LoginInner() {
     setStatus("sent");
   }
 
-  async function handleVerifyOtp() {
-    if (otpCode.length < 6) return;
+  async function handleVerifyOtp(codeOverride?: string) {
+    const code = codeOverride ?? otpCode;
+    if (code.length < 6) return;
     setStatus("verifying");
     setError(null);
 
@@ -67,7 +102,7 @@ function LoginInner() {
     // Supabase uses different token types depending on whether the email is new.
     const { error: mlError } = await supabase.auth.verifyOtp({
       email,
-      token: otpCode,
+      token: code,
       type: "magiclink",
     });
 
@@ -78,7 +113,7 @@ function LoginInner() {
 
     const { error: signupError } = await supabase.auth.verifyOtp({
       email,
-      token: otpCode,
+      token: code,
       type: "signup",
     });
 
@@ -89,6 +124,15 @@ function LoginInner() {
     }
 
     router.replace(next);
+  }
+
+  function handleOtpChange(value: string) {
+    const cleaned = value.replace(/\D/g, "").slice(0, 8);
+    setOtpCode(cleaned);
+    // Auto-submit when 6+ digits entered
+    if (cleaned.length >= 6 && status !== "verifying") {
+      handleVerifyOtp(cleaned);
+    }
   }
 
   return (
@@ -172,7 +216,7 @@ function LoginInner() {
                       pattern="[0-9]{6,8}"
                       maxLength={8}
                       value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                      onChange={(e) => handleOtpChange(e.target.value)}
                       placeholder="00000000"
                       autoComplete="one-time-code"
                       disabled={status === "verifying"}
@@ -180,7 +224,7 @@ function LoginInner() {
                     />
                     <button
                       type="button"
-                      onClick={handleVerifyOtp}
+                      onClick={() => handleVerifyOtp()}
                       disabled={otpCode.length < 6 || status === "verifying"}
                       className="rounded-lg bg-teal-700 text-white px-4 py-2.5 text-sm font-medium shadow-sm hover:bg-teal-800 transition-all disabled:opacity-60"
                     >
@@ -193,7 +237,7 @@ function LoginInner() {
                   <p>Or click the link in the email to sign in directly.</p>
                   <button
                     type="button"
-                    onClick={() => { setStatus("idle"); setError(null); setOtpCode(""); }}
+                    onClick={() => { setStatus("idle"); setError(null); setOtpCode(""); setEmail(""); }}
                     className="text-teal-700 underline hover:text-teal-800"
                   >
                     Use a different email
@@ -207,14 +251,24 @@ function LoginInner() {
             )}
           </div>
 
-          <div className="mt-5 rounded-xl border border-gray-200 bg-white shadow-sm px-5 py-4">
-            <p className="text-xs font-medium text-gray-700 mb-2">New here? Here&apos;s how it works:</p>
-            <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
-              <li>Enter your email above — we&apos;ll send a secure link and code</li>
-              <li>Set up your organisation (name, who handles IT)</li>
-              <li>Invite your team and start your security review</li>
-            </ol>
-          </div>
+          {/* Context-aware info box */}
+          {isInviteContext ? (
+            <div className="mt-5 rounded-xl border border-teal-200 bg-teal-50 shadow-sm px-5 py-4">
+              <p className="text-xs font-medium text-teal-800 mb-1">Joining an existing team?</p>
+              <p className="text-xs text-teal-700">
+                Log in with the email address your invitation was sent to — then you can accept in one click.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-5 rounded-xl border border-gray-200 bg-white shadow-sm px-5 py-4">
+              <p className="text-xs font-medium text-gray-700 mb-2">New here? Here&apos;s how it works:</p>
+              <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
+                <li>Enter your email — we&apos;ll send a secure link and code</li>
+                <li>Name your organisation (takes 2 minutes)</li>
+                <li>Invite your team and start your security review</li>
+              </ol>
+            </div>
+          )}
 
           <div className="mt-4 text-sm">
             <Link className="text-gray-500 hover:text-gray-700 underline" href="/">

@@ -41,7 +41,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const { data: invite, error: inviteErr } = await service
     .from("invites")
-    .select("id, org_id, email, role, manager_user_id, is_it_executor, accepted_at, expires_at")
+    .select("id, org_id, email, role, is_it_executor, accepted_at, expires_at")
     .eq("token", body.token)
     .maybeSingle();
 
@@ -63,12 +63,16 @@ export async function POST(req: Request): Promise<NextResponse> {
   // 5. Check not already a member of this org
   const { data: existingMember } = await service
     .from("org_members")
-    .select("user_id")
+    .select("user_id, role")
     .eq("org_id", invite.org_id)
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (existingMember) {
+    // Prevent org admin from accepting an invite to their own org
+    if ((existingMember as { role?: string }).role === "org_admin") {
+      return apiError("You are already the administrator of this organisation", 409);
+    }
     return apiError("Already a member of this organisation", 409);
   }
 
@@ -89,7 +93,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     org_id: invite.org_id,
     user_id: user.id,
     role: invite.role,
-    manager_user_id: invite.manager_user_id,
     is_it_executor: invite.is_it_executor,
     email: invite.email,
   };

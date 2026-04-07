@@ -9,11 +9,11 @@ Read this file before maintaining features.
 - To be able to easily prioritize because features are described in same standard.
 
 ## Feature Definition
-Each feature is defined in feature.md (not historical/previous features, but existing not yet developed and new feature ideas)
+Each feature is defined in features.md (not historical/previous features, but existing not yet developed and new feature ideas)
 Features are added to features.md at the end of file with next available Feature Number.
 
 Each feature has these sections - create/maintain list of sections, see their description and examples below:
-(sections might be very short if feasible, even N/A if a section never or not yet applies to a feature)
+(sections might be very short if feasible, even N/A if a section never or not yet applies to a feature, or there is no reasonable information. Examples are unrelated to this project)
 Feature Number
 - Unique feature number.
 Feature Status
@@ -33,6 +33,13 @@ Feature/Use case name
 Business Value Hypothesis
 - Full hypothesis sentence(s) that fully explains high level what is being done to implement something to achieve a goal.
 - Example: As Corporate Finance user I want to be able to define cost details, and it executed during DW-flow execution, and in Oracle Discoverer have 2 new subject areas for matrix/visualization creation and drill down to cost per product budgeted and actually sold, so it can be compared to sales turnover, so full organization from top mgt. to individual sales mgr., can see cost of sales – i.e. be able to assess what products to sell more of and not sell product with too high discount at a loss. Estimated between …-… DKK.
+Importance
+- This is how important feature is, and why. Can be deducted from Business Value Hypothesis.
+- This is a new section, so section can be N/A if not yet decided.
+Urgency
+- Is this feature urgent, and why? Can be deducted from Business Value Hypothesis
+- Note: importance & Urgency come in pair. Importance can be high due to .. bla bla .., while urgency can be low because we don't need it yet. 
+- This is a new section, so section can be N/A if not yet decided.
 Acceptance Criteria
 Scope
 - Example: Design, Code, Test, Implement Gross Profit (budget) simulation and Gross Profit (actuals) calculation. In backend DW jobs based on sales budget and actuals, and based on master data owned/maintained Corporate Finance, according to data & calculation description attacted.

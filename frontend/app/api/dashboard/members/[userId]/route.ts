@@ -22,10 +22,9 @@ import {
   apiError,
   getUser,
   getOrgMembership,
-  buildSubtree,
+  hasRole,
 } from "../../../../../lib/api/helpers";
 import { rateLimit, rateLimitKey } from "../../../../../lib/api/rateLimit";
-import { type OrgMemberRow } from "../../../../../lib/db/types";
 
 export const runtime = "nodejs";
 
@@ -47,15 +46,15 @@ export async function GET(
   const membership = await getOrgMembership(supabase, user.id);
   if (!membership) return apiError("Not a member of any organisation", 404);
 
-  // Employees cannot access member drill-down
-  if (membership.role === "employee") {
+  // Only org_admin can access member drill-down
+  if (!hasRole(membership, "org_admin")) {
     return apiError("Forbidden", 403);
   }
 
-  // Load all org members for subtree check
+  // Load all org members
   const { data: allMembers, error: membersErr } = await supabase
     .from("org_members")
-    .select("user_id, manager_user_id, role, is_it_executor, email, display_name")
+    .select("user_id, role, is_it_executor, email, display_name")
     .eq("org_id", membership.org_id);
 
   if (membersErr || !allMembers) return apiError("Failed to load org members", 500);
@@ -63,17 +62,6 @@ export async function GET(
   // Find the target member
   const targetMember = allMembers.find((m) => m.user_id === targetUserId);
   if (!targetMember) return apiError("Member not found", 404);
-
-  // Permission check: org_admin can see anyone, manager must have target in subtree
-  if (membership.role === "manager") {
-    const subtreeIds = buildSubtree(
-      allMembers as Pick<OrgMemberRow, "user_id" | "manager_user_id">[],
-      user.id
-    );
-    if (!subtreeIds.includes(targetUserId)) {
-      return apiError("Forbidden", 403);
-    }
-  }
 
   // Load active assessment (or most recent)
   const { data: assessments } = await supabase

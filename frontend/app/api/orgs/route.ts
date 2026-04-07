@@ -87,7 +87,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     org_id: org.id,
     user_id: user.id,
     role: "org_admin",
-    manager_user_id: null,
     is_it_executor: ownerIsItExecutor,
     display_name: body.display_name?.trim() || null,
   });
@@ -111,7 +110,6 @@ export async function POST(req: Request): Promise<NextResponse> {
       invited_by: user.id,
       email: itEmail,
       role: "employee",
-      manager_user_id: user.id,
       is_it_executor: true,
     });
 

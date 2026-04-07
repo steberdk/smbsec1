@@ -18,7 +18,6 @@ type OrgData = {
     user_id: string;
     role: string;
     is_it_executor: boolean;
-    has_direct_reports: boolean;
   };
 };
 
@@ -26,7 +25,6 @@ type WorkspaceCtx = {
   token: string;
   userId: string;
   orgData: OrgData;
-  isManager: boolean;
   isAdmin: boolean;
   logout: () => Promise<void>;
   /** Re-fetch org data (e.g. after settings change) */
@@ -63,6 +61,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       .catch((e: unknown) => {
         const status = (e as { status?: number }).status;
         if (status === 404) {
+          // Check if there is a pending invite token — if so, go accept it instead
+          // of creating a new org. The onboarding page also has this safety net.
+          try {
+            const pendingToken = sessionStorage.getItem("smbsec_pending_invite_token");
+            if (pendingToken) {
+              router.replace(`/accept-invite?token=${encodeURIComponent(pendingToken)}`);
+              return;
+            }
+          } catch {
+            // sessionStorage unavailable — fall through to onboarding
+          }
           router.replace("/onboarding");
         } else {
           setLoadError(e instanceof Error ? e.message : "Failed to load organisation.");
@@ -98,7 +107,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  const isManager = orgData.membership.role === "manager" || orgData.membership.role === "org_admin";
   const isAdmin = orgData.membership.role === "org_admin";
 
   return (
@@ -107,7 +115,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         token,
         userId,
         orgData,
-        isManager,
         isAdmin,
         logout,
         refresh: () => setRefreshKey((k) => k + 1),

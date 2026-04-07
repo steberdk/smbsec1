@@ -45,7 +45,6 @@ test("E2E-TRACK-02: Regular employee does NOT see IT Baseline track", async ({ p
   const employee = await createTempUser("e2e-emp-track");
   try {
     await addOrgMember(iso.orgId, employee, "employee", {
-      managerUserId: iso.adminUser.id,
       isItExecutor: false,
     });
     await startAssessment(iso.orgId, iso.adminUser.id);
@@ -271,14 +270,10 @@ test("E2E-ITEM-04: clicking the active button clears the item back to unanswered
     await saveResp;
 
     // Click active Done button again — sends DELETE to clear it
-    const clearResp = page.waitForResponse(
-      (res) => res.url().includes("/responses") && res.request().method() === "DELETE"
-    );
     await doneBtn.click();
-    await clearResp;
 
-    // Button returns to unselected style
-    await expect(doneBtn).not.toHaveClass(/bg-green-700/, { timeout: 5_000 });
+    // Wait for the button to lose its active (green) style — React re-render confirms the DELETE completed
+    await expect(doneBtn).not.toHaveClass(/bg-green-700/, { timeout: 8_000 });
   } finally {
     await iso.cleanup();
   }

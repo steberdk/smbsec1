@@ -10,8 +10,6 @@ type ItHandling = "self" | "staff_member" | "external_it" | "not_sure";
 type FormState = {
   name: string;
   display_name: string;
-  email_platform: string;
-  primary_os: string;
   company_size: string;
   it_handling: ItHandling | "";
   it_person_email: string;
@@ -25,8 +23,6 @@ export default function OnboardingPage() {
   const [form, setForm] = useState<FormState>({
     name: "",
     display_name: "",
-    email_platform: "",
-    primary_os: "",
     company_size: "",
     it_handling: "",
     it_person_email: "",
@@ -41,6 +37,19 @@ export default function OnboardingPage() {
       router.replace("/login");
     }
   }, [sessionLoading, token, router]);
+
+  // Safety net: if there is a pending invite token, redirect to accept it
+  // instead of letting the employee create a new org.
+  useEffect(() => {
+    try {
+      const pendingToken = sessionStorage.getItem("smbsec_pending_invite_token");
+      if (pendingToken) {
+        router.replace(`/accept-invite?token=${encodeURIComponent(pendingToken)}`);
+      }
+    } catch {
+      // sessionStorage unavailable — ignore
+    }
+  }, [router]);
 
   // If user already has an org, skip onboarding
   useEffect(() => {
@@ -76,8 +85,6 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           name: form.name.trim(),
           display_name: form.display_name.trim() || undefined,
-          email_platform: form.email_platform || undefined,
-          primary_os: form.primary_os || undefined,
           company_size: form.company_size || undefined,
           it_handling: form.it_handling,
           it_person_email: form.it_person_email.trim() || undefined,
@@ -140,55 +147,20 @@ export default function OnboardingPage() {
           />
         </div>
 
-        {/* Optional settings */}
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-gray-700">Optional — helps us show you the right instructions</p>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="space-y-1">
-              <label className="block text-xs text-gray-600">Email system</label>
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                value={form.email_platform}
-                onChange={(e) => set("email_platform", e.target.value)}
-              >
-                <option value="">Not sure</option>
-                <option value="google_workspace">Google Workspace</option>
-                <option value="microsoft_365">Microsoft 365</option>
-                <option value="gmail_personal">Personal Gmail</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-xs text-gray-600">Computers</label>
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                value={form.primary_os}
-                onChange={(e) => set("primary_os", e.target.value)}
-              >
-                <option value="">Not sure</option>
-                <option value="windows">Windows</option>
-                <option value="mac">Mac</option>
-                <option value="mixed">Mixed</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-xs text-gray-600">Company size</label>
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                value={form.company_size}
-                onChange={(e) => set("company_size", e.target.value)}
-              >
-                <option value="">Not sure</option>
-                <option value="1-5">1–5 people</option>
-                <option value="6-20">6–20 people</option>
-                <option value="21-50">21–50 people</option>
-                <option value="50+">50+ people</option>
-              </select>
-            </div>
-          </div>
+        {/* Company size */}
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">Company size</label>
+          <select
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow"
+            value={form.company_size}
+            onChange={(e) => set("company_size", e.target.value)}
+          >
+            <option value="">Not sure</option>
+            <option value="1-5">1–5 people</option>
+            <option value="6-20">6–20 people</option>
+            <option value="21-50">21–50 people</option>
+            <option value="50+">50+ people</option>
+          </select>
         </div>
 
         {/* IT handling */}

@@ -17,7 +17,7 @@ test("E2E-GDPR-01: Org Admin exports all org data as a JSON download", async ({ 
   await loginAsRole(page, "org_admin");
   await page.goto("/workspace/settings/gdpr");
 
-  await expect(page.getByRole("heading", { name: /settings & data/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /data & privacy/i })).toBeVisible();
 
   // Set up download listener before clicking
   const [download] = await Promise.all([
@@ -46,9 +46,7 @@ test("E2E-GDPR-02: Settings & data page shows EU data residency notice to all us
   const iso = await createIsolatedOrg("GDPR02 Org");
   const employee = await createTempUser("e2e-gdpr-emp");
   try {
-    await addOrgMember(iso.orgId, employee, "employee", {
-      managerUserId: iso.adminUser.id,
-    });
+    await addOrgMember(iso.orgId, employee, "employee");
     await loginWithEmail(page, employee.email);
     await page.waitForURL(/\/workspace/);
     await page.goto("/workspace/settings/gdpr");
@@ -61,32 +59,30 @@ test("E2E-GDPR-02: Settings & data page shows EU data residency notice to all us
   }
 });
 
-test("E2E-GDPR-03: user with direct reports cannot self-delete", async ({ page }) => {
+test("E2E-GDPR-03: employee can self-delete (no direct reports blocker)", async ({ page }) => {
   const iso = await createIsolatedOrg("GDPR03 Org");
-  const manager = await createTempUser("e2e-gdpr-mgr");
-  const report = await createTempUser("e2e-gdpr-rpt");
+  const employee = await createTempUser("e2e-gdpr-emp");
   try {
-    await addOrgMember(iso.orgId, manager, "manager", {
-      managerUserId: iso.adminUser.id,
-    });
-    await addOrgMember(iso.orgId, report, "employee", {
-      managerUserId: manager.id,
-    });
+    await addOrgMember(iso.orgId, employee, "employee");
 
-    await loginWithEmail(page, manager.email);
+    await loginWithEmail(page, employee.email);
     await page.waitForURL(/\/workspace/);
     await page.goto("/workspace/settings/gdpr");
 
-    // Delete button should be disabled due to direct reports blocker
+    // Delete my account section should be visible and button enabled
+    await expect(
+      page.getByRole("heading", { name: /delete my account/i })
+    ).toBeVisible({ timeout: 10_000 });
+
+    // Button should be enabled (no blockers for regular employees)
     await expect(
       page.getByRole("button", { name: /delete my account permanently/i })
-    ).toBeDisabled({ timeout: 10_000 });
+    ).toBeEnabled({ timeout: 10_000 });
 
-    // Blocker message should be visible
-    await expect(page.getByText(/direct reports/i)).toBeVisible();
+    // No "direct reports" message should be visible
+    await expect(page.getByText(/direct reports/i)).toHaveCount(0);
   } finally {
-    await report.delete();
-    await manager.delete();
+    await employee.delete();
     await iso.cleanup();
   }
 });

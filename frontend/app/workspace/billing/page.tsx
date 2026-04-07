@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useWorkspace } from "@/lib/hooks/useWorkspace";
+import { useSession } from "@/lib/hooks/useSession";
 import { apiFetch } from "@/lib/api/client";
 
 type BillingInfo = {
@@ -10,17 +11,30 @@ type BillingInfo = {
 };
 
 export default function BillingPage() {
-  const { token, isAdmin } = useWorkspace();
+  const { token, isAdmin, orgData } = useWorkspace();
+  const { email: userEmail } = useSession();
   const [billing, setBilling] = useState<BillingInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
 
   useEffect(() => {
     document.title = "Billing | SMB Security Quick-Check";
   }, []);
+
+  // Restore waitlist submission state from localStorage (keyed by org ID)
+  useEffect(() => {
+    if (!orgData?.org?.id) return;
+    try {
+      const key = `waitlist_submitted_${orgData.org.id}`;
+      if (localStorage.getItem(key) === "true") {
+        setWaitlistSubmitted(true);
+      }
+    } catch {
+      // localStorage unavailable — ignore
+    }
+  }, [orgData?.org?.id]);
 
   useEffect(() => {
     if (!token) return;
@@ -66,10 +80,15 @@ export default function BillingPage() {
     }
   }
 
-  function handleWaitlist(e: React.FormEvent) {
-    e.preventDefault();
-    if (!waitlistEmail) return;
-    // Store locally — no backend needed for waitlist MVP
+  function handleWaitlist() {
+    // Store in localStorage keyed by org ID so it persists across refreshes
+    try {
+      if (orgData?.org?.id) {
+        localStorage.setItem(`waitlist_submitted_${orgData.org.id}`, "true");
+      }
+    } catch {
+      // localStorage unavailable — ignore
+    }
     setWaitlistSubmitted(true);
   }
 
@@ -197,31 +216,22 @@ export default function BillingPage() {
             <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3">
               <p className="text-sm text-green-800">
                 Thanks! We&apos;ll notify you at{" "}
-                <strong>{waitlistEmail}</strong> when paid plans are available.
+                <strong>{userEmail}</strong> when paid plans are available.
               </p>
             </div>
           ) : (
             <>
               <p className="text-sm text-gray-600 mb-3">
-                Enter your email to be notified when Campaign Pro becomes
-                available.
+                Join the waitlist to be notified when Campaign Pro becomes
+                available. We&apos;ll use your account email.
               </p>
-              <form onSubmit={handleWaitlist} className="flex gap-2">
-                <input
-                  type="email"
-                  value={waitlistEmail}
-                  onChange={(e) => setWaitlistEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  required
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-1 focus:ring-teal-200 outline-none"
-                />
-                <button
-                  type="submit"
-                  className="rounded-lg bg-gray-800 text-white px-4 py-2 text-sm font-medium hover:bg-gray-900 transition-colors"
-                >
-                  Notify me
-                </button>
-              </form>
+              <button
+                type="button"
+                onClick={handleWaitlist}
+                className="rounded-lg bg-gray-800 text-white px-4 py-2 text-sm font-medium hover:bg-gray-900 transition-colors"
+              >
+                Join waitlist
+              </button>
             </>
           )}
         </div>

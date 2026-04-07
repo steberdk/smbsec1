@@ -14,7 +14,7 @@ type Assessment = {
 };
 
 export default function WorkspaceAssessmentsPage() {
-  const { token, userId, isManager, isAdmin } = useWorkspace();
+  const { token, isAdmin } = useWorkspace();
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -41,18 +41,14 @@ export default function WorkspaceAssessmentsPage() {
   const hasActive = assessments.some((a) => a.status === "active");
 
   async function handleStart() {
-    if (!token || !isManager) return;
+    if (!token || !isAdmin) return;
     setStarting(true);
     setActionError(null);
 
     try {
-      const body = isAdmin
-        ? { scope: "org" }
-        : { scope: "subtree", root_user_id: userId };
-
       await apiFetch("/api/assessments", token, {
         method: "POST",
-        body: JSON.stringify(body),
+        body: JSON.stringify({ scope: "org" }),
       });
       loadData();
     } catch (e) {
@@ -80,11 +76,11 @@ export default function WorkspaceAssessmentsPage() {
     }
   }
 
-  if (!isManager) {
+  if (!isAdmin) {
     return (
       <div className="text-center py-16 text-gray-500">
         <p className="text-lg font-medium">Access restricted</p>
-        <p className="text-sm mt-1">Only managers and admins can manage assessments.</p>
+        <p className="text-sm mt-1">Only org admins can manage assessments.</p>
       </div>
     );
   }
@@ -105,7 +101,7 @@ export default function WorkspaceAssessmentsPage() {
         to your team. When everyone has responded, mark it complete to lock in results and track progress over time.
       </p>
 
-      {isManager && (
+      {isAdmin && (
         <div className="mb-6">
           <button
             onClick={handleStart}
@@ -114,9 +110,6 @@ export default function WorkspaceAssessmentsPage() {
           >
             {starting ? "Starting..." : hasActive ? "Assessment already in progress" : "Start new assessment"}
           </button>
-          {!isAdmin && (
-            <p className="mt-1 text-xs text-gray-500">Managers start a subtree assessment covering their own team.</p>
-          )}
         </div>
       )}
 
@@ -163,7 +156,7 @@ export default function WorkspaceAssessmentsPage() {
                     Go to checklist
                   </Link>
                 )}
-                {a.status === "active" && isManager && (
+                {a.status === "active" && isAdmin && (
                   <button
                     onClick={() => handleComplete(a.id)}
                     disabled={completing === a.id}

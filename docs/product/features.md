@@ -169,7 +169,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-014
-**Status:** Created
+**Status:** Developed
 **Feature name:** Fix inconsistencies found during PI 11 BA review
 **Business Value Hypothesis:** As a user, I want the app to behave consistently across pages — correct naming, working data flows, proper access checks — so I can trust it as a security tool.
 **Acceptance Criteria:**
@@ -186,7 +186,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-015
-**Status:** Created
+**Status:** Developed
 **Feature name:** Fix flaky E2E tests (race conditions in response waits)
 **Business Value Hypothesis:** As a development team, we need reliable CI so that test failures signal real bugs, not random timing issues — otherwise we lose trust in CI and stop catching regressions.
 **Acceptance Criteria:**
@@ -245,7 +245,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-019
-**Status:** Created
+**Status:** Developed
 **Feature name:** Fix privacy page title duplication and login form email retention
 **Business Value Hypothesis:** As a user, I expect consistent page titles and a clean login form, so the product feels polished and trustworthy.
 **Acceptance Criteria:**
@@ -256,3 +256,100 @@ See `feature_rules.md` for how to maintain this file.
 **Dependencies:** None.
 **Risk and amount of Test:** Chance: 1, Impact: 1. Verify title in browser tab. Test login flow with multiple accounts.
 **Complexity estimate:** Small.
+
+---
+
+## F-020
+**Status:** Developed
+**Feature name:** Reduce login friction for invited employees and show context-aware onboarding hints
+**Business Value Hypothesis:** As an invited employee clicking the invite link for the first time, I should not have to re-type the email address that was already used to invite me — this is unnecessary friction that risks abandonment. Additionally, the "New here?" information box on the login page currently shows owner-oriented text ("Set up your organisation, Invite your team") to all users including invited employees, which is confusing. The box should remain visible for all users but display context-appropriate guidance depending on whether the user is a new owner or an invited employee.
+**Importance:** High — this is every invited employee's first impression of the product. Friction or confusing messaging at this stage risks losing the user before they even join.
+**Urgency:** Medium — affects every new employee invite, but existing users can work around it by typing their email.
+**Acceptance Criteria:**
+- Login page pre-fills the email field when user arrives from an invite link (email extracted from invite token via query parameter or lightweight API lookup)
+- Login page auto-submits the OTP request when email is pre-filled from an invite, so the user lands directly on the "check your email for a code" screen with zero typing
+- "New here?" information box on login page shows different text depending on context:
+  - For new/owner users: current owner-oriented steps (set up org, invite team, etc.)
+  - For invited employees: employee-appropriate guidance (e.g. "You've been invited to join a team" with relevant next steps)
+- Product Team to define exact text for both variants during refinement
+**Scope:** Login page (`app/login/page.tsx`), accept-invite redirect logic (`app/accept-invite/page.tsx`), possibly a lightweight API endpoint to resolve invite token to email address.
+**Not in Scope:** Changing the auth flow itself (OTP/magic link). Changing the invite email template content.
+**Stakeholders and their involvement:** Product Team — define exact UX text for both "New here?" variants. UX designer — review the pre-fill + auto-submit interaction.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 2. Must test invite flow end-to-end with pre-filled email. Existing invite E2E tests (`frontend/tests/invite.spec.ts`) will need updating. New E2E test cases needed for context-aware "New here?" box. Verify that direct /login access (no invite) still works unchanged.
+**Complexity estimate:** Small.
+**Description/Details:**
+Current flow: Invite email → `/accept-invite?token=...` → redirect to `/login?next=/accept-invite?token=...` → user must type email → OTP sent → verify → back to accept-invite.
+Desired flow: Invite email → `/accept-invite?token=...` → redirect to `/login?next=...&email=invited@example.com` → email pre-filled + auto-submitted → user just enters OTP code → back to accept-invite.
+Documents impacted by this feature:
+- `docs/user-flows.md` — login flow for invited users will change
+- `frontend/tests/invite.spec.ts` — E2E test updates for pre-filled email behaviour
+- Possibly new E2E test cases for the context-aware "New here?" box variants
+
+---
+
+## F-021
+**Status:** Developed
+**Feature name:** Fix broken invite/onboarding flow — invited employees must join existing org, not create new one
+**Business Value Hypothesis:** As an SMB owner who invited employees, I need those employees to join MY organisation when they log in — not be routed to onboarding where they create a separate org. Without this, the entire team model is broken: dashboard shows no team progress, assessments are siloed, and the product's core value (team security oversight) is destroyed. This is a P0 blocker for any real usage.
+**Importance:** Critical — the product cannot be used by any org with more than 1 person until this is fixed.
+**Urgency:** Critical — every new invite creates a broken state.
+**Acceptance Criteria:**
+- AC-1: Invited user clicking email invite link → login → lands on `/accept-invite`, NOT `/onboarding`
+- AC-2: User with pending invite who navigates to `/workspace` is intercepted and shown accept-invite flow before reaching dashboard
+- AC-3: Accepting invite creates `org_members` row with correct org_id, role, and IT executor flag — no new org created
+- AC-4: Only users with NO pending invite and NO org membership can reach `/onboarding`
+- AC-5: Role enforcement post-join: employee cannot access team/campaigns/settings pages (consistent with F-018)
+- AC-6: Expired token → clear error page with "request new invite" guidance; user NOT routed to onboarding
+- AC-7: Already-accepted token → graceful handling, no duplicate org_members row
+- AC-8: Token for different email than logged-in user → 403 error, not silent acceptance
+- AC-9: Self-role-assignment prevention: API rejects any user changing their own role; only org_admin can assign roles
+**Scope:**
+- WorkspaceProvider (`useWorkspace.tsx`): check `GET /api/invites/pending` before redirecting to onboarding (Option A)
+- Onboarding page: also check for pending invite on mount as safety net (Option B)
+- New `GET /api/invites/pending` endpoint: authenticated, returns redirect info (org name, role, accept path) for unaccepted/unexpired invite matching user's email
+- sessionStorage hint: store invite token before login redirect, clear after consumption
+- Accept-invite page redesign: confirmation card showing org name + role, Accept button (no Decline button — owner revokes from Team page if needed), conditional name field (shown only if no display name in user metadata)
+- Login page context-awareness: 3 states (new owner, invite context, return user)
+- Token expiry UX: dedicated error card for expired/used tokens
+- Server-side self-role-assignment guard in membership API
+**Not in Scope:** Changing PKCE auth flow. Email template changes. Manager role removal (separate F-022).
+**Stakeholders and their involvement:** Product Team — UX text for login states and accept-invite card.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 3, Impact: 3. This is the most critical flow in the product. Must test all 10 scenarios defined in PI 12 consensus. E2E tests for invite.spec.ts, onboarding.spec.ts, roles.spec.ts all need updating.
+**Complexity estimate:** Medium.
+**Description/Details:**
+Root cause: In `useWorkspace.tsx` lines 58-71, when `GET /api/orgs/me` returns 404, the hook redirects to `/onboarding` without checking if the user has a pending invite. The fix uses a belt-and-suspenders approach: primary check in WorkspaceProvider (Option A) and safety net in onboarding page (Option B), both calling the same new `GET /api/invites/pending` endpoint.
+Onboarding cleanup (part of F-020): remove email system and computers fields, but KEEP IT handler question ("Who handles IT?") on onboarding — it serves as an awareness prompt. Owner can choose "Not sure" to postpone. IT handler also remains editable in `/workspace/settings`.
+Documents impacted:
+- `docs/user-flows.md` — onboarding and invite flows will be rewritten
+- `frontend/lib/hooks/useWorkspace.tsx` — pending invite check before onboarding redirect
+- `frontend/app/api/invites/pending/route.ts` — new endpoint
+- `frontend/app/onboarding/page.tsx` — safety net check + simplified form
+- `frontend/app/accept-invite/page.tsx` — redesigned confirmation card
+- `frontend/app/login/page.tsx` — context-aware states
+- `frontend/tests/invite.spec.ts`, `onboarding.spec.ts`, `roles.spec.ts` — updated E2E tests
+
+---
+
+## F-022
+**Status:** Developed
+**Feature name:** Remove Manager role from UI and add server-side guard
+**Business Value Hypothesis:** As a product simplification, the Manager role adds org hierarchy complexity (subtree assessments, manager invites, manager_user_id tree) that SMB owners with 2-10 employees don't need. Removing it from the invite form prevents confusion and reduces the attack surface. The simplified model is: Owner (org_admin) invites Employees, optionally flagging one as IT executor.
+**Importance:** High — directly prevents invite form confusion and aligns with simplified user model.
+**Urgency:** Medium — should ship with the invite flow fix to present a clean interface.
+**Acceptance Criteria:**
+- Invite form on team page shows only "Employee" role option (Manager removed)
+- Server-side guard in invite API and membership API rejects `manager` role assignment
+- Existing Manager-role members in DB continue to function without errors
+- No user can self-assign any role (covered by F-021 AC-9)
+**Scope:**
+- Remove "Manager" from invite form dropdown (only "Employee" remains)
+- Server-side API guard: reject `manager` role assignment in invite and membership APIs
+- DB migration (SQL script `021_remove_manager_role.sql`): reassign existing `manager` rows to `employee`, update CHECK constraints on `org_members.role` and `invites.role`, drop `manager_user_id` column from `org_members`
+- Update all code referencing manager role (~10 files): `lib/db/types.ts`, `useWorkspace.tsx`, team page, invite API, assessment API, dashboard API, members API
+- Remove subtree assessment logic (manager-scoped assessments)
+**Not in Scope:** N/A — full removal.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 2, Impact: 2. Medium risk — DB migration + ~10 files. Regression test: invite flow, team page, assessments, dashboard. Verify existing data migrated correctly.
+**Complexity estimate:** Medium (Stefan override: full migration instead of UI-only).

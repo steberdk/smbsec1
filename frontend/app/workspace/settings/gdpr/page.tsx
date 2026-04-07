@@ -9,7 +9,6 @@ type OrgMember = {
   user_id: string;
   role: string;
   is_it_executor: boolean;
-  manager_user_id: string | null;
   email: string | null;
   display_name: string | null;
 };
@@ -30,7 +29,7 @@ export default function WorkspaceGdprPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  useEffect(() => { document.title = "Settings & Data | SMB Security Quick-Check"; }, []);
+  useEffect(() => { document.title = "Data & Privacy | SMB Security Quick-Check"; }, []);
 
   useEffect(() => {
     if (!token || !isAdmin) return;
@@ -101,7 +100,7 @@ export default function WorkspaceGdprPage() {
   if (loadError) {
     return (
       <>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings & data</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Data &amp; Privacy</h1>
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
           <p className="text-sm text-red-800">{loadError}</p>
         </div>
@@ -109,11 +108,9 @@ export default function WorkspaceGdprPage() {
     );
   }
 
-  const hasDirectReports = orgData.membership.has_direct_reports;
-
   return (
     <>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings & data</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Data &amp; Privacy</h1>
 
       {/* Data residency */}
       <section className="mb-8 rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm">
@@ -125,7 +122,7 @@ export default function WorkspaceGdprPage() {
       </section>
 
       {/* Self-deletion */}
-      <SelfDeleteSection token={token} members={members} role={orgData.membership.role} hasDirectReports={hasDirectReports} />
+      <SelfDeleteSection token={token} members={members} role={orgData.membership.role} />
 
       {!isAdmin && (
         <p className="mt-4 text-sm text-gray-500">
@@ -245,12 +242,10 @@ function SelfDeleteSection({
   token,
   members,
   role,
-  hasDirectReports,
 }: {
   token: string;
   members: OrgMember[];
   role: string;
-  hasDirectReports: boolean;
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
@@ -285,11 +280,6 @@ function SelfDeleteSection({
           You are the org admin and other members exist. Delete the organisation first.
         </p>
       )}
-      {hasDirectReports && (
-        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-          You have direct reports. Remove them before deleting your account.
-        </p>
-      )}
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 mb-3">
@@ -299,9 +289,9 @@ function SelfDeleteSection({
 
       <button
         onClick={handleDeleteSelf}
-        disabled={deleting || (isAdmin && otherMembers.length > 0) || hasDirectReports}
+        disabled={deleting || (isAdmin && otherMembers.length > 0)}
         className="rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-        title={(isAdmin && otherMembers.length > 0) || hasDirectReports ? "Resolve the warnings above before deleting" : undefined}
+        title={(isAdmin && otherMembers.length > 0) ? "Resolve the warnings above before deleting" : undefined}
       >
         {deleting ? "Deleting..." : "Delete my account permanently"}
       </button>

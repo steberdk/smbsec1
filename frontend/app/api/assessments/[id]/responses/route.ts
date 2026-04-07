@@ -13,9 +13,8 @@ import {
   apiError,
   getUser,
   getOrgMembership,
-  buildSubtree,
 } from "../../../../../lib/api/helpers";
-import { type ResponseStatus, type OrgMemberRow } from "../../../../../lib/db/types";
+import { type ResponseStatus } from "../../../../../lib/db/types";
 
 export const runtime = "nodejs";
 
@@ -68,23 +67,6 @@ export async function PUT(
     .maybeSingle();
 
   if (!item) return apiError("Assessment item not found", 404);
-
-  // Scope validation (AC-SCOPE-1)
-  if (assessment.scope === "subtree" && assessment.root_user_id) {
-    const { data: allMembers } = await supabase
-      .from("org_members")
-      .select("user_id, manager_user_id")
-      .eq("org_id", membership.org_id);
-
-    const subtree = buildSubtree(
-      (allMembers ?? []) as Pick<OrgMemberRow, "user_id" | "manager_user_id">[],
-      assessment.root_user_id
-    );
-
-    if (!subtree.includes(user.id)) {
-      return apiError("You are not within the scope of this assessment", 403);
-    }
-  }
 
   // Upsert response (primary key: assessment_item_id + user_id)
   const { error: upsertErr } = await supabase

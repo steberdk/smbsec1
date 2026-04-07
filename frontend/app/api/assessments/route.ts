@@ -44,36 +44,10 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const membership = await getOrgMembership(supabase, user.id);
   if (!membership) return apiError("Not a member of any organisation", 404);
-  if (!hasRole(membership, "manager")) return apiError("Forbidden", 403);
+  if (!hasRole(membership, "org_admin")) return apiError("Forbidden", 403);
 
-  type AssessmentBody = {
-    scope: "org" | "subtree";
-    root_user_id?: string;
-  };
-
-  const body: AssessmentBody = await req.json().catch(() => null);
-  if (!body || !["org", "subtree"].includes(body.scope)) {
-    return apiError("scope must be 'org' or 'subtree'", 400);
-  }
-
-  // Subtree scope: only managers; root_user_id must be caller's own id
-  if (body.scope === "subtree") {
-    if (membership.role === "org_admin") {
-      return apiError("Org admins must use scope 'org' for org-wide assessments", 400);
-    }
-    if (!body.root_user_id) {
-      return apiError("root_user_id is required for subtree scope", 400);
-    }
-    if (body.root_user_id !== user.id) {
-      // Managers can only start subtree assessments rooted at themselves (AC-SCOPE-2)
-      return apiError("root_user_id must be your own user id for subtree assessments", 403);
-    }
-  }
-
-  // Org scope requires org_admin
-  if (body.scope === "org" && !hasRole(membership, "org_admin")) {
-    return apiError("Only org admins can start an org-wide assessment", 403);
-  }
+  // Only org-wide assessments are supported
+  const scope = "org";
 
   // Check for existing active assessment (AC-ASMT-1)
   // The DB unique partial index enforces this at DB level (409 from constraint),
@@ -117,8 +91,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     .insert({
       org_id: membership.org_id,
       created_by: user.id,
-      scope: body.scope,
-      root_user_id: body.scope === "subtree" ? user.id : null,
+      scope,
+      root_user_id: null,
       status: "active",
     })
     .select()

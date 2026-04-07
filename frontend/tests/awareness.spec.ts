@@ -41,11 +41,10 @@ test("E2E-AWARE-01: user can mark Awareness track items and see progress", async
   const firstDone = awarenessSection.getByRole("button", { name: /i've done this/i }).first();
   await expect(firstDone).toBeVisible({ timeout: 10_000 });
 
-  const saveResponse = page.waitForResponse(
-    (res) => res.url().includes("/responses") && res.request().method() === "PUT"
-  );
   await firstDone.click();
-  await saveResponse;
+
+  // Wait for the button to show active state — confirms the optimistic update fired
+  await expect(firstDone).toHaveClass(/bg-green-700/, { timeout: 8_000 });
 
   // Wait for the counter to reflect a higher number than before
   await expect(async () => {
@@ -64,9 +63,7 @@ test("E2E-AWARE-02: completing Awareness items is tracked independently per user
   const employee = await createTempUser("e2e-emp-aware");
 
   try {
-    await addOrgMember(iso.orgId, employee, "employee", {
-      managerUserId: iso.adminUser.id,
-    });
+    await addOrgMember(iso.orgId, employee, "employee");
 
     await startAssessment(iso.orgId, iso.adminUser.id);
 

@@ -31,9 +31,7 @@ test.describe.serial("Delete member", () => {
   test.beforeAll(async () => {
     iso = await createIsolatedOrg("DEL Org");
     employee = await createTempUser("e2e-emp-del");
-    await addOrgMember(iso.orgId, employee, "employee", {
-      managerUserId: iso.adminUser.id,
-    });
+    await addOrgMember(iso.orgId, employee, "employee");
   });
 
   test.afterAll(async () => {
@@ -69,9 +67,7 @@ test.describe.serial("Delete member", () => {
   }) => {
     // Add a new employee to delete-test against
     const newEmp = await createTempUser("e2e-emp-cancel");
-    await addOrgMember(iso.orgId, newEmp, "employee", {
-      managerUserId: iso.adminUser.id,
-    });
+    await addOrgMember(iso.orgId, newEmp, "employee");
 
     await loginWithEmail(page, iso.adminUser.email);
     await page.waitForURL(/\/workspace/);
@@ -97,24 +93,20 @@ test.describe.serial("Delete member", () => {
 // Manager cannot delete via API
 // ---------------------------------------------------------------------------
 
-test("E2E-DEL-03: Manager cannot delete a member via the API (403)", async ({ page }) => {
+test("E2E-DEL-03: Employee cannot delete a member via the API (403)", async ({ page }) => {
   const iso = await createIsolatedOrg("DEL03 Org");
-  const manager = await createTempUser("e2e-mgr-del");
-  const employee = await createTempUser("e2e-emp-del03");
+  const employee1 = await createTempUser("e2e-emp-del03a");
+  const employee2 = await createTempUser("e2e-emp-del03b");
   const supabase = getServiceClient();
 
   try {
-    await addOrgMember(iso.orgId, manager, "manager", {
-      managerUserId: iso.adminUser.id,
-    });
-    await addOrgMember(iso.orgId, employee, "employee", {
-      managerUserId: manager.id,
-    });
+    await addOrgMember(iso.orgId, employee1, "employee");
+    await addOrgMember(iso.orgId, employee2, "employee");
 
-    // Get manager's access token
+    // Get employee's access token
     const { data: linkData } = await supabase.auth.admin.generateLink({
       type: "magiclink",
-      email: manager.email,
+      email: employee1.email,
       options: { redirectTo: `${baseUrl()}/workspace` },
     });
 
@@ -127,19 +119,19 @@ test("E2E-DEL-03: Manager cannot delete a member via the API (403)", async ({ pa
 
     if (accessToken) {
       const res = await page.request.delete(
-        `${baseUrl()}/api/gdpr/members/${employee.id}`,
+        `${baseUrl()}/api/gdpr/members/${employee2.id}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       expect(res.status()).toBe(403);
     } else {
-      // Fallback: verify manager sees access-restricted message on GDPR page
-      await loginWithEmail(page, manager.email);
+      // Fallback: verify employee sees access-restricted message on GDPR page
+      await loginWithEmail(page, employee1.email);
       await page.goto("/workspace/settings/gdpr");
       await expect(page.getByText(/only org admins/i)).toBeVisible({ timeout: 10_000 });
     }
   } finally {
-    await employee.delete();
-    await manager.delete();
+    await employee2.delete();
+    await employee1.delete();
     await iso.cleanup();
   }
 });
@@ -203,9 +195,7 @@ test("E2E-DEL-06: user can delete their own account", async ({ page }) => {
   const employee = await createTempUser("e2e-self-del");
 
   try {
-    await addOrgMember(iso.orgId, employee, "employee", {
-      managerUserId: iso.adminUser.id,
-    });
+    await addOrgMember(iso.orgId, employee, "employee");
 
     await loginWithEmail(page, employee.email);
     await page.waitForURL(/\/workspace/);

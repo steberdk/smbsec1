@@ -163,6 +163,15 @@ export default function CampaignDetailPage() {
     return <p className="text-sm text-gray-600">Loading campaign...</p>;
   }
 
+  if (!isAdmin) {
+    return (
+      <div className="text-center py-16 text-gray-500">
+        <p className="text-lg font-medium">Access restricted</p>
+        <p className="text-sm mt-1">Only org admins can view campaign details.</p>
+      </div>
+    );
+  }
+
   if (error || !campaign) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">

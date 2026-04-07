@@ -15,8 +15,8 @@ import {
   getAdminOrgId,
 } from "./helpers/fixtures";
 
-test("E2E-INV-01: Org Admin can invite a manager", async ({ page }) => {
-  const inviteEmail = `inv-mgr-${Date.now()}@example.com`;
+test("E2E-INV-01: Org Admin can invite an employee", async ({ page }) => {
+  const inviteEmail = `inv-emp-${Date.now()}@example.com`;
   const supabase = getServiceClient();
   const orgId = await getAdminOrgId();
 
@@ -24,58 +24,36 @@ test("E2E-INV-01: Org Admin can invite a manager", async ({ page }) => {
   await page.goto("/workspace/team");
 
   await page.getByPlaceholder(/colleague@company\.com/i).fill(inviteEmail);
-  await page.getByRole("combobox").selectOption("manager");
   await page.getByRole("button", { name: /send invite/i }).click();
 
   // Success message and invite appears in pending list
   await expect(page.getByText(/invite sent/i)).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText(inviteEmail, { exact: true }).first()).toBeVisible();
-  // Confirm the role badge appears in the invite list (look for visible text in the list, not in the select)
-  await expect(page.locator("p, td, span").filter({ hasText: /manager/i }).first()).toBeVisible();
+  // Confirm the employee role badge appears in the invite list
+  await expect(page.locator("p, td, span").filter({ hasText: /employee/i }).first()).toBeVisible();
 
   // Cleanup
   await supabase.from("invites").delete().eq("email", inviteEmail).eq("org_id", orgId);
 });
 
-test("E2E-INV-02: Manager's invite form does not offer the org_admin role", async ({
+test("E2E-INV-02: Invite form has no role dropdown — role is always employee", async ({
   page,
 }) => {
-  const iso = await createIsolatedOrg("INV02 Org");
-  const manager = await createTempUser("e2e-mgr");
-  try {
-    await addOrgMember(iso.orgId, manager, "manager", {
-      managerUserId: iso.adminUser.id,
-    });
+  await loginAsRole(page, "org_admin");
+  await page.goto("/workspace/team");
 
-    await loginWithEmail(page, manager.email);
-    await page.waitForURL(/\/workspace/);
-    await page.goto("/workspace/team");
+  // No role combobox should exist (role is hardcoded to employee)
+  await expect(page.getByRole("combobox")).toHaveCount(0);
 
-    const roleSelect = page.getByRole("combobox");
-    await expect(roleSelect).toBeVisible({ timeout: 10_000 });
-
-    // Collect available options
-    const options = await roleSelect.locator("option").allTextContents();
-    const lower = options.map((o) => o.toLowerCase());
-
-    // org_admin must NOT be an option for managers
-    expect(lower.some((o) => o.includes("org_admin") || o.includes("org admin"))).toBe(false);
-    // manager and employee SHOULD be options
-    expect(lower.some((o) => o.includes("manager"))).toBe(true);
-    expect(lower.some((o) => o.includes("employee"))).toBe(true);
-  } finally {
-    await manager.delete();
-    await iso.cleanup();
-  }
+  // Invite form is still present
+  await expect(page.getByPlaceholder(/colleague@company\.com/i)).toBeVisible({ timeout: 10_000 });
 });
 
 test("E2E-INV-03: Employee has no invite capability", async ({ page }) => {
   const iso = await createIsolatedOrg("INV03 Org");
   const employee = await createTempUser("e2e-emp");
   try {
-    await addOrgMember(iso.orgId, employee, "employee", {
-      managerUserId: iso.adminUser.id,
-    });
+    await addOrgMember(iso.orgId, employee, "employee");
 
     await loginWithEmail(page, employee.email);
     await page.waitForURL(/\/workspace/);
@@ -107,7 +85,6 @@ test("E2E-INV-04: Invited user accepts invite and lands in workspace", async ({ 
         invited_by: iso.adminUser.id,
         email: invitee.email,
         role: "employee",
-        manager_user_id: iso.adminUser.id,
         is_it_executor: false,
       })
       .select()
@@ -122,9 +99,9 @@ test("E2E-INV-04: Invited user accepts invite and lands in workspace", async ({ 
     // Accept the invite via the accept-invite page
     await page.goto(`/accept-invite?token=${inviteToken}`);
 
-    // Name prompt appears — click Accept invite to proceed
-    await expect(page.getByRole("button", { name: /accept invite/i })).toBeVisible({ timeout: 10_000 });
-    await page.getByRole("button", { name: /accept invite/i }).click();
+    // Confirmation card appears — click Accept invitation to proceed
+    await expect(page.getByRole("button", { name: /accept invitation/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: /accept invitation/i }).click();
 
     // Should redirect to workspace after accepting
     await page.waitForURL(/\/workspace/, { timeout: 15_000 });

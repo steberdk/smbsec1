@@ -14,9 +14,9 @@ export type PrimaryOs = "windows" | "mac" | "mixed";
 
 export type CompanySize = "1-5" | "6-20" | "21-50" | "50+";
 
-export type OrgRole = "org_admin" | "manager" | "employee";
+export type OrgRole = "org_admin" | "employee";
 
-export type AssessmentScope = "org" | "subtree";
+export type AssessmentScope = "org";
 
 export type AssessmentStatus = "active" | "completed";
 
@@ -44,7 +44,6 @@ export type OrgMemberRow = {
   org_id: string;
   user_id: string;
   role: OrgRole;
-  manager_user_id: string | null;
   is_it_executor: boolean;
   email: string | null;
   display_name?: string | null;
@@ -91,8 +90,7 @@ export type InviteRow = {
   org_id: string;
   invited_by: string;
   email: string;
-  role: "manager" | "employee";
-  manager_user_id: string;
+  role: "employee";
   is_it_executor: boolean;
   token: string;
   created_at: string;

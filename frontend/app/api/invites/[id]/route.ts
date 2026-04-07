@@ -25,7 +25,7 @@ export async function DELETE(
 
   const membership = await getOrgMembership(supabase, user.id);
   if (!membership) return apiError("Not a member of any organisation", 404);
-  if (!hasRole(membership, "manager")) return apiError("Forbidden", 403);
+  if (!hasRole(membership, "org_admin")) return apiError("Forbidden", 403);
 
   // Fetch invite — RLS ensures it belongs to caller's org
   const { data: invite, error: fetchErr } = await supabase
@@ -40,11 +40,6 @@ export async function DELETE(
   // Cannot revoke an already accepted invite
   if (invite.accepted_at !== null) {
     return apiError("Cannot revoke an invite that has already been accepted", 409);
-  }
-
-  // Managers can only revoke invites they created; org_admin can revoke any
-  if (membership.role !== "org_admin" && invite.invited_by !== user.id) {
-    return apiError("Forbidden", 403);
   }
 
   const { error: deleteErr } = await supabase

@@ -3,7 +3,6 @@
  *
  * Blockers:
  *   - org_admin with other members → must delete org first
- *   - manager with direct reports  → must remove direct reports first
  *
  * On success removes:
  *   - org_members row (cascades: assessment_responses)
@@ -40,20 +39,6 @@ export async function DELETE(req: Request): Promise<NextResponse> {
         409
       );
     }
-  }
-
-  // Blocker: manager cannot self-delete while they have direct reports
-  const { count: reportCount } = await supabase
-    .from("org_members")
-    .select("user_id", { count: "exact", head: true })
-    .eq("org_id", membership.org_id)
-    .eq("manager_user_id", user.id);
-
-  if ((reportCount ?? 0) > 0) {
-    return apiError(
-      "You have direct reports. Remove or reassign them before deleting your account.",
-      409
-    );
   }
 
   // Delete org_members row — cascades to assessment_responses

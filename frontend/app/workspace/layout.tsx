@@ -19,7 +19,7 @@ export default function WorkspaceLayout({
 }
 
 function WorkspaceShell({ children }: { children: React.ReactNode }) {
-  const { orgData, isManager, isAdmin, logout } = useWorkspace();
+  const { orgData, isAdmin, logout } = useWorkspace();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const t = useTranslation();
@@ -28,8 +28,8 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
     { href: "/workspace", label: t("nav.home"), show: true },
     { href: "/workspace/checklist", label: t("nav.checklist"), show: true },
     { href: "/workspace/dashboard", label: t("nav.dashboard"), show: true },
-    { href: "/workspace/team", label: t("nav.team"), show: isManager },
-    { href: "/workspace/assessments", label: t("nav.assessments"), show: isManager },
+    { href: "/workspace/team", label: t("nav.team"), show: isAdmin },
+    { href: "/workspace/assessments", label: t("nav.assessments"), show: isAdmin },
     { href: "/workspace/campaigns", label: t("nav.campaigns"), show: isAdmin },
     { href: "/workspace/report", label: t("nav.report"), show: isAdmin },
     { href: "/workspace/billing", label: t("nav.billing"), show: isAdmin },

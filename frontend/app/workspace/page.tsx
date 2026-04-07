@@ -6,7 +6,7 @@ import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
 
 export default function WorkspacePage() {
-  const { token, orgData, isManager, isAdmin } = useWorkspace();
+  const { token, orgData, isAdmin } = useWorkspace();
   const { membership } = orgData;
 
   const [hasActiveAssessment, setHasActiveAssessment] = useState<boolean | null>(null);
@@ -33,14 +33,14 @@ export default function WorkspacePage() {
         })
         .catch(() => {}),
     ];
-    if (isManager) {
+    if (isAdmin) {
       fetches.push(
         apiFetch<{ invites: unknown[] }>("/api/invites", token)
           .then(({ invites }) => setPendingInviteCount(invites.length))
       );
     }
     Promise.all(fetches).catch(() => {});
-  }, [token, isManager]);
+  }, [token, isAdmin]);
 
   // Guided first-run: show step-by-step when admin has no assessment yet
   const showGuidedSetup = isAdmin && hasActiveAssessment === false;
@@ -122,14 +122,14 @@ export default function WorkspacePage() {
           title="Dashboard"
           description="Progress overview and cadence indicator."
         />
-        {isManager && (
+        {isAdmin && (
           <WorkspaceCard
             href="/workspace/team"
             title="Team"
             description="Invite people and manage pending invites."
           />
         )}
-        {isManager && (
+        {isAdmin && (
           <WorkspaceCard
             href="/workspace/assessments"
             title="Assessments"
