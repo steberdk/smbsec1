@@ -169,7 +169,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-014
-**Status:** Deployed
+**Status:** Done
 **Feature name:** Fix inconsistencies found during PI 11 BA review
 **Business Value Hypothesis:** As a user, I want the app to behave consistently across pages — correct naming, working data flows, proper access checks — so I can trust it as a security tool.
 **Acceptance Criteria:**
@@ -186,7 +186,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-015
-**Status:** Deployed
+**Status:** Done
 **Feature name:** Fix flaky E2E tests (race conditions in response waits)
 **Business Value Hypothesis:** As a development team, we need reliable CI so that test failures signal real bugs, not random timing issues — otherwise we lose trust in CI and stop catching regressions.
 **Acceptance Criteria:**
@@ -245,7 +245,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-019
-**Status:** Deployed
+**Status:** Done
 **Feature name:** Fix privacy page title duplication and login form email retention
 **Business Value Hypothesis:** As a user, I expect consistent page titles and a clean login form, so the product feels polished and trustworthy.
 **Acceptance Criteria:**
@@ -260,7 +260,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-020
-**Status:** Deployed
+**Status:** Done
 **Feature name:** Reduce login friction for invited employees and show context-aware onboarding hints
 **Business Value Hypothesis:** As an invited employee clicking the invite link for the first time, I should not have to re-type the email address that was already used to invite me — this is unnecessary friction that risks abandonment. Additionally, the "New here?" information box on the login page currently shows owner-oriented text ("Set up your organisation, Invite your team") to all users including invited employees, which is confusing. The box should remain visible for all users but display context-appropriate guidance depending on whether the user is a new owner or an invited employee.
 **Importance:** High — this is every invited employee's first impression of the product. Friction or confusing messaging at this stage risks losing the user before they even join.
@@ -289,7 +289,7 @@ Documents impacted by this feature:
 ---
 
 ## F-021
-**Status:** Deployed
+**Status:** Done
 **Feature name:** Fix broken invite/onboarding flow — invited employees must join existing org, not create new one
 **Business Value Hypothesis:** As an SMB owner who invited employees, I need those employees to join MY organisation when they log in — not be routed to onboarding where they create a separate org. Without this, the entire team model is broken: dashboard shows no team progress, assessments are siloed, and the product's core value (team security oversight) is destroyed. This is a P0 blocker for any real usage.
 **Importance:** Critical — the product cannot be used by any org with more than 1 person until this is fixed.
@@ -333,7 +333,7 @@ Documents impacted:
 ---
 
 ## F-022
-**Status:** Deployed
+**Status:** Done
 **Feature name:** Remove Manager role from UI and add server-side guard
 **Business Value Hypothesis:** As a product simplification, the Manager role adds org hierarchy complexity (subtree assessments, manager invites, manager_user_id tree) that SMB owners with 2-10 employees don't need. Removing it from the invite form prevents confusion and reduces the attack surface. The simplified model is: Owner (org_admin) invites Employees, optionally flagging one as IT executor.
 **Importance:** High — directly prevents invite form confusion and aligns with simplified user model.
@@ -353,3 +353,56 @@ Documents impacted:
 **Dependencies:** None.
 **Risk and amount of Test:** Chance: 2, Impact: 2. Medium risk — DB migration + ~10 files. Regression test: invite flow, team page, assessments, dashboard. Verify existing data migrated correctly.
 **Complexity estimate:** Medium (Stefan override: full migration instead of UI-only).
+
+---
+
+## F-023
+**Status:** Created
+**Feature name:** Add navigation to expired/error invite pages
+**Business Value Hypothesis:** As an invited user whose invite link has expired, I need a way to navigate back to the homepage or login page — currently the expired invite page has no header, logo, or links, leaving the user completely stranded.
+**Importance:** Medium — affects every user who clicks an expired or already-used invite link.
+**Urgency:** Medium — poor first impression for invited users.
+**Acceptance Criteria:**
+- Expired invite page shows a "Back to home" link to /
+- Expired invite page shows the app header/logo
+- Wrong-email error on accept-invite also has navigation back
+**Scope:** `app/accept-invite/page.tsx` — add header and navigation links to error states.
+**Not in Scope:** N/A.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 1. Visual check only.
+**Complexity estimate:** Small.
+
+---
+
+## F-024
+**Status:** Created
+**Feature name:** Fix login page heading mismatch with "Sign up free" CTA
+**Business Value Hypothesis:** As a new user who clicked "Sign up free" on the landing page, I expect the login page to welcome me with signup-appropriate text — not "Log in", which makes me think I clicked the wrong thing.
+**Importance:** Medium — affects first impression for every new user.
+**Urgency:** Low — users figure it out, but it creates a moment of doubt.
+**Acceptance Criteria:**
+- Login page heading reflects the user's context: "Get started" or "Sign in / Sign up" when arriving from "Sign up free" CTA
+- Or a single neutral heading that works for both contexts (e.g., "Welcome")
+**Scope:** `app/login/page.tsx` heading text.
+**Not in Scope:** Auth flow changes.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 1.
+**Complexity estimate:** Small.
+
+---
+
+## F-025
+**Status:** Created
+**Feature name:** Minor UX copy inconsistencies from PI 12 BA review
+**Business Value Hypothesis:** As a user, I expect consistent naming and copy across all pages — small inconsistencies erode trust in a security product.
+**Importance:** Low.
+**Urgency:** Low.
+**Acceptance Criteria:**
+- Landing page tab title aligned with brand name (or explicitly documented as SEO override)
+- Privacy page reference to "Settings & Data" includes context for anonymous readers
+- Footer CTA "Browse checklist" matches hero CTA "Browse the checklist"
+**Scope:** Metadata, copy text across 2-3 pages.
+**Not in Scope:** Design changes.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 1.
+**Complexity estimate:** Small.

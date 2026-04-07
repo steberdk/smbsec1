@@ -254,20 +254,29 @@
 
 ---
 
-## PI 12 (2026-04-07 — planned)
+## Done — PI 12 (2026-04-07)
 
 **Theme:** Fix broken invite/onboarding flow, simplify roles, stabilise CI
 
 **Product Team consensus:** `docs/product/pi12/product_team_consensus.md`
 
-| Priority | Feature | Status |
-|---|---|---|
-| P0 | F-021: Funnel — Fix broken invite/onboarding flow (invited employees must join existing org) | Funnel |
-| P0 | F-020: Funnel — Reduce invite friction + simplified onboarding (3 fields) | Funnel |
-| P1 | F-022: Funnel — Remove Manager role (full: UI + server guard + DB migration) | Funnel |
-| P2 | F-014: Funnel — Fix inconsistencies from PI 11 BA review | Funnel |
-| P2 | F-019: Funnel — Fix privacy title + login form email retention | Funnel |
-| P2 | F-015: Funnel — Fix flaky E2E tests (race conditions) | Funnel |
+### Iteration 1: Manager Role Removal + Flaky Tests
+- F-022: Full Manager role removal — DB migration 021, ~20 files, subtree assessments removed. Only org_admin + employee roles remain.
+- F-015: Fix flaky E2E tests — replaced waitForResponse with UI-state assertions in checklist and awareness specs.
+
+### Iteration 2: Invite Flow Fix + Friction Reduction
+- F-021: Fix invite/onboarding routing — WorkspaceProvider checks pending invites before onboarding redirect (Option A). Onboarding safety net (Option B). New /api/invites/pending endpoint. Accept-invite page redesigned as confirmation card. Login page context-aware for invite vs new owner. Self-role-assignment prevention.
+- F-020: Reduce invite friction — email pre-fill from invite link, OTP auto-submit on 6 digits, onboarding form simplified (removed email platform + computers, kept IT handler question).
+
+### Iteration 3: UI Polish
+- F-014: Fix inconsistencies — summary page reads assessment responses (not legacy user_checklists), campaign detail access guard, billing waitlist uses logged-in email, settings naming consistency (Settings + Data & Privacy).
+- F-019: Fix privacy page double title suffix, login email clear on "use different email".
+
+### Business Test Findings (2026-04-07)
+- **PI 12 core fix CONFIRMED**: Invited employees route to /accept-invite, NOT /onboarding
+- F-023: Medium — expired invite page has no navigation (user stranded)
+- F-024: Medium — login page heading "Log in" mismatches "Sign up free" CTA
+- F-025: Low — minor copy inconsistencies (tab title, privacy reference, footer CTA)
 
 ---
 
@@ -294,3 +303,6 @@ Features below are defined in `features.md` with full detail. Listed here by fea
 - F-013: SEO and Open Graph metadata
 - F-016: As Product and IT Dev teams, we want to take in user suggestions and complaints, to improve our product.
 - F-017: Figure out if users (possibly paid users) should be able to paste in screen shots to better explain to AI agent when going through checklist items.
+- F-023: Add navigation to expired/error invite pages — **Medium** from PI 12 Business Test
+- F-024: Fix login page heading mismatch with "Sign up free" CTA — **Medium** from PI 12 Business Test
+- F-025: Minor UX copy inconsistencies — **Low** from PI 12 Business Test
