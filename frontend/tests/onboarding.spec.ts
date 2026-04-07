@@ -31,7 +31,7 @@ test("E2E-ONBOARD-02: org creation with 'I do' redirects to /workspace", async (
   const supabase = getServiceClient();
   try {
     await loginWithEmail(page, user.email);
-    await page.waitForURL(/\/onboarding/);
+    await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
 
     await page.getByPlaceholder(/acme ltd/i).fill("Onboard Test Org");
     await page.getByRole("radio", { name: /i do/i }).check();
@@ -64,7 +64,7 @@ test("E2E-ONBOARD-03: org creation with 'A staff member' creates an IT invite", 
   const itEmail = `it-${Date.now()}@example.com`;
   try {
     await loginWithEmail(page, user.email);
-    await page.waitForURL(/\/onboarding/);
+    await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
 
     await page.getByPlaceholder(/acme ltd/i).fill("Staff IT Org");
     await page.getByRole("radio", { name: /a staff member/i }).check();
@@ -101,7 +101,7 @@ test("E2E-ONBOARD-04: 'Not sure' assigns IT checklist to owner and redirects to 
   const supabase = getServiceClient();
   try {
     await loginWithEmail(page, user.email);
-    await page.waitForURL(/\/onboarding/);
+    await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
 
     await page.getByPlaceholder(/acme ltd/i).fill("Not Sure Org");
     await page.getByRole("radio", { name: /not sure yet/i }).check();
@@ -136,7 +136,7 @@ test("E2E-ORG-01: org admin is the sole root member after onboarding", async ({ 
   const supabase = getServiceClient();
   try {
     await loginWithEmail(page, user.email);
-    await page.waitForURL(/\/onboarding/);
+    await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
 
     await page.getByPlaceholder(/acme ltd/i).fill("Single Root Org");
     await page.getByRole("radio", { name: /i do/i }).check();

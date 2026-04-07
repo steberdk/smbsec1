@@ -169,7 +169,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-014
-**Status:** Developed
+**Status:** Deployed
 **Feature name:** Fix inconsistencies found during PI 11 BA review
 **Business Value Hypothesis:** As a user, I want the app to behave consistently across pages — correct naming, working data flows, proper access checks — so I can trust it as a security tool.
 **Acceptance Criteria:**
@@ -186,7 +186,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-015
-**Status:** Developed
+**Status:** Deployed
 **Feature name:** Fix flaky E2E tests (race conditions in response waits)
 **Business Value Hypothesis:** As a development team, we need reliable CI so that test failures signal real bugs, not random timing issues — otherwise we lose trust in CI and stop catching regressions.
 **Acceptance Criteria:**
@@ -245,7 +245,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-019
-**Status:** Developed
+**Status:** Deployed
 **Feature name:** Fix privacy page title duplication and login form email retention
 **Business Value Hypothesis:** As a user, I expect consistent page titles and a clean login form, so the product feels polished and trustworthy.
 **Acceptance Criteria:**
@@ -260,7 +260,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-020
-**Status:** Developed
+**Status:** Deployed
 **Feature name:** Reduce login friction for invited employees and show context-aware onboarding hints
 **Business Value Hypothesis:** As an invited employee clicking the invite link for the first time, I should not have to re-type the email address that was already used to invite me — this is unnecessary friction that risks abandonment. Additionally, the "New here?" information box on the login page currently shows owner-oriented text ("Set up your organisation, Invite your team") to all users including invited employees, which is confusing. The box should remain visible for all users but display context-appropriate guidance depending on whether the user is a new owner or an invited employee.
 **Importance:** High — this is every invited employee's first impression of the product. Friction or confusing messaging at this stage risks losing the user before they even join.
@@ -289,7 +289,7 @@ Documents impacted by this feature:
 ---
 
 ## F-021
-**Status:** Developed
+**Status:** Deployed
 **Feature name:** Fix broken invite/onboarding flow — invited employees must join existing org, not create new one
 **Business Value Hypothesis:** As an SMB owner who invited employees, I need those employees to join MY organisation when they log in — not be routed to onboarding where they create a separate org. Without this, the entire team model is broken: dashboard shows no team progress, assessments are siloed, and the product's core value (team security oversight) is destroyed. This is a P0 blocker for any real usage.
 **Importance:** Critical — the product cannot be used by any org with more than 1 person until this is fixed.
@@ -333,7 +333,7 @@ Documents impacted:
 ---
 
 ## F-022
-**Status:** Developed
+**Status:** Deployed
 **Feature name:** Remove Manager role from UI and add server-side guard
 **Business Value Hypothesis:** As a product simplification, the Manager role adds org hierarchy complexity (subtree assessments, manager invites, manager_user_id tree) that SMB owners with 2-10 employees don't need. Removing it from the invite form prevents confusion and reduces the attack surface. The simplified model is: Owner (org_admin) invites Employees, optionally flagging one as IT executor.
 **Importance:** High — directly prevents invite form confusion and aligns with simplified user model.
