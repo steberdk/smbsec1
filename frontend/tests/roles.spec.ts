@@ -75,7 +75,7 @@ test("E2E-ROLE-02: employee cannot delete a member via the API", async ({ page, 
       await loginWithEmail(page, employee1.email);
       await page.goto("/workspace/settings/gdpr");
       // Employees cannot reach the GDPR member management (only org_admin role can)
-      await expect(page.getByText(/only org admins/i)).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText(/only the organisation owner/i)).toBeVisible({ timeout: 10_000 });
     }
   } finally {
     await employee2.delete();

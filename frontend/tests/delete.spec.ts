@@ -127,7 +127,7 @@ test("E2E-DEL-03: Employee cannot delete a member via the API (403)", async ({ p
       // Fallback: verify employee sees access-restricted message on GDPR page
       await loginWithEmail(page, employee1.email);
       await page.goto("/workspace/settings/gdpr");
-      await expect(page.getByText(/only org admins/i)).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText(/only the organisation owner/i)).toBeVisible({ timeout: 10_000 });
     }
   } finally {
     await employee2.delete();

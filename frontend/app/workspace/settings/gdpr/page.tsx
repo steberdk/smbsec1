@@ -126,7 +126,7 @@ export default function WorkspaceGdprPage() {
 
       {!isAdmin && (
         <p className="mt-4 text-sm text-gray-500">
-          Contact your org admin to export or manage other organisation data.
+          Contact your organisation owner to export or manage other organisation data.
         </p>
       )}
 
@@ -277,7 +277,7 @@ function SelfDeleteSection({
 
       {isAdmin && otherMembers.length > 0 && (
         <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-          You are the org admin and other members exist. Delete the organisation first.
+          You are the organisation owner and other members exist. Delete the organisation first.
         </p>
       )}
 

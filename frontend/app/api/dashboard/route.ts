@@ -201,6 +201,13 @@ export async function GET(req: Request): Promise<NextResponse> {
     });
   }
 
+  // Cadence status: time-based, but downgrade to amber if unsure ratio is too high
+  let cStatus = cadenceStatus(lastCompletedAt);
+  const answered = done + unsure + skipped;
+  if (cStatus === "green" && answered > 0 && unsure / answered > 0.3) {
+    cStatus = "amber";
+  }
+
   return NextResponse.json({
     assessment: latestAssessment,
     stats: {
@@ -217,7 +224,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     members: memberBreakdown,
     cadence: {
       last_completed_at: lastCompletedAt,
-      status: cadenceStatus(lastCompletedAt),
+      status: cStatus,
     },
+    caller_is_it_executor: membership.is_it_executor,
   });
 }

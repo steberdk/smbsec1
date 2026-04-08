@@ -13,7 +13,7 @@ const statusLabel: Record<ChecklistStatus, string> = {
   todo: "Not started",
   done: "Done",
   unsure: "Not sure",
-  skipped: "Skipped",
+  skipped: "Not applicable",
 };
 
 export function ChecklistItemCard({
@@ -80,7 +80,7 @@ export function ChecklistItemCard({
             onClick={() => onSetStatus("skipped")}
             type="button"
           >
-            Skip
+            Not applicable
           </button>
 
           <button

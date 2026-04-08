@@ -196,7 +196,7 @@ function LoginInner() {
 
                 <div className="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
                   <p className="text-xs text-gray-600">
-                    Sending to: <strong>{email}</strong>
+                    Sent to: <strong>{email}</strong>
                   </p>
                 </div>
 

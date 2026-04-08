@@ -111,7 +111,7 @@ export default function PrivacyPage() {
             <li><strong>Right to rectification</strong> — Update your display name and organisation settings at any time.</li>
             <li><strong>Right to erasure</strong> — Employees can delete their own account. Organisation admins can delete the entire organisation and all associated data.</li>
             <li><strong>Right to data portability</strong> — Organisation admins can export all org data in JSON format from Settings &amp; Data.</li>
-            <li><strong>Right to object</strong> — Employees can opt out of phishing awareness campaigns via their organisation admin.</li>
+            <li><strong>Right to object</strong> — Employees can request to opt out of phishing awareness campaigns by contacting their organisation owner.</li>
           </ul>
           <p className="mt-2">
             All deletions are <strong>hard deletes</strong> — no soft flags, no data retained after deletion.
@@ -124,7 +124,7 @@ export default function PrivacyPage() {
             <li><strong>Magic link login</strong> — sent when you request to sign in.</li>
             <li><strong>Team invite</strong> — sent when an admin invites you to an organisation.</li>
             <li><strong>Reassessment reminder</strong> — sent when your security review is due for reassessment.</li>
-            <li><strong>Phishing awareness campaigns</strong> — simulated phishing emails sent by your organisation admin for security training. These emails are clearly identified as simulations after interaction.</li>
+            <li><strong>Phishing awareness campaigns</strong> — simulated phishing emails sent by your organisation owner for security training purposes.</li>
           </ul>
           <p className="mt-2">We do not send marketing emails or newsletters.</p>
         </section>
@@ -144,8 +144,8 @@ export default function PrivacyPage() {
           <h2 className="font-semibold text-base mb-2">11. Contact</h2>
           <p>
             For questions about your data or privacy, or to exercise your GDPR rights,
-            contact us via the application or at the email address provided in your
-            organisation&apos;s settings.
+            contact your organisation owner. Organisation owners can export and delete
+            data from the Settings &amp; Data page.
           </p>
         </section>
       </div>

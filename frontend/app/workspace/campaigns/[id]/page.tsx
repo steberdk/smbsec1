@@ -167,7 +167,7 @@ export default function CampaignDetailPage() {
     return (
       <div className="text-center py-16 text-gray-500">
         <p className="text-lg font-medium">Access restricted</p>
-        <p className="text-sm mt-1">Only org admins can view campaign details.</p>
+        <p className="text-sm mt-1">Only the organisation owner can view campaign details.</p>
       </div>
     );
   }

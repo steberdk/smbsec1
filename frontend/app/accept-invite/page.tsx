@@ -209,7 +209,7 @@ function AcceptInviteInner() {
   }
 
   // Main confirmation card (default: authenticated + has token + not yet accepted)
-  const roleLabel = inviteInfo?.role === "org_admin" ? "Administrator" : "Employee";
+  const roleLabel = inviteInfo?.role === "org_admin" ? "Owner" : "Employee";
 
   return (
     <main className="max-w-md mx-auto px-4 py-20">

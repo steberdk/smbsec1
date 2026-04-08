@@ -110,7 +110,7 @@ test("E2E-ONBOARD-04: 'Not sure' assigns IT checklist to owner and redirects to 
     await page.waitForURL(/\/workspace/, { timeout: 15_000 });
 
     // Owner is set as IT executor; workspace shows "IT executor" tag in role line
-    await expect(page.getByText(/org admin · IT executor/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/owner · IT Executor/i)).toBeVisible({ timeout: 10_000 });
   } finally {
     const { data: membership } = await supabase
       .from("org_members")
@@ -144,8 +144,8 @@ test("E2E-ORG-01: org admin is the sole root member after onboarding", async ({ 
 
     await page.waitForURL(/\/workspace/, { timeout: 15_000 });
 
-    // Role shows as org admin
-    await expect(page.getByText(/org admin/i)).toBeVisible();
+    // Role shows as Owner
+    await expect(page.getByText(/owner/i)).toBeVisible();
 
     // Team page is visible in nav (manager+ only) — confirms admin role granted
     await expect(page.getByRole("link", { name: /^team$/i }).first()).toBeVisible();

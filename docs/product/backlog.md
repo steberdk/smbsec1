@@ -280,6 +280,32 @@
 
 ---
 
+## In Progress — PI 13 (2026-04-08)
+
+**Theme:** Fix Stefan's PROD test findings — role labels, IT Executor flow, dashboard logic, privacy claims, UX polish
+
+**Based on:** Stefan's test report (20260408a_Stefan_test.pdf, findings 012-020)
+
+### Iteration 1: High Priority Fixes
+- F-026: Fix role labels — "Org Admin" → "Owner", "IT Lead" → "IT Executor", "Skipped" → "Not applicable"
+- F-027: Fix IT Executor flow — empty settings dropdown, workspace invite step, onboarding server-side guard
+- F-029: Fix privacy page claims, "Sending to:" → "Sent to:", team page UUID display
+
+### Iteration 2: Medium Priority Fixes
+- F-028: Fix dashboard status logic — amber when high unsure, hide IT Baseline for employees, show resolved count
+
+### Iteration 3: Low Priority + Polish
+- F-030: Improve email platform list (add Exchange/Outlook, Apple iCloud Mail)
+- F-023: Add navigation to expired/error invite pages
+- F-024: Fix login page heading mismatch
+
+### Deferred (from Stefan's test)
+- F-031: AI checklist guidance as interactive chat
+- F-032: Owner sets reassessment period
+- F-033: Owner can remove team member (GDPR)
+
+---
+
 ## Not yet prioritized
 
 Features below are defined in `features.md` with full detail. Listed here by feature number for roadmap visibility.

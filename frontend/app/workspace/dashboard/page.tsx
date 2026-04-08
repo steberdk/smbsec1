@@ -48,11 +48,12 @@ type DashboardData = {
   };
   members: MemberStat[];
   cadence: { last_completed_at: string | null; status: CadenceStatus };
+  caller_is_it_executor?: boolean;
 };
 
 const CADENCE_LABEL: Record<CadenceStatus, string> = {
   green: "On track",
-  amber: "Due soon",
+  amber: "Needs attention",
   red: "Overdue",
   never: "No assessment completed",
 };
@@ -126,7 +127,7 @@ export default function WorkspaceDashboardPage() {
     );
   }
 
-  const { stats, members, cadence, assessment } = data;
+  const { stats, members, cadence, assessment, caller_is_it_executor } = data;
 
   return (
     <>
@@ -189,15 +190,18 @@ export default function WorkspaceDashboardPage() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="grid grid-cols-4 gap-3 text-center">
+              <StatPill label="Resolved" value={stats.done + stats.skipped} color="text-teal-700" />
               <StatPill label="Done" value={stats.done} color="text-green-700" />
               <StatPill label="Unsure" value={stats.unsure} color="text-amber-700" />
-              <StatPill label="Skipped" value={stats.skipped} color="text-gray-500" />
+              <StatPill label="Not applicable" value={stats.skipped} color="text-gray-500" />
             </div>
 
             {stats.by_track && (
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <TrackBar label="IT Baseline" track={stats.by_track.it_baseline} />
+              <div className={`mt-4 grid gap-3 ${caller_is_it_executor || isAdmin ? "grid-cols-2" : "grid-cols-1"}`}>
+                {(caller_is_it_executor || isAdmin) && (
+                  <TrackBar label="IT Baseline" track={stats.by_track.it_baseline} />
+                )}
                 <TrackBar label="Awareness" track={stats.by_track.awareness} />
               </div>
             )}
@@ -330,7 +334,7 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   done: "Done",
   unsure: "Unsure",
-  skipped: "Skipped",
+  skipped: "Not applicable",
 };
 
 function MemberRow({ member: m, token }: { member: MemberStat; token: string }) {
@@ -371,8 +375,8 @@ function MemberRow({ member: m, token }: { member: MemberStat; token: string }) 
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs text-gray-500 capitalize">
-              {m.role.replace("_", " ")}
-              {m.is_it_executor && " · IT executor"}
+              {m.role === "org_admin" ? "Owner" : m.role.replace("_", " ")}
+              {m.is_it_executor && " · IT Executor"}
             </p>
             <p className="text-xs text-gray-600">
               {m.display_name ?? m.email ?? `${m.user_id.slice(0, 8)}...`}

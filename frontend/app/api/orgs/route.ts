@@ -38,6 +38,19 @@ export async function POST(req: Request): Promise<NextResponse> {
   const existing = await getOrgMembership(supabase, user.id);
   if (existing) return apiError("User already belongs to an organisation", 409);
 
+  // Block if user has a pending (unaccepted, unexpired) invite — they should accept it, not create a new org
+  const { data: pendingInvite } = await supabase
+    .from("invites")
+    .select("id")
+    .eq("email", user.email ?? "")
+    .is("accepted_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .limit(1)
+    .maybeSingle();
+  if (pendingInvite) {
+    return apiError("You have a pending invitation. Please accept it instead of creating a new organisation.", 409);
+  }
+
   const body: CreateOrgBody = await req.json().catch(() => null);
   if (!body || typeof body.name !== "string" || body.name.trim() === "") {
     return apiError("name is required", 400);
@@ -89,6 +102,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     role: "org_admin",
     is_it_executor: ownerIsItExecutor,
     display_name: body.display_name?.trim() || null,
+    email: user.email ?? null,
   });
 
   if (memberErr) {

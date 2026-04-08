@@ -10,7 +10,7 @@ export default function WorkspacePage() {
   const { membership } = orgData;
 
   const [hasActiveAssessment, setHasActiveAssessment] = useState<boolean | null>(null);
-  const [pendingInviteCount, setPendingInviteCount] = useState<number | null>(null);
+  const [hasItExecutor, setHasItExecutor] = useState(false);
   const [cadence, setCadence] = useState<{ status: string; last_completed_at: string | null } | null>(null);
   const [checklistPercent, setChecklistPercent] = useState<number | null>(null);
 
@@ -35,8 +35,9 @@ export default function WorkspacePage() {
     ];
     if (isAdmin) {
       fetches.push(
-        apiFetch<{ invites: unknown[] }>("/api/invites", token)
-          .then(({ invites }) => setPendingInviteCount(invites.length))
+        apiFetch<{ members: { is_it_executor: boolean }[] }>("/api/orgs/members", token)
+          .then(({ members }) => setHasItExecutor(members.some((m) => m.is_it_executor)))
+          .catch(() => {}),
       );
     }
     Promise.all(fetches).catch(() => {});
@@ -49,8 +50,8 @@ export default function WorkspacePage() {
     <>
       <h1 className="text-2xl font-bold text-gray-900">{orgData.org.name}</h1>
       <p className="mt-1 text-sm text-gray-500 capitalize mb-6">
-        {membership.role.replace("_", " ")}
-        {membership.is_it_executor && " · IT executor"}
+        {membership.role === "org_admin" ? "Owner" : membership.role.replace("_", " ")}
+        {membership.is_it_executor && " · IT Executor"}
       </p>
 
       {/* Cadence warning banner (amber/red) */}
@@ -83,10 +84,10 @@ export default function WorkspacePage() {
           <ol className="space-y-3">
             <GuidedStep
               number={1}
-              title={membership.is_it_executor ? "IT checklist assigned to you" : "Invite your IT lead"}
+              title={membership.is_it_executor ? "IT checklist assigned to you" : "Invite your IT Executor"}
               description={membership.is_it_executor ? "You chose to handle IT yourself — the IT Baseline checklist is on your list." : "Assign someone to handle the technical security checklist."}
               href="/workspace/team"
-              done={membership.is_it_executor || (pendingInviteCount !== null && pendingInviteCount > 0)}
+              done={hasItExecutor}
               cta="Invite team member"
             />
             <GuidedStep

@@ -59,7 +59,7 @@ const RESPONSE_TOOLTIPS: Record<string, Record<ResponseStatus, string>> = {
   it_baseline: {
     done: "We have completed this control or it is already in place.",
     unsure: "We are not sure if this is done — needs investigation.",
-    skipped: "Not applicable to our organisation or deferred for now.",
+    skipped: "Not applicable to our organisation.",
   },
   awareness: {
     done: "I understand this and have completed the action step.",
@@ -72,7 +72,7 @@ const RESPONSE_LABELS: Record<string, Record<ResponseStatus, string>> = {
   it_baseline: {
     done: "Done",
     unsure: "Unsure",
-    skipped: "Skipped",
+    skipped: "Not applicable",
   },
   awareness: {
     done: "I've done this",

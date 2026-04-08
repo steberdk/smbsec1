@@ -107,7 +107,7 @@ export default function WorkspaceTeamPage() {
     return (
       <div className="text-center py-16 text-gray-500">
         <p className="text-lg font-medium">Access restricted</p>
-        <p className="text-sm mt-1">Only org admins can manage the team.</p>
+        <p className="text-sm mt-1">Only the organisation owner can manage the team.</p>
       </div>
     );
   }
@@ -181,8 +181,8 @@ export default function WorkspaceTeamPage() {
                     {m.display_name ?? m.email ?? `${m.user_id.slice(0, 8)}...`}
                   </p>
                   <p className="text-xs text-gray-500 capitalize">
-                    {m.role.replace("_", " ")}
-                    {m.is_it_executor && " · IT executor"}
+                    {m.role === "org_admin" ? "Owner" : m.role.replace("_", " ")}
+                    {m.is_it_executor && " · IT Executor"}
                   </p>
                 </div>
                 <p className="text-xs text-gray-400">
@@ -217,7 +217,7 @@ export default function WorkspaceTeamPage() {
                   <p className="text-sm font-medium">{invite.email}</p>
                   <p className="text-xs text-gray-500 capitalize">
                     {invite.role}
-                    {invite.is_it_executor && " · IT executor"}
+                    {invite.is_it_executor && " · IT Executor"}
                     {" · expires "}
                     {new Date(invite.expires_at).toLocaleDateString()}
                   </p>

@@ -406,3 +406,134 @@ Documents impacted:
 **Dependencies:** None.
 **Risk and amount of Test:** Chance: 1, Impact: 1.
 **Complexity estimate:** Small.
+
+---
+
+## F-026
+**Status:** Developed
+**Feature name:** Fix role labels and naming consistency across UI
+**Business Value Hypothesis:** As a user, I expect consistent terminology. "Org Admin" should say "Owner", "IT Lead" should say "IT Executor", and "Skipped" should say "Not applicable" everywhere.
+**Importance:** High
+**Urgency:** High
+**Acceptance Criteria:**
+- AC-1: "Org Admin"/"org admin" replaced with "Owner" on workspace home, team page, dashboard, accept-invite page, settings dropdown
+- AC-2: "IT Lead" replaced with "IT Executor" on workspace home guided step
+- AC-3: "Skipped" replaced with "Not applicable" for IT Baseline track in workspace checklist, dashboard stats, and drill-down
+**Scope:** UI text changes across ~6 files. No DB changes.
+**Not in Scope:** DB column renaming.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 1.
+**Complexity estimate:** Small.
+
+---
+
+## F-027
+**Status:** Developed
+**Feature name:** Fix IT Executor flow — empty dropdown, invite step, onboarding guard
+**Business Value Hypothesis:** As an owner who invited an IT person, the workspace must reflect that the IT executor has joined. Current bugs: empty dropdown, invite step not detecting joined executor, invited users can accidentally create new orgs.
+**Importance:** High
+**Urgency:** High
+**Acceptance Criteria:**
+- AC-1: Settings page IT Executor dropdown populated from /api/orgs/members (not /api/dashboard)
+- AC-2: Workspace home "Invite your IT executor" step marked done when a member with is_it_executor=true exists
+- AC-3: POST /api/orgs rejects org creation if user has a pending invite
+**Scope:** Settings page data source, workspace home step logic, org creation API guard.
+**Not in Scope:** Changing invite flow itself.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 2, Impact: 2.
+**Complexity estimate:** Small-Medium.
+
+---
+
+## F-028
+**Status:** Developed
+**Feature name:** Fix dashboard status logic and display filtering
+**Business Value Hypothesis:** "On track" with many Unsure items is misleading. Employees seeing IT Baseline stats is confusing. Owner needs "resolved" count.
+**Importance:** Medium
+**Urgency:** Medium
+**Acceptance Criteria:**
+- AC-1: Cadence status factors in unsure ratio — amber if >30% unsure even if time is green
+- AC-2: Employee dashboard hides IT Baseline track bar
+- AC-3: Dashboard shows "Resolved" count (done + not-applicable) alongside existing stats
+**Scope:** Dashboard API + dashboard page.
+**Not in Scope:** Changing assessment model.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 2.
+**Complexity estimate:** Small.
+
+---
+
+## F-029
+**Status:** Developed
+**Feature name:** Fix privacy page claims, login text, team page UUID display
+**Business Value Hypothesis:** Privacy page claims non-existent features (opt-out, simulation reveal, in-app contact) — misleading and potential GDPR issue.
+**Importance:** High
+**Urgency:** High
+**Acceptance Criteria:**
+- AC-1: Privacy "Right to object" — employees contact org owner to opt out (no self-service UI)
+- AC-2: Privacy campaign section — remove "clearly identified as simulations after interaction"
+- AC-3: Privacy contact — remove in-app contact reference
+- AC-4: Login page "Sending to:" → "Sent to:"
+- AC-5: Team page: better fallback than UUID
+**Scope:** Privacy page, login page, team page.
+**Not in Scope:** Implementing claimed features.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 1.
+**Complexity estimate:** Small.
+
+---
+
+## F-030
+**Status:** Developed
+**Feature name:** Improve email platform list in settings
+**Business Value Hypothesis:** Owner can't find Exchange/Outlook or Apple Mail in the dropdown.
+**Importance:** Low
+**Urgency:** Low
+**Acceptance Criteria:**
+- AC-1: "Microsoft 365" label → "Microsoft 365 (Exchange / Outlook)"
+- AC-2: "Apple iCloud Mail" added as option
+**Scope:** Settings page platform options.
+**Not in Scope:** AI-assisted platform selection.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 1.
+**Complexity estimate:** Small.
+
+---
+
+## F-031
+**Status:** Created
+**Feature name:** AI checklist guidance as interactive chat
+**Business Value Hypothesis:** One-shot AI doesn't help with specific setups. Users need back-and-forth conversation scoped to checklist item.
+**Importance:** Medium. **Urgency:** Low — deferred.
+**Acceptance Criteria:** TBD.
+**Scope:** Multi-turn chat UI per checklist item.
+**Not in Scope:** General-purpose AI assistant.
+**Dependencies:** Anthropic API, F-012.
+**Risk and amount of Test:** TBD.
+**Complexity estimate:** Medium-Large.
+
+---
+
+## F-032
+**Status:** Created
+**Feature name:** Owner sets reassessment period
+**Business Value Hypothesis:** Owner wants to set reassessment cadence (3mo / 6mo / 1yr) with automatic reminders.
+**Importance:** Medium. **Urgency:** Low — deferred.
+**Acceptance Criteria:** TBD.
+**Scope:** Org setting, reminder scheduling.
+**Dependencies:** None.
+**Risk and amount of Test:** TBD.
+**Complexity estimate:** Small-Medium.
+
+---
+
+## F-033
+**Status:** Created
+**Feature name:** Owner can remove team member (GDPR member deletion)
+**Business Value Hypothesis:** Owner must remove people from team and delete all their data for GDPR compliance.
+**Importance:** Medium. **Urgency:** Low — deferred.
+**Acceptance Criteria:** TBD.
+**Scope:** Team page "Remove", API, cascade delete.
+**Dependencies:** None.
+**Risk and amount of Test:** TBD.
+**Complexity estimate:** Small-Medium.

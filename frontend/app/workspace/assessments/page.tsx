@@ -80,7 +80,7 @@ export default function WorkspaceAssessmentsPage() {
     return (
       <div className="text-center py-16 text-gray-500">
         <p className="text-lg font-medium">Access restricted</p>
-        <p className="text-sm mt-1">Only org admins can manage assessments.</p>
+        <p className="text-sm mt-1">Only the organisation owner can manage assessments.</p>
       </div>
     );
   }

@@ -16,8 +16,9 @@ type MemberInfo = {
 const PLATFORM_OPTIONS = [
   { value: "", label: "Not set" },
   { value: "google_workspace", label: "Google Workspace" },
-  { value: "microsoft_365", label: "Microsoft 365" },
+  { value: "microsoft_365", label: "Microsoft 365 (Exchange / Outlook)" },
   { value: "gmail_personal", label: "Gmail (Personal)" },
+  { value: "apple_icloud", label: "Apple iCloud Mail" },
   { value: "other", label: "Other" },
 ];
 
@@ -41,11 +42,11 @@ export default function OrgSettingsPage() {
 
   useEffect(() => {
     if (!token) return;
-    apiFetch<{ members: MemberInfo[] }>("/api/dashboard", token)
-      .then((dashData) => {
-        const currentExecutor = dashData.members.find((m) => m.is_it_executor);
+    apiFetch<{ members: MemberInfo[] }>("/api/orgs/members", token)
+      .then(({ members: list }) => {
+        const currentExecutor = list.find((m) => m.is_it_executor);
         setExecutor(currentExecutor?.user_id ?? orgData.membership.user_id ?? "");
-        setMembers(dashData.members);
+        setMembers(list);
       })
       .catch((e: unknown) => {
         setLoadError(e instanceof Error ? e.message : "Failed to load settings.");
@@ -81,7 +82,7 @@ export default function OrgSettingsPage() {
     return (
       <>
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
-        <p className="text-sm text-gray-600">Only organisation admins can change settings.</p>
+        <p className="text-sm text-gray-600">Only the organisation owner can change settings.</p>
       </>
     );
   }
@@ -149,7 +150,7 @@ export default function OrgSettingsPage() {
           >
             {members.map((m) => (
               <option key={m.user_id} value={m.user_id}>
-                {m.display_name ?? m.email ?? m.user_id.slice(0, 8) + "..."} ({m.role.replace("_", " ")})
+                {m.display_name ?? m.email ?? m.user_id.slice(0, 8) + "..."} ({m.role === "org_admin" ? "Owner" : m.role.replace("_", " ")})
               </option>
             ))}
           </select>
