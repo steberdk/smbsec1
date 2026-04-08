@@ -280,7 +280,7 @@
 
 ---
 
-## In Progress — PI 13 (2026-04-08)
+## Done — PI 13 (2026-04-08)
 
 **Theme:** Fix Stefan's PROD test findings — role labels, IT Executor flow, dashboard logic, privacy claims, UX polish
 

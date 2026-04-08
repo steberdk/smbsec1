@@ -410,7 +410,7 @@ Documents impacted:
 ---
 
 ## F-026
-**Status:** Developed
+**Status:** Done
 **Feature name:** Fix role labels and naming consistency across UI
 **Business Value Hypothesis:** As a user, I expect consistent terminology. "Org Admin" should say "Owner", "IT Lead" should say "IT Executor", and "Skipped" should say "Not applicable" everywhere.
 **Importance:** High
@@ -428,7 +428,7 @@ Documents impacted:
 ---
 
 ## F-027
-**Status:** Developed
+**Status:** Done
 **Feature name:** Fix IT Executor flow — empty dropdown, invite step, onboarding guard
 **Business Value Hypothesis:** As an owner who invited an IT person, the workspace must reflect that the IT executor has joined. Current bugs: empty dropdown, invite step not detecting joined executor, invited users can accidentally create new orgs.
 **Importance:** High
@@ -446,7 +446,7 @@ Documents impacted:
 ---
 
 ## F-028
-**Status:** Developed
+**Status:** Done
 **Feature name:** Fix dashboard status logic and display filtering
 **Business Value Hypothesis:** "On track" with many Unsure items is misleading. Employees seeing IT Baseline stats is confusing. Owner needs "resolved" count.
 **Importance:** Medium
@@ -464,7 +464,7 @@ Documents impacted:
 ---
 
 ## F-029
-**Status:** Developed
+**Status:** Done
 **Feature name:** Fix privacy page claims, login text, team page UUID display
 **Business Value Hypothesis:** Privacy page claims non-existent features (opt-out, simulation reveal, in-app contact) — misleading and potential GDPR issue.
 **Importance:** High
@@ -484,7 +484,7 @@ Documents impacted:
 ---
 
 ## F-030
-**Status:** Developed
+**Status:** Done
 **Feature name:** Improve email platform list in settings
 **Business Value Hypothesis:** Owner can't find Exchange/Outlook or Apple Mail in the dropdown.
 **Importance:** Low
