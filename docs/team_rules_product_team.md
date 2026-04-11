@@ -21,3 +21,13 @@ When a critical UX flow is broken, the Product Team must start by mapping the AC
 ACs must name specific observable outcomes (URL, page element, HTTP status code), not implementation approaches. "User lands on `/accept-invite`" is testable. "WorkspaceProvider checks pending invite" is not — it describes implementation, not outcome.
 
 **Why:** During PI 12 refinement, several ACs mixed implementation notes with outcomes. BA had to rewrite them as test scenarios. Starting with testable outcomes avoids a translation step and keeps Product Team and IT Dev Team aligned on the same verification criteria.
+
+---
+
+## Rule 3 (PI 14 ROADMAP session, 2026-04-11)
+
+**No "TBD / Product Team to choose later" punts in ACs that ship to IT Dev refinement.**
+
+When the team is split between two technical or semantic options for an AC (e.g. F-038 AC-7 denominator semantics, F-041 AC-1 reassignment behaviour), the Product Team MUST lock one option before the consensus document hands off to IT Dev Team. "TBD — Product Team chooses during refinement" is not allowed in any AC that's leaving the ROADMAP session. Round 3 (synthesis) is the place to break ties.
+
+**Why:** In PI 14 Round 1, both F-038 AC-7 and F-041 AC-1 were initially written as "Product Team to decide". BA's Round 1 §1 flagged them as the two blocking ACs. Locking them in Round 2 (and reconciling minor disagreements in Round 3) saved an entire IT Dev Team refinement loop that would otherwise have bounced back to the Product Team.

@@ -296,13 +296,62 @@
 
 ### Iteration 3: Low Priority + Polish
 - F-030: Improve email platform list (add Exchange/Outlook, Apple iCloud Mail)
-- F-023: Add navigation to expired/error invite pages
-- F-024: Fix login page heading mismatch
 
-### Deferred (from Stefan's test)
-- F-031: AI checklist guidance as interactive chat
-- F-032: Owner sets reassessment period
-- F-033: Owner can remove team member (GDPR)
+### Deferred from PI 13 (still in `Created` status — not delivered in PI 13 commit fee865e)
+- F-023: Add navigation to expired/error invite pages — moved into PI 14
+- F-024: Fix login page heading mismatch — moved into PI 14
+- F-025: Minor UX copy inconsistencies — moved into PI 14
+- F-031: AI checklist guidance as interactive chat — moved into roadmap PI 14+
+- F-032: Owner sets reassessment period — remains deferred (not in current scope)
+- F-033: Owner can remove team member (GDPR) — moved into roadmap PI 14+
+
+---
+
+## Roadmap — PI 14+
+
+Stefan 2026-04-11: deliver all PDF findings (low + medium + high) plus F-009, F-012, F-023, F-024, F-025, F-031, F-033. Continue autonomously across PIs until done. Final scope locked by Product Team — see `docs/product/pi14/product_team_consensus.md`.
+
+### PI 14 — "Numbers you can trust" (locked 2026-04-11)
+**Theme:** Dashboard math, multi-user test harness, trust-critical copy cleanups, IT Executor lifecycle, GDPR member deletion.
+
+**Iteration 1 — Foundation, rate-limit plumbing, copy cleanups:**
+- F-043: Reusable multi-user E2E test harness (ships first)
+- F-012 (partial): Persistent rate limit + Anthropic privacy disclosure + CSP header
+- F-023: Add navigation to expired/error invite pages (re-opened from PI 13 phantom-Done)
+- F-024: Login heading context-aware (re-opened from PI 13 phantom-Done)
+- F-025: Minor UX copy inconsistencies (re-opened from PI 13 phantom-Done)
+- F-034: Remove "Start an assessment" CTA from employee empty-state dashboard
+- F-037: Reword 1-page security rules template section 7
+- F-042: Delete the "contact us via the application" misleading copy (no feedback form)
+
+**Iteration 2 — Dashboard math (the big one):**
+- F-038: Dashboard math (track bars, denominators, pill order, Resolved semantics, denominator stability)
+- F-039: Workspace home "My checklist" progress bar shows OWN progress
+- F-040: Security report uses corrected dashboard math (shared helper)
+- F-035: Dashboard team list with pending invitees (zero denominator contribution)
+
+**Iteration 3 — Team lifecycle + awareness banner + Business Test prep:**
+- F-033: Owner can remove team member (GDPR member deletion, SHA-256 hashed audit)
+- F-041: IT Executor reassignment behaviour (atomic RPC, audit log)
+- F-036: IT Executor awareness-section banner
+
+### PI 15 — "AI conversation and mobile" (locked 2026-04-11)
+**Theme:** Interactive per-item AI chat, mobile audit, F-012 chat-specific hardening.
+
+**Iteration 1 — F-012 remainder + F-031 endpoint:**
+- F-012 (remainder): Hardened system prompt, server-side item lookup, output filter, kill-switch, 20-turn cap
+- F-031 (backend): `POST /api/guidance/chat` endpoint, stateless, 3-tier rate limit, deprecate `/api/guidance`
+
+**Iteration 2 — F-031 UI + F-009 mobile:**
+- F-031 (frontend): Per-item chat panel, no auto-first-message, scrollable history
+- F-009: Mobile responsiveness audit (6 pages × 3 viewports)
+
+**Iteration 3 — Buffer, hardening, Business Test:**
+- Prompt-injection corpus run, token-cost observation, mobile regression sweep
+- Vercel deploy + Business Test Team full walkthrough
+
+### PI 16 (contingent)
+Only materialises if PI 15 Business Test finds High/Medium defects, per CLAUDE.md §3d.
 
 ---
 
@@ -322,13 +371,28 @@ Features below are defined in `features.md` with full detail. Listed here by fea
 ### Product Polish
 - F-018: Done — Enforce role-based page access for employees
 - F-008: Evidence uploads for checklist items
-- F-009: Mobile responsiveness audit
 - F-010: Account recovery UX
 - F-011: Anonymous benchmarking
-- F-012: Tighten AI guidance guardrails
 - F-013: SEO and Open Graph metadata
 - F-016: As Product and IT Dev teams, we want to take in user suggestions and complaints, to improve our product.
 - F-017: Figure out if users (possibly paid users) should be able to paste in screen shots to better explain to AI agent when going through checklist items.
-- F-023: Add navigation to expired/error invite pages — **Medium** from PI 12 Business Test
-- F-024: Fix login page heading mismatch with "Sign up free" CTA — **Medium** from PI 12 Business Test
-- F-025: Minor UX copy inconsistencies — **Low** from PI 12 Business Test
+- F-032: Owner sets reassessment period
+
+### Stefan-2026-04-11 in scope (going into PI 14+ by ROADMAP session)
+- F-009: Mobile responsiveness audit
+- F-012: Tighten AI guidance guardrails
+- F-023: Add navigation to expired/error invite pages
+- F-024: Fix login page heading mismatch with "Sign up free" CTA
+- F-025: Minor UX copy inconsistencies
+- F-031: Replace one-shot AI guidance with interactive AI chat per checklist item
+- F-033: Owner can remove team member (GDPR member deletion)
+- F-034: Remove "Start an assessment" CTA from empty-state employee dashboard (PDF #31, Low)
+- F-035: Dashboard team list must include invited-but-not-yet-joined employees (PDF #32, Medium)
+- F-036: IT Executor awareness-section banner (PDF #33, Low-Medium)
+- F-037: Reword 1-page security rules template section 7 (PDF #34, Low)
+- F-038: Fix dashboard math — track progress, denominators, "Resolved" semantics (PDF #35, High)
+- F-039: Workspace home "My checklist" progress bar must show OWN progress (PDF #36, High)
+- F-040: Security report uses corrected dashboard math (PDF #38, Medium-High)
+- F-041: Define+implement IT Executor reassignment behaviour (PDF #39, Medium)
+- F-042: Fix or remove "contact us via the application" copy (PDF #40, Medium)
+- F-043: Reusable multi-user E2E test harness (PDF #41, High)
