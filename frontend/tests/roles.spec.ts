@@ -84,6 +84,38 @@ test("E2E-ROLE-02: employee cannot delete a member via the API", async ({ page, 
   }
 });
 
+// F-034 AC-1 — Employee viewing /workspace/dashboard with no active assessment
+// sees the locked empty-state copy and does NOT see the "Start an assessment" link.
+test("E2E-ROLE-04 (F-034): employee empty-state dashboard has no Start CTA", async ({
+  page,
+}) => {
+  const iso = await createIsolatedOrg("ROLE04 Org");
+  const employee = await createTempUser("e2e-emp-f034");
+  try {
+    await addOrgMember(iso.orgId, employee, "employee");
+
+    await loginWithEmail(page, employee.email);
+    await page.goto("/workspace/dashboard");
+    await page.waitForURL(/\/workspace\/dashboard/, { timeout: 15_000 });
+
+    // Dashboard renders
+    await expect(page.getByRole("heading", { name: /^dashboard$/i })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // Locked F-034 AC-1 copy is present
+    await expect(
+      page.getByText(/no assessments yet — your owner will start one/i)
+    ).toBeVisible();
+
+    // "Start an assessment" link MUST NOT be present for employees
+    await expect(page.getByRole("link", { name: /start an assessment/i })).toHaveCount(0);
+  } finally {
+    await employee.delete();
+    await iso.cleanup();
+  }
+});
+
 test("E2E-ROLE-03: API rejects manager role in invite POST", async ({ request }) => {
   const iso = await createIsolatedOrg("ROLE03 Org");
   const supabase = getServiceClient();

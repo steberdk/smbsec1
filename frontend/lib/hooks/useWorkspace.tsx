@@ -13,7 +13,13 @@ import { apiFetch } from "../api/client";
 import { getSupabaseBrowserClient } from "../supabase/client";
 
 type OrgData = {
-  org: { id: string; name: string; email_platform: string | null; locale?: string };
+  org: {
+    id: string;
+    name: string;
+    email_platform: string | null;
+    locale?: string;
+    ai_guidance_enabled?: boolean;
+  };
   membership: {
     user_id: string;
     role: string;

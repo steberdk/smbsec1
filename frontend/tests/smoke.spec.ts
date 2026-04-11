@@ -2,7 +2,8 @@ import { test, expect } from "@playwright/test";
 
 test("home page loads and shows checklist CTA", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("link", { name: /browse the checklist/i })).toBeVisible();
+  // F-025 unified hero + footer wording — both render "Browse the checklist".
+  await expect(page.getByRole("link", { name: /browse the checklist/i }).first()).toBeVisible();
 });
 
 test("checklist page (anon) shows item titles but no status buttons", async ({ page }) => {

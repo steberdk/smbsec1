@@ -121,3 +121,40 @@ test("E2E-INV-04: Invited user accepts invite and lands in workspace", async ({ 
     await iso.cleanup();
   }
 });
+
+// F-023 — expired/error invite page must render app header + "Back to home" link.
+// PI 13 claimed this Done but never shipped the code; this test guards the fix.
+test("E2E-INV-05 (F-023): /accept-invite with no token shows header + Back to home link", async ({
+  page,
+}) => {
+  await page.goto("/accept-invite");
+
+  // App header bar with smbsec wordmark linking to /
+  const headerHomeLink = page.locator("header").getByRole("link", { name: /smbsec/i });
+  await expect(headerHomeLink).toBeVisible();
+  await expect(headerHomeLink).toHaveAttribute("href", "/");
+
+  // Error card visible
+  await expect(page.getByText(/could not accept invite/i)).toBeVisible();
+
+  // "Back to home" link below the error card
+  const backLink = page.getByRole("link", { name: /back to home/i });
+  await expect(backLink).toBeVisible();
+  await expect(backLink).toHaveAttribute("href", "/");
+});
+
+// F-023 — expired/invalid invite token path also shows nav.
+test("E2E-INV-06 (F-023): /accept-invite with invalid token shows header + Back to home link", async ({
+  page,
+}) => {
+  await page.goto("/accept-invite?token=this-token-does-not-exist");
+
+  // Wait for the error state to render
+  await expect(page.getByText(/invitation not available/i)).toBeVisible({ timeout: 10_000 });
+
+  // Header + Back to home link both present on the error page
+  const headerHomeLink = page.locator("header").getByRole("link", { name: /smbsec/i });
+  await expect(headerHomeLink).toBeVisible();
+  await expect(headerHomeLink).toHaveAttribute("href", "/");
+  await expect(page.getByRole("link", { name: /back to home/i })).toBeVisible();
+});

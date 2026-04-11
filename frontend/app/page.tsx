@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import { AuthAwareCTA, AuthAwareHeaderLinks } from "@/components/AuthAwareCTA";
 
 export const metadata: Metadata = {
-  title: "Security Checklist for Small Business",
+  // Use the brand-suffixed template from app/layout.tsx (`%s | SMB Security Quick-Check`)
+  // so the landing tab title is aligned with the rest of the app. (F-025)
+  title: { absolute: "SMB Security Quick-Check — Security Checklist for Small Business" },
   openGraph: {
     title: "Find your biggest cyber risks in 30 minutes",
     description: "A practical security checklist for small businesses. Free, no sign-up required to browse.",
@@ -150,7 +152,7 @@ export default function HomePage() {
           <p>Your data stays in the EU. No tracking, no ads. Free for small teams.</p>
           <div className="flex gap-4 text-xs">
             <Link href="/privacy" className="underline hover:text-gray-700">Privacy policy</Link>
-            <Link href="/checklist" className="underline hover:text-gray-700">Browse checklist</Link>
+            <Link href="/checklist" className="underline hover:text-gray-700">Browse the checklist</Link>
             <Link href="/login" className="underline hover:text-gray-700">Log in</Link>
           </div>
         </div>

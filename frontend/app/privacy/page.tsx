@@ -51,6 +51,10 @@ export default function PrivacyPage() {
             Supabase, our database and authentication provider. No data leaves the EU.
             No data is shared with third parties except as described below.
           </p>
+          <p className="mt-2">
+            AI guidance requests (when used) are processed by <strong>Anthropic</strong> in the
+            United States under Standard Contractual Clauses. All other data stays in the EU.
+          </p>
         </section>
 
         <section>
@@ -80,9 +84,22 @@ export default function PrivacyPage() {
                   <td className="px-3 py-2">Transactional email delivery</td>
                   <td className="px-3 py-2">US (email transit only)</td>
                 </tr>
+                <tr className="border-b border-gray-100">
+                  <td className="px-3 py-2"><strong>Anthropic</strong></td>
+                  <td className="px-3 py-2">
+                    AI-assisted security guidance (Claude Haiku). Sends checklist item
+                    text and your question; receives a short written answer.
+                  </td>
+                  <td className="px-3 py-2">United States (Anthropic API, processed under SCCs)</td>
+                </tr>
               </tbody>
             </table>
           </div>
+          <p className="mt-3 text-xs text-gray-600">
+            Anthropic may retain API request data for up to 30 days for trust-and-safety
+            review (per Anthropic&apos;s published data policy). No training is performed
+            on this data. Organisation admins can disable AI guidance in Settings.
+          </p>
         </section>
 
         <section>
@@ -107,11 +124,12 @@ export default function PrivacyPage() {
           <h2 className="font-semibold text-base mb-2">8. Your rights under GDPR</h2>
           <p className="mb-2">You have the following rights regarding your personal data:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Right of access</strong> — Log in and go to Settings &amp; Data to see all information stored about you.</li>
+            <li><strong>Right of access</strong> — Log in and go to Settings &amp; Data (in your workspace) to see all information stored about you.</li>
             <li><strong>Right to rectification</strong> — Update your display name and organisation settings at any time.</li>
             <li><strong>Right to erasure</strong> — Employees can delete their own account. Organisation admins can delete the entire organisation and all associated data.</li>
-            <li><strong>Right to data portability</strong> — Organisation admins can export all org data in JSON format from Settings &amp; Data.</li>
+            <li><strong>Right to data portability</strong> — Organisation admins can export all org data in JSON format from Settings &amp; Data (available in the workspace after signing in).</li>
             <li><strong>Right to object</strong> — Employees can request to opt out of phishing awareness campaigns by contacting their organisation owner.</li>
+            <li><strong>Right to object (AI guidance)</strong> — Employees can ask their org admin to disable AI guidance for the organisation (Settings &rarr; AI guidance toggle).</li>
           </ul>
           <p className="mt-2">
             All deletions are <strong>hard deletes</strong> — no soft flags, no data retained after deletion.
@@ -145,7 +163,12 @@ export default function PrivacyPage() {
           <p>
             For questions about your data or privacy, or to exercise your GDPR rights,
             contact your organisation owner. Organisation owners can export and delete
-            data from the Settings &amp; Data page.
+            data from the Settings &amp; Data page in the workspace (available after
+            signing in). If you do not yet have an account, email
+            {" "}
+            <a href="mailto:stefan@bertramconsulting.dk" className="text-teal-700 underline">
+              stefan@bertramconsulting.dk
+            </a>.
           </p>
         </section>
       </div>

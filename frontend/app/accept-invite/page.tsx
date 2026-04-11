@@ -1,11 +1,40 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/hooks/useSession";
 import { apiFetch } from "@/lib/api/client";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+
+/**
+ * App header shown on the accept-invite error / empty / default pages.
+ * Matches the login page header pattern so expired/error invite pages have
+ * proper navigation back to the landing page (F-023).
+ */
+function AppHeader() {
+  return (
+    <header className="border-b border-gray-200/60 bg-white/80 backdrop-blur-sm">
+      <div className="max-w-md mx-auto px-4 h-12 flex items-center">
+        <Link href="/" className="text-teal-700 font-bold text-sm tracking-tight">
+          smbsec
+        </Link>
+      </div>
+    </header>
+  );
+}
+
+/** "Back to home" link rendered below the error cards on accept-invite. */
+function BackToHomeLink() {
+  return (
+    <div className="mt-4 text-sm">
+      <Link href="/" className="text-gray-500 hover:text-gray-700 underline">
+        Back to home
+      </Link>
+    </div>
+  );
+}
 
 type InviteInfo = {
   email: string;
@@ -68,15 +97,20 @@ function AcceptInviteInner() {
       .catch(() => setInviteInfoError("Could not load invite details."));
   }, [inviteToken]);
 
-  // Redirect to login if not authenticated (after invite info is loaded or fails)
+  // Redirect to login if not authenticated. Wait for the public invite-info
+  // lookup to resolve first (success or error) — otherwise we'd redirect
+  // unauthenticated users straight to login even when the token is invalid,
+  // and they'd get bounced back to the same error after logging in.
   useEffect(() => {
     if (sessionLoading || authToken) return;
     if (!inviteToken) return;
+    if (inviteInfoError) return; // show the error page instead of redirecting
+    if (inviteInfo === null) return; // still loading the invite — wait
     // Build login URL — pre-fill email if we have it, and pass next so token is restored
     const next = encodeURIComponent(`/accept-invite?token=${inviteToken}`);
     const emailParam = inviteInfo?.email ? `&email=${encodeURIComponent(inviteInfo.email)}` : "";
     router.replace(`/login?next=${next}${emailParam}`);
-  }, [sessionLoading, authToken, inviteToken, inviteInfo, router]);
+  }, [sessionLoading, authToken, inviteToken, inviteInfo, inviteInfoError, router]);
 
   // Determine if user needs to provide a name (no full_name in metadata)
   useEffect(() => {
@@ -117,10 +151,14 @@ function AcceptInviteInner() {
   // No token in URL
   if (!inviteToken) {
     return (
-      <main className="max-w-md mx-auto px-4 py-20">
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4">
-          <p className="font-medium text-red-800">Could not accept invite</p>
-          <p className="mt-1 text-sm text-red-700">No invite token found in the URL.</p>
+      <main className="min-h-screen bg-[#f8fafb]">
+        <AppHeader />
+        <div className="max-w-md mx-auto px-4 py-20">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4">
+            <p className="font-medium text-red-800">Could not accept invite</p>
+            <p className="mt-1 text-sm text-red-700">No invite token found in the URL.</p>
+          </div>
+          <BackToHomeLink />
         </div>
       </main>
     );
@@ -129,12 +167,16 @@ function AcceptInviteInner() {
   // Invite token expired or not found (from public endpoint check)
   if (!inviteInfoLoading && inviteInfoError) {
     return (
-      <main className="max-w-md mx-auto px-4 py-20">
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
-          <p className="font-medium text-amber-800">Invitation not available</p>
-          <p className="mt-1 text-sm text-amber-700">
-            This invitation has expired or has already been used. Ask your administrator to send a new invite link.
-          </p>
+      <main className="min-h-screen bg-[#f8fafb]">
+        <AppHeader />
+        <div className="max-w-md mx-auto px-4 py-20">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
+            <p className="font-medium text-amber-800">Invitation not available</p>
+            <p className="mt-1 text-sm text-amber-700">
+              This invitation has expired or has already been used. Ask your administrator to send a new invite link.
+            </p>
+          </div>
+          <BackToHomeLink />
         </div>
       </main>
     );
@@ -181,29 +223,33 @@ function AcceptInviteInner() {
     }
 
     return (
-      <main className="max-w-md mx-auto px-4 py-20">
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4">
-          <p className="font-medium text-red-800">Could not accept invite</p>
+      <main className="min-h-screen bg-[#f8fafb]">
+        <AppHeader />
+        <div className="max-w-md mx-auto px-4 py-20">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4">
+            <p className="font-medium text-red-800">Could not accept invite</p>
+            {isWrongEmail ? (
+              <p className="mt-1 text-sm text-red-700">
+                This invite was sent to a different email address. You&apos;re signed in as <strong>{userEmail ?? "another account"}</strong>. Sign out and try again with the invited email.
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-red-700">{errorMsg}</p>
+            )}
+          </div>
           {isWrongEmail ? (
-            <p className="mt-1 text-sm text-red-700">
-              This invite was sent to a different email address. You&apos;re signed in as <strong>{userEmail ?? "another account"}</strong>. Sign out and try again with the invited email.
-            </p>
+            <button
+              onClick={handleLogout}
+              className="mt-4 rounded-lg bg-gray-900 text-white text-sm px-4 py-2"
+            >
+              Sign out and try again
+            </button>
           ) : (
-            <p className="mt-1 text-sm text-red-700">{errorMsg}</p>
+            <p className="mt-4 text-sm text-gray-600">
+              If the link has expired, ask the person who invited you to send a new one.
+            </p>
           )}
+          <BackToHomeLink />
         </div>
-        {isWrongEmail ? (
-          <button
-            onClick={handleLogout}
-            className="mt-4 rounded-lg bg-gray-900 text-white text-sm px-4 py-2"
-          >
-            Sign out and try again
-          </button>
-        ) : (
-          <p className="mt-4 text-sm text-gray-600">
-            If the link has expired, ask the person who invited you to send a new one.
-          </p>
-        )}
       </main>
     );
   }

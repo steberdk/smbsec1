@@ -10,8 +10,29 @@ import { loginAsRole } from "./helpers/fixtures";
 test("E2E-AUTH-01: /workspace redirects unauthenticated user to /login", async ({ page }) => {
   await page.goto("/workspace");
   await page.waitForURL(/\/login/, { timeout: 10_000 });
-  await expect(page.getByRole("heading", { name: /log in/i })).toBeVisible();
+  // F-024 — default /login heading is "Welcome back" (existing-user context).
+  await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /send sign-in link/i })).toBeVisible();
+});
+
+// F-024 — /login renders the Welcome back heading (existing-user context).
+test("E2E-AUTH-04 (F-024): /login shows 'Welcome back' heading by default", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /create your free account/i })).toHaveCount(0);
+});
+
+// F-024 — /login?intent=signup renders the Create your free account heading.
+test("E2E-AUTH-05 (F-024): /login?intent=signup shows 'Create your free account' heading", async ({
+  page,
+}) => {
+  await page.goto("/login?intent=signup");
+  await expect(
+    page.getByRole("heading", { name: /create your free account/i })
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: /welcome back/i })).toHaveCount(0);
 });
 
 test("E2E-AUTH-02: successful magic-link login lands on /workspace", async ({ page }) => {

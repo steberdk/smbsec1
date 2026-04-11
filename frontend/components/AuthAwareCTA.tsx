@@ -70,7 +70,7 @@ export function AuthAwareHeaderLinks() {
   return (
     <div className="flex flex-col sm:flex-row gap-3 mt-8">
       <Link
-        href="/login"
+        href="/login?intent=signup"
         className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-teal-700 text-white font-medium shadow-sm hover:bg-teal-800 hover:shadow-md transition-all"
       >
         Sign up free

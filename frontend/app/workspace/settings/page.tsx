@@ -33,6 +33,9 @@ export default function OrgSettingsPage() {
   const [members, setMembers] = useState<MemberInfo[]>([]);
   const [platform, setPlatform] = useState(orgData.org.email_platform ?? "");
   const [locale, setLocale] = useState(orgData.org.locale ?? "en");
+  const [aiGuidanceEnabled, setAiGuidanceEnabled] = useState<boolean>(
+    orgData.org.ai_guidance_enabled ?? true
+  );
   const [executor, setExecutor] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -63,6 +66,7 @@ export default function OrgSettingsPage() {
         body: JSON.stringify({
           email_platform: platform || null,
           locale,
+          ai_guidance_enabled: aiGuidanceEnabled,
         }),
       });
       await apiFetch("/api/orgs/executor", token, {
@@ -135,6 +139,28 @@ export default function OrgSettingsPage() {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
+        </div>
+
+        {/* AI guidance (F-012) */}
+        <div>
+          <label className="block text-sm font-medium mb-1">AI guidance</label>
+          <p className="text-xs text-gray-500 mb-2">
+            When enabled, members can request AI-assisted explanations for
+            checklist items. Requests are sent to Anthropic (Claude Haiku) in
+            the United States under Standard Contractual Clauses. See the{" "}
+            <Link href="/privacy" className="underline">privacy policy</Link>{" "}
+            for details. Disable to stop all AI guidance requests for the
+            organisation.
+          </p>
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={aiGuidanceEnabled}
+              onChange={(e) => setAiGuidanceEnabled(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <span>Allow AI guidance for this organisation</span>
+          </label>
         </div>
 
         {/* IT Executor Assignment */}

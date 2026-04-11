@@ -44,6 +44,9 @@ function LoginInner() {
   const inviteToken = extractInviteToken(next);
   const isInviteContext = Boolean(inviteToken);
 
+  // Detect signup intent (landing "Sign up free" CTA appends ?intent=signup). F-024.
+  const isSignupIntent = searchParams.get("intent") === "signup";
+
   // Email pre-fill from ?email= param
   const emailParam = searchParams.get("email") ?? "";
 
@@ -147,10 +150,21 @@ function LoginInner() {
       <div className="flex-1 flex items-start justify-center pt-12 pb-10 px-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
-            <h1 className="text-2xl font-bold text-gray-900">Log in</h1>
-            <p className="text-sm text-gray-600 mt-2">
-              We&apos;ll send you a secure sign-in link. No password needed.
-            </p>
+            {isSignupIntent ? (
+              <>
+                <h1 className="text-2xl font-bold text-gray-900">Create your free account</h1>
+                <p className="text-sm text-gray-600 mt-2">
+                  Enter your email — we&apos;ll send you a link to get started. No password needed.
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
+                <p className="text-sm text-gray-600 mt-2">
+                  Enter your email — we&apos;ll send you a sign-in link.
+                </p>
+              </>
+            )}
 
             {/* Email form — shown when not yet sent */}
             {status !== "sent" && status !== "verifying" && (

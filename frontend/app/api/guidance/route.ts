@@ -4,14 +4,21 @@
  * Accepts an item title + optional question, returns platform-aware
  * step-by-step guidance using Claude API.
  *
- * Rate limited: 10 requests per user per hour.
+ * Rate limited: 10 requests per user per hour, persisted via Supabase
+ * (F-012 PI 14 Iter 1 — smbsec1.check_and_increment_rate_limit).
+ *
  * Responses cached in-memory per item+platform combo.
+ *
+ * Org admins can disable AI guidance via `orgs.ai_guidance_enabled` —
+ * if disabled, returns 503 `{ error: "ai_guidance_disabled" }` before
+ * any rate-limit quota is burned.
  */
 
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { supabaseForRequest } from "../../../lib/supabase/server";
 import { apiError, getUser, getOrgMembership } from "../../../lib/api/helpers";
+import { rateLimitPersistent } from "../../../lib/api/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -19,20 +26,8 @@ export const runtime = "nodejs";
 const cache = new Map<string, { text: string; ts: number }>();
 const CACHE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-// Per-user rate limiting (in-memory, resets on deploy)
-const userRequests = new Map<string, number[]>();
-const RATE_LIMIT = 10; // requests per hour
-const RATE_WINDOW = 60 * 60 * 1000; // 1 hour
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const requests = userRequests.get(userId) ?? [];
-  const recent = requests.filter((t) => now - t < RATE_WINDOW);
-  userRequests.set(userId, recent);
-  if (recent.length >= RATE_LIMIT) return false;
-  recent.push(now);
-  return true;
-}
+const GUIDANCE_WINDOW_SEC = 60 * 60; // 1 hour
+const GUIDANCE_MAX_PER_USER = 10;
 
 type GuidanceBody = {
   item_title: string;
@@ -52,14 +47,43 @@ export async function POST(req: Request): Promise<NextResponse> {
   const user = await getUser(supabase);
   if (!user) return apiError("Unauthorized", 401);
 
-  if (!checkRateLimit(user.id)) {
+  const membership = await getOrgMembership(supabase, user.id);
+
+  // F-012 AC-NEW: org-level kill switch. Check BEFORE the rate limit so a
+  // disabled org can't burn quota. Tolerates the column not existing yet
+  // (migration 023 not applied) — defaults to enabled.
+  if (membership) {
+    const { data: org } = await supabase
+      .from("orgs")
+      .select("ai_guidance_enabled")
+      .eq("id", membership.org_id)
+      .single();
+
+    if (org && (org as { ai_guidance_enabled?: boolean }).ai_guidance_enabled === false) {
+      return NextResponse.json(
+        { error: "ai_guidance_disabled", scope: "org" },
+        { status: 503 }
+      );
+    }
+  }
+
+  // F-012 PI 14 Iter 1 — persistent per-user rate limit.
+  const { allowed, resetAt } = await rateLimitPersistent(
+    `guidance:user:${user.id}`,
+    GUIDANCE_WINDOW_SEC,
+    GUIDANCE_MAX_PER_USER
+  );
+  if (!allowed) {
     return NextResponse.json(
-      { error: "You've used all your guidance requests for this hour. Try again later." },
+      {
+        error: "rate_limited",
+        scope: "guidance:user",
+        reset_at: new Date(resetAt).toISOString(),
+      },
       { status: 429 }
     );
   }
 
-  const membership = await getOrgMembership(supabase, user.id);
   const platform = membership
     ? await getPlatform(supabase, membership.org_id)
     : null;

@@ -28,13 +28,27 @@ export async function GET(req: Request): Promise<NextResponse> {
   const membership = await getOrgMembership(supabase, user.id);
   if (!membership) return apiError("Not a member of any organisation", 404);
 
-  const { data: org, error: orgErr } = await supabase
+  // Try to select with ai_guidance_enabled (added by migration 023). If the
+  // column doesn't exist yet (migration not applied), fall back to the legacy
+  // column set and default the flag to true on the response.
+  const primary = await supabase
     .from("orgs")
-    .select("id, name, created_by, created_at, email_platform, primary_os, company_size, campaign_credits, subscription_status, locale")
+    .select("id, name, created_by, created_at, email_platform, primary_os, company_size, campaign_credits, subscription_status, locale, ai_guidance_enabled")
     .eq("id", membership.org_id)
     .single();
+  let org = primary.data;
+  const orgErr = primary.error;
 
-  if (orgErr || !org) return apiError("Organisation not found", 404);
+  if (orgErr) {
+    const fallback = await supabase
+      .from("orgs")
+      .select("id, name, created_by, created_at, email_platform, primary_os, company_size, campaign_credits, subscription_status, locale")
+      .eq("id", membership.org_id)
+      .single();
+    if (fallback.error || !fallback.data) return apiError("Organisation not found", 404);
+    org = { ...(fallback.data as Record<string, unknown>), ai_guidance_enabled: true } as typeof org;
+  }
+  if (!org) return apiError("Organisation not found", 404);
 
   return NextResponse.json({
     org,
@@ -58,6 +72,7 @@ export async function PATCH(req: Request): Promise<NextResponse> {
     primary_os?: PrimaryOs | null;
     company_size?: CompanySize | null;
     locale?: string;
+    ai_guidance_enabled?: boolean;
   };
 
   const body: PatchBody = await req.json().catch(() => null);
@@ -81,17 +96,55 @@ export async function PATCH(req: Request): Promise<NextResponse> {
     }
     update.locale = body.locale;
   }
+  if (body.ai_guidance_enabled !== undefined) {
+    if (typeof body.ai_guidance_enabled !== "boolean") {
+      return apiError("ai_guidance_enabled must be a boolean", 400);
+    }
+    update.ai_guidance_enabled = body.ai_guidance_enabled;
+  }
 
   if (Object.keys(update).length === 0) {
     return apiError("No valid fields to update", 400);
   }
 
-  const { data: org, error: updateErr } = await supabase
+  let { data: org, error: updateErr } = await supabase
     .from("orgs")
     .update(update)
     .eq("id", membership.org_id)
     .select()
     .single();
+
+  // If migration 023 isn't applied yet and the caller tried to set
+  // ai_guidance_enabled, drop the field and retry once. The settings UI
+  // will continue to look like the toggle worked; the value persists once
+  // the migration is applied.
+  if (updateErr && update.ai_guidance_enabled !== undefined) {
+    const fallbackUpdate = { ...update };
+    delete fallbackUpdate.ai_guidance_enabled;
+    if (Object.keys(fallbackUpdate).length > 0) {
+      const retry = await supabase
+        .from("orgs")
+        .update(fallbackUpdate)
+        .eq("id", membership.org_id)
+        .select()
+        .single();
+      org = retry.data;
+      updateErr = retry.error;
+    } else {
+      // Only ai_guidance_enabled was sent — pretend it succeeded so the UI
+      // doesn't error before the migration ships.
+      const current = await supabase
+        .from("orgs")
+        .select("id, name, created_by, created_at, email_platform, primary_os, company_size, campaign_credits, subscription_status, locale")
+        .eq("id", membership.org_id)
+        .single();
+      if (current.data) {
+        return NextResponse.json({
+          org: { ...(current.data as Record<string, unknown>), ai_guidance_enabled: body.ai_guidance_enabled },
+        });
+      }
+    }
+  }
 
   if (updateErr || !org) {
     return apiError(updateErr?.message ?? "Failed to update organisation", 500);

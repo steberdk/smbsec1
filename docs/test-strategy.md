@@ -141,3 +141,31 @@ When a new feature is built:
 - **Flaky `waitForResponse`**: Some tests race between API response and UI update. Fix tracked as F-015.
 - **3 skipped tests**: E2E-ONBOARD-05, E2E-DASH-04, E2E-ITEM-04 — missing DB fixtures.
 - **Single browser**: Only Chromium tested. Safari/Firefox not covered.
+
+---
+
+## Multi-user E2E harness (F-043)
+
+Landed PI 14 Iter 1 as the anti-phantom-Done insurance for every dashboard-math feature that follows (F-034, F-038, F-039, F-040, F-041, F-033). Before F-043 the only way to test a cross-user scenario was to reuse the shared admin user, which made parallel runs conflict and hid real bugs; the harness fixes that by spinning up a fresh isolated org with one owner + N employees, each signed in through their own `BrowserContext`, in a single call.
+
+### What the harness provides
+- **`createOrgWithMembers(browser, spec)`** — creates a fresh isolated org via service-role, creates the owner + every employee described in `spec`, opens one `BrowserContext`/`Page` per user, signs each one in, optionally starts an assessment, and returns a bundle with a single `cleanup()` entry point.
+- **`expectDashboardCounts(page, expected)`** — canonical dashboard assertion. Lenient today against the pre-F-038 DOM; will be tightened to the exact canonical pill labels in the same PR that lands F-038.
+- **`seedResponses(orgId, assessmentId, userId, seeds[])`** — deterministic response seeding via service-role. Items are matched by case-insensitive title substring; ambiguous or missing matches throw at test time.
+- **`setupCanonicalStefanFixture(browser)`** — the 2-user canonical F-038 fixture from `docs/product/pi14/product_team_consensus.md`: 1 owner-IT-exec + 1 employee, an active assessment, and exactly `done=11 / unsure=4 / skipped=4` owner responses.
+- **Self-tests:** `frontend/tests/_harness.spec.ts` exercises every helper, proves teardown leaves zero rows, and runs a 10-iteration stability loop (F-043 AC-5).
+
+### Prefix isolation convention
+All harness-created data uses two non-negotiable conventions so the nightly sweeper can find orphans with a single LIKE clause and so test emails can never escape to a real mailbox:
+
+1. **Org names** are prefixed `e2e-pi14-` (lowercase, literal). Stefan's real orgs never use that prefix.
+2. **Test user emails** use the `@example.invalid` TLD (reserved by RFC 2606 — guaranteed zero delivery). The harness constructs addresses of the shape `e2e-pi14-<token>-<role>@example.invalid`. Do not use `@example.com` — that domain is real-routable and can cause bounces.
+
+### Teardown architecture
+Two layers of cleanup:
+
+- **Per-test teardown (primary).** Every `createOrgWithMembers` call returns a `cleanup()` async function that callers must invoke from a `finally` block. Cleanup closes every `BrowserContext` and runs a 10-step FK-respecting delete sequence (assessment_responses → assessment_items → assessments → campaign_recipients → campaigns → invites → audit_logs → ai_guidance_usage/flags → org_members → orgs → auth.users). Errors are swallowed + logged so one broken test never blocks another.
+- **Nightly sweeper (safety net).** `frontend/scripts/cleanup-e2e-orgs.ts`, invoked by `.github/workflows/cleanup-e2e-orgs.yml` on a `0 3 * * *` cron, sweeps any `e2e-pi14-*` orgs older than 1 hour that a crashed test left behind. Uses GitHub secrets for `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` — never hardcoded.
+
+### Where the harness runs
+**DEV / CI Supabase only — never PROD.** Same Supabase instance as the rest of the E2E suite (per-consensus decision, see `docs/product/pi14/product_team_consensus.md` §"Shared Supabase DEV project"). Because the harness creates live rows in Supabase it MUST NOT be pointed at a production project; the `PLAYWRIGHT_BASE_URL` override is for hitting Vercel previews, but the service-role writes always go to whichever Supabase URL is in `.env.local` / CI secrets. Stefan's PROD Supabase project must NEVER have that service-role key present in any harness env.

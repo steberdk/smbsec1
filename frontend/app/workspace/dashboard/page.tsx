@@ -165,10 +165,19 @@ export default function WorkspaceDashboardPage() {
 
       {!assessment ? (
         <div className="rounded-xl border border-gray-200 px-4 py-4 mb-6">
-          <p className="text-sm text-gray-600">No assessments yet.</p>
-          <Link href="/workspace/assessments" className="mt-2 inline-block text-sm underline">
-            Start an assessment
-          </Link>
+          {isAdmin ? (
+            <>
+              <p className="text-sm text-gray-600">No assessments yet.</p>
+              <Link href="/workspace/assessments" className="mt-2 inline-block text-sm underline">
+                Start an assessment
+              </Link>
+            </>
+          ) : (
+            // F-034 AC-1 — employees cannot start assessments; no Start link.
+            <p className="text-sm text-gray-600">
+              No assessments yet — your owner will start one.
+            </p>
+          )}
         </div>
       ) : (
         <>

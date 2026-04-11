@@ -64,4 +64,10 @@ If you think something is wrong — you clicked a bad link, lost a device, saw s
 
 **By working here, you agree to follow these rules. If anything is unclear, ask [IT CONTACT NAME].**
 
+---
+
+## Using This Document
+
+Keep it to one page. Print for onboarding and physical copies to use in case of IT attacks. Save a digital copy in the shared drive.
+
 *Last updated: [DATE] — Review annually or after any security incident.*

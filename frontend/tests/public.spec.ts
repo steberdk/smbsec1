@@ -85,3 +85,83 @@ test("E2E-PUB-03: summary page prompts sign-in for anonymous user", async ({
   await expect(page.getByText(/sign in to see your progress/i)).toBeVisible();
   await expect(page.getByRole("link", { name: /sign in/i })).toBeVisible();
 });
+
+// F-025 — landing tab title aligned with brand (SMB Security Quick-Check).
+test("E2E-PUB-05 (F-025): landing page tab title contains brand name", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page).toHaveTitle(/SMB Security Quick-Check/);
+});
+
+// F-025 — landing page "Sign up free" CTA links to /login?intent=signup.
+test("E2E-PUB-06 (F-025/F-024): 'Sign up free' CTA links to /login?intent=signup", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const cta = page.getByRole("link", { name: /sign up free/i });
+  await expect(cta).toBeVisible();
+  await expect(cta).toHaveAttribute("href", "/login?intent=signup");
+});
+
+// F-042 — the misleading "contact us via the application" copy must not appear
+// on the privacy page.
+test("E2E-PUB-07 (F-042): /privacy does not contain 'contact us via the application'", async ({
+  page,
+}) => {
+  await page.goto("/privacy");
+  await expect(page.getByRole("heading", { name: /privacy policy/i })).toBeVisible();
+  // Assert against the rendered body text.
+  const bodyText = await page.locator("main").innerText();
+  expect(bodyText.toLowerCase()).not.toContain("contact us via the application");
+});
+
+// F-012 PI 14 Iter 1 — CSP header on /workspace/checklist.
+// The page is protected (unauth users get redirected), but either the
+// protected response OR the redirect response carries the CSP header
+// from next.config.ts. Either is acceptable — the invariant is that
+// frame-ancestors 'none' is active for this path.
+test("E2E-PUB-10 (F-012): /workspace/checklist sends a CSP with frame-ancestors 'none'", async ({
+  request,
+}) => {
+  const res = await request.get("/workspace/checklist", { maxRedirects: 0 });
+  const csp = res.headers()["content-security-policy"];
+  expect(csp).toBeTruthy();
+  expect(csp).toContain("frame-ancestors 'none'");
+  // The tighter checklist policy drops 'unsafe-eval' but we don't assert
+  // its absence here because a middleware redirect may return the
+  // baseline global CSP. The invariant to guarantee is clickjacking
+  // protection.
+});
+
+// F-012 PI 14 Iter 1 — privacy page must list Anthropic as a sub-processor.
+test("E2E-PUB-09 (F-012): privacy page lists Anthropic as sub-processor", async ({
+  page,
+}) => {
+  await page.goto("/privacy");
+  await expect(page.getByRole("heading", { name: /privacy policy/i })).toBeVisible();
+
+  // Anthropic appears on the page.
+  await expect(page.getByText(/Anthropic/).first()).toBeVisible();
+
+  // "AI guidance" or "Claude" appears somewhere on the page too, so the
+  // row is really about the AI sub-processor and not a stray mention.
+  const body = (await page.locator("main").innerText()).toLowerCase();
+  expect(body).toContain("anthropic");
+  expect(
+    body.includes("claude") || body.includes("ai guidance") || body.includes("ai-assisted")
+  ).toBe(true);
+});
+
+// F-037 — 1-page security rules template has the locked wording about
+// printing physical copies in case of IT attacks.
+test("E2E-PUB-08 (F-037): /templates/security-rules.md mentions physical copies for IT attacks", async ({
+  request,
+}) => {
+  const res = await request.get("/templates/security-rules.md");
+  expect(res.status()).toBe(200);
+  const body = await res.text();
+  expect(body).toContain(
+    "Print for onboarding and physical copies to use in case of IT attacks"
+  );
+});
