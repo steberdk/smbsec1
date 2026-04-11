@@ -464,13 +464,13 @@ type ExpectedDashboardCounts = {
 /**
  * Navigate to /workspace/dashboard and assert the canonical count pills.
  *
- * IMPORTANT: F-038 has not shipped yet (PI 14 Iter 2). The current
- * dashboard DOM uses different labels ("Done / Unsure / Skipped") and a
- * different top-line shape. This helper therefore asserts LENIENT text
- * patterns that pass against both the pre-F-038 DOM and the post-F-038 DOM.
- * Once F-038 ships with the canonical labels from the consensus fixture,
- * this helper will be tightened in the same PR (AC-3 of F-038) to assert
- * the exact labels "Resolved / Done / Unsure or not yet / Not applicable".
+ * Tightened in F-038 (PI 14 Iter 2): now asserts the exact DOM shape shipped
+ * by F-038 — the `data-testid="dashboard-resolved-total"` top-line with a
+ * `resolved / denominator responses` fraction, a `data-testid="dashboard-percent"`
+ * element, and the four pills "Resolved / Done / Not applicable / Unsure / Not yet"
+ * in that canonical order. Earlier iterations of this helper were deliberately
+ * lenient so the helper could ship in PI 14 Iter 1 before the F-038 DOM
+ * changes existed.
  */
 export async function expectDashboardCounts(
   page: Page,
@@ -485,34 +485,23 @@ export async function expectDashboardCounts(
     timeout: 10_000,
   });
 
-  // Top-line: tolerates both "X / Y responses" (post-F-038) and
-  // "N responses" / "N answered" (pre-F-038). We assert the *denominator*
-  // appears somewhere on the page because that's the most stable signal
-  // across both shapes.
+  // Top-line: exact "resolved / denominator responses" string.
+  await expect(page.getByTestId("dashboard-resolved-total")).toHaveText(
+    new RegExp(`${expected.resolved}\\s*/\\s*${expected.denominator}\\s*responses`),
+    { timeout: 10_000 },
+  );
+
+  // Percent element — exact (no ±1 drift).
+  await expect(page.getByTestId("dashboard-percent")).toHaveText(
+    new RegExp(`${expected.percent}\\s*%`),
+  );
+
+  // The four canonical pills in the locked order.
   const body = page.locator("body");
-
-  // Denominator (appears in top-line fraction or in aggregate stats).
-  await expect(body).toContainText(String(expected.denominator), { timeout: 10_000 });
-
-  // The four canonical pill values — we look for the numeric value near its
-  // label word. This is intentionally lenient: matching by co-located text is
-  // resilient to CSS class changes but will be tightened in F-038.
-  const assertPill = async (label: RegExp, value: number): Promise<void> => {
-    // Find any element whose text matches the label; then assert that the
-    // numeric value appears somewhere on the dashboard. Lenient on purpose.
-    const labelLoc = page.getByText(label).first();
-    await expect(labelLoc).toBeVisible({ timeout: 10_000 });
-    await expect(body).toContainText(String(value));
-  };
-
-  await assertPill(/resolved/i, expected.resolved);
-  await assertPill(/done/i, expected.done);
-  await assertPill(/not applicable|skipped/i, expected.notApplicable);
-  await assertPill(/unsure|not yet/i, expected.unsureNotYet);
-
-  // Percent — allow ±1 rounding drift. Once F-038 lands, this tightens to
-  // exact equality via the computeStats helper.
-  await expect(body).toContainText(new RegExp(`${expected.percent}\\s*%`));
+  await expect(body.getByText(/^Resolved$/i).first()).toBeVisible();
+  await expect(body.getByText(/^Done$/i).first()).toBeVisible();
+  await expect(body.getByText(/^Not applicable$/i).first()).toBeVisible();
+  await expect(body.getByText(/Unsure\s*\/\s*Not yet/i).first()).toBeVisible();
 }
 
 // ---------------------------------------------------------------------------

@@ -13,6 +13,9 @@ type MemberStat = {
   display_name: string | null;
   role: string;
   is_it_executor: boolean;
+  /** F-035 — true for pending invitees (dashed-avatar row, no drill-down). */
+  pending?: boolean;
+  invite_id?: string;
   done: number;
   unsure: number;
   skipped: number;
@@ -30,9 +33,11 @@ type DrillDownItem = {
 
 type TrackStats = {
   total: number;
+  denominator: number;
   done: number;
   unsure: number;
   skipped: number;
+  resolved: number;
   percent: number;
 };
 
@@ -40,11 +45,26 @@ type DashboardData = {
   assessment: { id: string; status: string; scope: string; created_at: string } | null;
   stats: {
     total: number;
+    /** F-038 — authoritative denominator (per-member sum of applicable items). */
+    denominator: number;
     done: number;
     unsure: number;
     skipped: number;
+    /** F-038 — done + skipped. */
+    resolved: number;
     percent: number;
     by_track?: { it_baseline: TrackStats; awareness: TrackStats };
+    /** F-039 — caller-scoped sibling for "My checklist" card. */
+    me?: {
+      total: number;
+      denominator: number;
+      done: number;
+      unsure: number;
+      skipped: number;
+      resolved: number;
+      percent: number;
+      by_track?: { it_baseline: TrackStats; awareness: TrackStats };
+    };
   };
   members: MemberStat[];
   cadence: { last_completed_at: string | null; status: CadenceStatus };
@@ -188,9 +208,15 @@ export default function WorkspaceDashboardPage() {
               {" · started "}{new Date(assessment.created_at).toLocaleDateString()}
             </p>
 
+            {/*
+              F-038 — top line binds to server-authoritative stats.denominator.
+              NO client-side ternary on members.length (that was the flicker bug).
+            */}
             <div className="flex justify-between text-xs text-gray-500 mb-1">
-              <span>{stats.done + stats.unsure + stats.skipped} / {members.length > 0 ? members.reduce((s, m) => s + m.total, 0) : stats.total} responses</span>
-              <span>{stats.percent}%</span>
+              <span data-testid="dashboard-resolved-total">
+                {stats.resolved} / {stats.denominator} responses
+              </span>
+              <span data-testid="dashboard-percent">{stats.percent}%</span>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-2.5 mb-4 shadow-inner">
               <div
@@ -199,11 +225,18 @@ export default function WorkspaceDashboardPage() {
               />
             </div>
 
+            {/*
+              F-038 pill order (UX Round 2 §1): Resolved | Done | Not applicable | Unsure / Not yet.
+              "Done" sits next to "Not applicable" so the relationship
+              Resolved = Done + Not applicable reads visually.
+              "Not applicable" uses green family (outline variant) — NOT grey —
+              because it is a decided outcome, not a disabled state.
+            */}
             <div className="grid grid-cols-4 gap-3 text-center">
-              <StatPill label="Resolved" value={stats.done + stats.skipped} color="text-teal-700" />
+              <StatPill label="Resolved" value={stats.resolved} color="text-teal-700" />
               <StatPill label="Done" value={stats.done} color="text-green-700" />
-              <StatPill label="Unsure" value={stats.unsure} color="text-amber-700" />
-              <StatPill label="Not applicable" value={stats.skipped} color="text-gray-500" />
+              <StatPill label="Not applicable" value={stats.skipped} color="text-green-700" variant="outline" />
+              <StatPill label="Unsure / Not yet" value={stats.unsure} color="text-amber-700" />
             </div>
 
             {stats.by_track && (
@@ -216,18 +249,39 @@ export default function WorkspaceDashboardPage() {
             )}
           </div>
 
-          {/* Member breakdown with drill-down */}
-          {members.length > 0 && (
-            <section>
-              <h2 className="text-base font-semibold mb-3">Team progress</h2>
-              <p className="text-xs text-gray-400 mb-3">Click a team member to see their individual responses.</p>
-              <div className="space-y-2">
-                {members.map((m) => (
-                  <MemberRow key={m.user_id} member={m} token={token} />
-                ))}
-              </div>
-            </section>
-          )}
+          {/* Member breakdown with drill-down + F-035 pending invitees section */}
+          {members.length > 0 && (() => {
+            const joined = members.filter((m) => !m.pending);
+            const pending = members.filter((m) => m.pending);
+            return (
+              <section>
+                <h2 className="text-base font-semibold mb-1">
+                  Team progress{" "}
+                  <span className="text-xs font-normal text-gray-500">
+                    — {joined.length} joined{pending.length > 0 ? ` · ${pending.length} pending` : ""}
+                  </span>
+                </h2>
+                <p className="text-xs text-gray-400 mb-3">Click a team member to see their individual responses.</p>
+                <div className="space-y-2">
+                  {joined.map((m) => (
+                    <MemberRow key={m.user_id} member={m} token={token} />
+                  ))}
+                </div>
+                {pending.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-dashed border-gray-200">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">
+                      Pending invitations ({pending.length})
+                    </p>
+                    <div className="space-y-2" data-testid="pending-invitees">
+                      {pending.map((m) => (
+                        <PendingInviteeRow key={m.user_id} member={m} token={token} onRevoked={() => window.location.reload()} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            );
+          })()}
 
           {/* Campaign summary — admin only */}
           {isAdmin && campaignSummary && campaignSummary.total_campaigns > 0 && (
@@ -318,16 +372,32 @@ function TrackBar({ label, track }: { label: string; track: TrackStats }) {
           style={{ width: `${track.percent}%` }}
         />
       </div>
+      {/* F-038 — label shows resolved / denominator, not done+unsure+skipped. */}
       <p className="mt-1 text-xs text-gray-400">
-        {track.done + track.unsure + track.skipped} / {track.total} items
+        {track.resolved} / {track.denominator} items
       </p>
     </div>
   );
 }
 
-function StatPill({ label, value, color }: { label: string; value: number; color: string }) {
+function StatPill({
+  label,
+  value,
+  color,
+  variant = "filled",
+}: {
+  label: string;
+  value: number;
+  color: string;
+  variant?: "filled" | "outline";
+}) {
+  // F-038 — "outline" variant is used by the "Not applicable" pill per UX
+  // Round 2 §1: green family, lighter weight so it reads as a different
+  // flavour of "decided" rather than a grey/disabled state.
+  const outlineClasses = "rounded-lg bg-white border border-green-300 py-2 shadow-sm";
+  const filledClasses = "rounded-lg bg-white border border-gray-100 py-2 shadow-sm";
   return (
-    <div className="rounded-lg bg-white border border-gray-100 py-2 shadow-sm">
+    <div className={variant === "outline" ? outlineClasses : filledClasses}>
       <p className={`text-lg font-bold ${color}`}>{value}</p>
       <p className="text-xs text-gray-500">{label}</p>
     </div>
@@ -440,6 +510,84 @@ function MemberRow({ member: m, token }: { member: MemberStat; token: string }) 
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * F-035 — Pending invitee row. Dashed-outline avatar, grey italic sub-label,
+ * inline Revoke text-link. No drill-down, no progress bar fill, no click
+ * expand. Contributes ZERO to `stats.denominator` (enforced server-side).
+ */
+function PendingInviteeRow({
+  member,
+  token,
+  onRevoked,
+}: {
+  member: MemberStat;
+  token: string;
+  onRevoked: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const firstChar = (member.email ?? "?").trim().charAt(0).toUpperCase() || "?";
+
+  async function handleRevoke() {
+    if (!member.invite_id) return;
+    if (!window.confirm(`Revoke invitation for ${member.email}?`)) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/invites/${member.invite_id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
+      onRevoked();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Revoke failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm px-4 py-3" data-testid="pending-invitee-row">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {/*
+            Dashed-outline avatar. Grey-100 fill for WCAG contrast on white
+            (per UX Round 2 open question: 1px dashed on white may fail AA,
+            falls back to filled on white if needed).
+          */}
+          <div
+            className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-xs font-semibold text-gray-500"
+            aria-hidden="true"
+          >
+            {firstChar}
+          </div>
+          <div>
+            <p className="text-sm text-gray-700">{member.email ?? "pending"}</p>
+            <p className="text-xs italic text-gray-500">Invite pending — not yet joined</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-xs">
+          <button
+            type="button"
+            onClick={handleRevoke}
+            disabled={busy || !member.invite_id}
+            className="text-red-600 hover:underline disabled:opacity-50"
+          >
+            {busy ? "Revoking…" : "Revoke"}
+          </button>
+        </div>
+      </div>
+      {/* Zero-fill progress bar — visual confirmation of "no contribution". */}
+      <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5" />
+      {err && <p className="mt-1 text-xs text-red-600">{err}</p>}
     </div>
   );
 }

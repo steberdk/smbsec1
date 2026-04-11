@@ -13,6 +13,8 @@ export default function WorkspacePage() {
   const [hasItExecutor, setHasItExecutor] = useState(false);
   const [cadence, setCadence] = useState<{ status: string; last_completed_at: string | null } | null>(null);
   const [checklistPercent, setChecklistPercent] = useState<number | null>(null);
+  const [checklistDenominator, setChecklistDenominator] = useState<number | null>(null);
+  const [checklistResolved, setChecklistResolved] = useState<number | null>(null);
 
   useEffect(() => {
     document.title = "Workspace | SMB Security Quick-Check";
@@ -26,10 +28,20 @@ export default function WorkspacePage() {
         .then(({ assessments }) => {
           setHasActiveAssessment(assessments.some((a) => a.status === "active"));
         }),
-      apiFetch<{ stats: { percent: number }; cadence: { status: string; last_completed_at: string | null } }>("/api/dashboard", token)
+      // F-039 — "My checklist" card binds to stats.me.percent (caller-only),
+      // not stats.percent (org-wide). Cross-user isolation test in
+      // tests/dashboard-math.spec.ts proves the fix.
+      apiFetch<{
+        stats: { percent: number; me?: { percent: number; denominator?: number; resolved?: number } };
+        cadence: { status: string; last_completed_at: string | null };
+      }>("/api/dashboard", token)
         .then(({ stats, cadence: c }) => {
           setCadence(c);
-          setChecklistPercent(stats.percent);
+          setChecklistPercent(stats.me?.percent ?? stats.percent);
+          if (stats.me?.denominator != null) {
+            setChecklistDenominator(stats.me.denominator);
+            setChecklistResolved(stats.me.resolved ?? 0);
+          }
         })
         .catch(() => {}),
     ];
@@ -117,6 +129,11 @@ export default function WorkspacePage() {
           title="My checklist"
           description="Work through your assigned security items."
           progress={checklistPercent}
+          progressLabel={
+            checklistDenominator != null && checklistResolved != null
+              ? `${checklistResolved} / ${checklistDenominator}`
+              : null
+          }
         />
         <WorkspaceCard
           href="/workspace/dashboard"
@@ -205,11 +222,13 @@ function WorkspaceCard({
   title,
   description,
   progress,
+  progressLabel,
 }: {
   href: string;
   title: string;
   description: string;
   progress?: number | null;
+  progressLabel?: string | null;
 }) {
   return (
     <Link
@@ -218,8 +237,13 @@ function WorkspaceCard({
     >
       <p className="font-medium text-sm text-gray-900">{title}</p>
       <p className="mt-1 text-xs text-gray-500">{description}</p>
+      {progressLabel && (
+        <p className="mt-2 text-xs text-gray-600" data-testid="my-checklist-progress">
+          {progressLabel}
+        </p>
+      )}
       {progress != null && progress > 0 && (
-        <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+        <div className="mt-1 w-full bg-gray-100 rounded-full h-1.5">
           <div className="progress-gradient h-1.5 rounded-full" style={{ width: `${progress}%` }} />
         </div>
       )}

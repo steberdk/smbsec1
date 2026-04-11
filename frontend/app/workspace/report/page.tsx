@@ -9,9 +9,11 @@ import { useTranslation } from "@/lib/i18n";
 
 type TrackStats = {
   total: number;
+  denominator: number;
   done: number;
   unsure: number;
   skipped: number;
+  resolved: number;
   percent: number;
 };
 
@@ -23,11 +25,15 @@ type DashboardData = {
     created_at: string;
     completed_at: string | null;
   } | null;
+  // F-040 — the report reads the SAME stats shape as /workspace/dashboard.
+  // Any math here goes through the helper so the two pages cannot drift.
   stats: {
     total: number;
+    denominator: number;
     done: number;
     unsure: number;
     skipped: number;
+    resolved: number;
     percent: number;
     by_track?: { it_baseline: TrackStats; awareness: TrackStats };
   };
@@ -37,6 +43,7 @@ type DashboardData = {
     display_name: string | null;
     role: string;
     is_it_executor: boolean;
+    pending?: boolean;
     done: number;
     unsure: number;
     skipped: number;
@@ -129,11 +136,21 @@ export default function SecurityReportPage() {
 
   const statusKey = `report.statusLabel.${assessment.status}`;
 
-  /* Build category-level results from member data */
-  const totalDone = stats.done;
+  /*
+   * F-040 — All totals come from the server-computed stats object. We do
+   * NOT recompute anything here: the dashboard and the report must agree
+   * byte-for-byte on the numbers, and the only way to guarantee that is
+   * for both surfaces to read the same fields from the same API.
+   *
+   * `stats.denominator` is the authoritative denominator (per-member sum).
+   * `stats.resolved` is done + skipped.
+   */
   const totalUnsure = stats.unsure;
   const totalSkipped = stats.skipped;
-  const totalAnswered = totalDone + totalUnsure + totalSkipped;
+  const totalResolved = stats.resolved;
+  const totalDenominator = stats.denominator;
+  // Visible joined members only (F-035 pending invitees don't appear on the printed report).
+  const joinedMembers = members.filter((m) => !m.pending);
 
   const cadenceLabel =
     cadence.status === "green"
@@ -202,7 +219,7 @@ export default function SecurityReportPage() {
                 </div>
                 <div>
                   <span className="text-gray-500">{t("report.members")}</span>
-                  <p className="font-medium text-gray-900">{members.length}</p>
+                  <p className="font-medium text-gray-900">{joinedMembers.length}</p>
                 </div>
                 <div>
                   <span className="text-gray-500">{t("report.reassessmentCadence")}</span>
@@ -236,30 +253,36 @@ export default function SecurityReportPage() {
                 </div>
                 <div>
                   <span className="text-gray-500">{t("report.totalItems")}</span>
-                  <p className="font-medium text-gray-900">{stats.total}</p>
+                  <p className="font-medium text-gray-900" data-testid="report-denominator">
+                    {totalDenominator}
+                  </p>
                 </div>
                 <div>
                   <span className="text-gray-500">{t("report.completionRate")}</span>
-                  <p className="font-medium text-gray-900">{stats.percent}%</p>
+                  <p className="font-medium text-gray-900" data-testid="report-percent">
+                    {stats.percent}%
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-gray-500">Resolved responses</span>
+                  <p className="font-medium text-gray-900" data-testid="report-resolved">
+                    {totalResolved} / {totalDenominator}
+                  </p>
                 </div>
               </div>
 
-              {/* Progress bar */}
+              {/* F-040 — progress bar uses the same denominator as /workspace/dashboard. */}
               <div className="bg-gray-100 rounded-full h-4 overflow-hidden">
                 <div className="h-full flex">
-                  {totalAnswered > 0 && (
+                  {totalDenominator > 0 && (
                     <>
                       <div
                         className="bg-teal-500 h-full"
-                        style={{ width: `${(totalDone / Math.max(totalAnswered, 1)) * 100}%` }}
+                        style={{ width: `${(totalResolved / Math.max(totalDenominator, 1)) * 100}%` }}
                       />
                       <div
                         className="bg-amber-400 h-full"
-                        style={{ width: `${(totalUnsure / Math.max(totalAnswered, 1)) * 100}%` }}
-                      />
-                      <div
-                        className="bg-gray-300 h-full"
-                        style={{ width: `${(totalSkipped / Math.max(totalAnswered, 1)) * 100}%` }}
+                        style={{ width: `${(totalUnsure / Math.max(totalDenominator, 1)) * 100}%` }}
                       />
                     </>
                   )}
@@ -268,7 +291,7 @@ export default function SecurityReportPage() {
               <div className="flex gap-6 mt-2 text-xs text-gray-500">
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block" />
-                  {t("report.itemsDone")} ({totalDone})
+                  Resolved ({totalResolved})
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
@@ -338,8 +361,8 @@ export default function SecurityReportPage() {
                   </div>
                 </div>
 
-                {/* Per-member table */}
-                {members.length > 0 && (
+                {/* Per-member table — joined members only (F-035 pending rows omitted from print). */}
+                {joinedMembers.length > 0 && (
                   <div className="mt-6">
                     <h3 className="text-sm font-semibold text-gray-700 mb-2">{t("dashboard.teamProgress")}</h3>
                     <div className="overflow-x-auto">
@@ -355,7 +378,7 @@ export default function SecurityReportPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {members.map((m) => (
+                          {joinedMembers.map((m) => (
                             <tr key={m.user_id} className="border-b border-gray-100 last:border-0">
                               <td className="py-2 pr-4 text-gray-900">
                                 {m.display_name ?? m.email ?? m.user_id.slice(0, 8)}
