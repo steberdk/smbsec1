@@ -451,6 +451,45 @@ test("E2E-MATH-05 (F-040): dashboard and security report show identical stats.de
 });
 
 // ---------------------------------------------------------------------------
+// E2E-MATH-08 — F-044 dashboard ↔ report per-track parity
+// ---------------------------------------------------------------------------
+
+test("E2E-MATH-08 (F-044): report per-track resolved/denominator matches dashboard", async ({
+  browser,
+  baseURL,
+}, testInfo) => {
+  testInfo.setTimeout(120_000);
+
+  const fixture = await setupCanonicalStefanFixture(browser);
+  try {
+    const token = await extractTokenFromPage(fixture.owner.page);
+    const ctx = await request.newContext();
+    const d = await fetchDashboard(ctx, baseURL!, token);
+    const itTrack = d.stats.by_track?.it_baseline;
+    const awTrack = d.stats.by_track?.awareness;
+    expect(itTrack).toBeDefined();
+    expect(awTrack).toBeDefined();
+
+    await fixture.owner.page.goto("/workspace/report");
+    await fixture.owner.page.waitForLoadState("networkidle");
+
+    // IT Baseline: report must show "resolved / denominator items"
+    await expect(fixture.owner.page.getByTestId("report-it-baseline-items")).toHaveText(
+      new RegExp(`${itTrack!.resolved}\\s*/\\s*${itTrack!.denominator}\\s*items`, "i"),
+    );
+
+    // Awareness: same parity
+    await expect(fixture.owner.page.getByTestId("report-awareness-items")).toHaveText(
+      new RegExp(`${awTrack!.resolved}\\s*/\\s*${awTrack!.denominator}\\s*items`, "i"),
+    );
+
+    await ctx.dispose();
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+// ---------------------------------------------------------------------------
 // E2E-MATH-06 — F-035 pending invitee contributes zero to denominator
 // ---------------------------------------------------------------------------
 

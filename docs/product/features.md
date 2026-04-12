@@ -750,7 +750,7 @@ Documents impacted:
 ---
 
 ## F-044
-**Status:** Created (deferred — Low priority, PI 14 BA D-01 finding 2026-04-11)
+**Status:** Developed (fix shipped post-PI 15, pending Vercel deploy + BA verify)
 **Feature name:** Security report per-track item count display label parity with dashboard
 **Business Value Hypothesis:** As an owner reading the security report, the per-track item count label should match what the dashboard shows, so the two views never look like they disagree even though they're computing the same thing. PI 14 BA test found: dashboard shows "7 / 22 items" for the Awareness track (per-member-sum semantics, the F-038 denominator); the security report shows "11 items" (raw unique-item count). Both numbers are technically correct but use different semantics for "items" and look like a contradiction. Top-level totals (resolved/denominator/percent) match correctly — this is a per-track display label issue only.
 **Importance:** Low — cosmetic; numeric correctness is intact.
@@ -764,20 +764,3 @@ Documents impacted:
 **Dependencies:** F-040 (already shipped — uses the same shared helper).
 **Risk and amount of Test:** Chance: 1, Impact: 1.
 **Complexity estimate:** Small.
-**Feature name:** Reusable multi-user E2E test harness for owner+employee scenarios
-**Business Value Hypothesis:** As the development team, we keep finding regressions in cross-user dashboard math, "My checklist" isolation, and IT Executor reassignment. These bugs only appear when multiple users with different roles answer items concurrently — exactly the scenarios our current single-user E2E suite barely covers. A reusable harness that spins up an isolated org with N employees of configurable role/IT-executor flags lets us test findings 31, 32, 35a-d, 36, 37 (and any future cross-user scenario) repeatably without flakiness.
-**Importance:** High — prevents regression of a class of bugs that Stefan has flagged twice already.
-**Urgency:** Medium — the affected fixes (F-034, F-035, F-038, F-039) all need this harness.
-**Acceptance Criteria:**
-- AC-1: A test helper `createOrgWithMembers({ owner, employees: [{ email, displayName, isItExecutor }] })` spins up a fresh org and member set in one call, returning Playwright contexts (one per user).
-- AC-2: Each context is signed-in as its respective user (uses the existing PKCE test helper).
-- AC-3: A reusable assertion `expectDashboardCounts(ctx, { resolved, done, unsureNotYet, notApplicable })` matches Stefan's labels in F-038.
-- AC-4: At least one new spec uses this helper to cover: owner answers, employee answers, dashboard shows correct aggregated counts on owner's view, employee's "My checklist" remains independent.
-- AC-5: New specs pass 10 consecutive runs without flakiness.
-- AC-6: The harness runs in DEV (local) AND in CI (GitHub Actions) — same Supabase instance, isolated by org-name prefix per test run.
-- AC-7: The harness does NOT run against PROD/Vercel — orgs are created in the dev/CI Supabase project. Stefan asked the question; answer is documented in `docs/test-strategy.md`.
-**Scope:** `frontend/tests/_helpers/multiUser.ts` (new). Update `docs/test-strategy.md` with multi-user harness section. New spec(s) covering F-034, F-035, F-038, F-039.
-**Not in Scope:** Running E2E against PROD. Performance testing.
-**Dependencies:** Existing PKCE test helper (PI 11).
-**Risk and amount of Test:** Chance: 2, Impact: 2. Test reliability is the whole point — if this is flaky it makes things worse not better.
-**Complexity estimate:** Medium.

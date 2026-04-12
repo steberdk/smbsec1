@@ -312,12 +312,12 @@ export default function SecurityReportPage() {
                 </h2>
 
                 <div className="space-y-3">
-                  {/* IT Baseline track */}
+                  {/* IT Baseline track — F-044: use resolved / denominator to match dashboard */}
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{t("dashboard.itBaseline")}</p>
-                      <p className="text-xs text-gray-500">
-                        {stats.by_track.it_baseline.total} {t("dashboard.items")}
+                      <p className="text-xs text-gray-500" data-testid="report-it-baseline-items">
+                        {stats.by_track.it_baseline.resolved} / {stats.by_track.it_baseline.denominator} {t("dashboard.items")}
                       </p>
                     </div>
                     <div className="flex items-center gap-4 text-xs">
@@ -336,12 +336,12 @@ export default function SecurityReportPage() {
                     </div>
                   </div>
 
-                  {/* Awareness track */}
+                  {/* Awareness track — F-044: use resolved / denominator to match dashboard */}
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{t("dashboard.awareness")}</p>
-                      <p className="text-xs text-gray-500">
-                        {stats.by_track.awareness.total} {t("dashboard.items")}
+                      <p className="text-xs text-gray-500" data-testid="report-awareness-items">
+                        {stats.by_track.awareness.resolved} / {stats.by_track.awareness.denominator} {t("dashboard.items")}
                       </p>
                     </div>
                     <div className="flex items-center gap-4 text-xs">
