@@ -271,11 +271,18 @@ test("E2E-ITEM-04: clicking the active button clears the item back to unanswered
     await expect(doneBtn).toHaveClass(/bg-green-700/, { timeout: 5_000 });
     await saveResp;
 
-    // Click active Done button again — sends DELETE to clear it
+    // Click active Done button again — sends DELETE to clear it. Wait for
+    // the optimistic update AND the DELETE response so CI under load
+    // doesn't race the React re-render against the auto-retry timeout.
+    const deleteResp = page.waitForResponse(
+      (res) => res.url().includes("/responses") && res.request().method() === "DELETE",
+      { timeout: 10_000 }
+    );
     await doneBtn.click();
+    await deleteResp;
 
     // Wait for the button to lose its active (green) style — React re-render confirms the DELETE completed
-    await expect(doneBtn).not.toHaveClass(/bg-green-700/, { timeout: 8_000 });
+    await expect(doneBtn).not.toHaveClass(/bg-green-700/, { timeout: 10_000 });
   } finally {
     await iso.cleanup();
   }
