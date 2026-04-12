@@ -57,8 +57,10 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
               </Link>
             </div>
 
-            {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-1">
+            {/* Desktop nav — lg breakpoint (1024px) so iPad-portrait (768px)
+                gets the hamburger. F-009: at md (768px) the full 9-item nav
+                overflows the viewport causing horizontal scroll. */}
+            <nav className="hidden lg:flex items-center gap-1">
               {navItems
                 .filter((item) => item.show)
                 .map((item) => (
@@ -82,10 +84,10 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
               </button>
             </nav>
 
-            {/* Mobile hamburger */}
+            {/* Mobile / tablet hamburger */}
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              className="md:hidden p-2 text-gray-500 hover:text-gray-700"
+              className="lg:hidden p-2 text-gray-500 hover:text-gray-700"
               aria-label="Toggle menu"
             >
               {menuOpen ? "\u2715" : "\u2630"}
@@ -95,7 +97,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
 
         {/* Mobile slide-out menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white">
+          <div className="lg:hidden border-t border-gray-200 bg-white">
             <nav className="max-w-4xl mx-auto px-4 py-3 space-y-1">
               {navItems
                 .filter((item) => item.show)

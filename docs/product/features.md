@@ -108,7 +108,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-009
-**Status:** Created
+**Status:** Developed (PI 15 Iter 2 — per-viewport audit passes 18/18 page×viewport combinations; `tests/mobile-audit.spec.ts` green; fix: workspace layout nav breakpoint raised from `md` → `lg` so tablet-portrait (768px) shows hamburger instead of overflowing 9-item desktop nav)
 **Feature name:** Mobile responsiveness audit
 **Business Value Hypothesis:** As an SMB owner using a phone, I want all pages to work well on mobile, so I can check security status on the go.
 **Acceptance Criteria:** All pages pass mobile viewport testing. No horizontal scroll. Touch-friendly controls.
@@ -501,7 +501,7 @@ Documents impacted:
 ---
 
 ## F-031
-**Status:** Created
+**Status:** Developed (PI 15 Iter 1 backend + PI 15 Iter 2 frontend — `AiGuidancePanel` rewritten as chat UI in `app/workspace/checklist/page.tsx` with locked UX: no auto-first-message, Start chat card gates first AI call, sticky-within-card input, rate-limit footer when ≤5 left, Clear chat, strict `{ item_id, history, message }` body (no title/description client-side per Security R2 §10). 7/7 tests in `tests/ai-chat-ui.spec.ts` passing with mocked backend; chat backend tests in `tests/ai-chat.spec.ts` remain green.)
 **Feature name:** Replace one-shot AI guidance with interactive AI chat per checklist item
 **Business Value Hypothesis:** As an SMB owner working through a checklist item, I need a back-and-forth conversation with AI scoped to that specific item, because one-shot static guidance can't address the user's specific environment, setup, or follow-up questions. The current "Help me do this" produces a single block of text — Stefan confirmed users need a chat for some items.
 **Importance:** Medium-High — directly affects whether the AI guidance feature is actually useful or just decorative.
