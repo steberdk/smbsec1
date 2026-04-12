@@ -311,6 +311,18 @@
 
 Stefan 2026-04-11: deliver all PDF findings (low + medium + high) plus F-009, F-012, F-023, F-024, F-025, F-031, F-033. Continue autonomously across PIs until done. Final scope locked by Product Team — see `docs/product/pi14/product_team_consensus.md`.
 
+### PI 14 BA Test Results (2026-04-11)
+
+**Verdict:** Conditional Pass — 12 features verified PASS on PROD, 3 features (F-012 partial, F-033, F-041) UI verified but backend pending Stefan applying SQL migrations 022/023/024/025. **Defects: 1 Low (D-01).**
+
+- D-01 (Low) → deferred as **F-044** (security report per-track item count label parity with dashboard)
+- BA report: `docs/product/pi14/ba_test_report.md`
+- Stefan action items before full PI 14 closure:
+  1. Apply `docs/sql/022_fix_security_rules_template_step7.sql`
+  2. Apply `docs/sql/023_pi14_rate_limits.sql`
+  3. Apply `docs/sql/024_pi14_member_deletion_rpc.sql`
+  4. Apply `docs/sql/025_pi14_reassign_it_executor_rpc.sql`
+
 ### PI 14 — "Numbers you can trust" (locked 2026-04-11)
 **Theme:** Dashboard math, multi-user test harness, trust-critical copy cleanups, IT Executor lifecycle, GDPR member deletion.
 

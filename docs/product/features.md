@@ -144,7 +144,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-012
-**Status:** Partially Developed (rate limit + privacy + CSP shipped PI 14 Iter 1 commit b5ab8be; chat-specific hardening reserved for PI 15 Iter 1)
+**Status:** Partially Deployed (rate limit + privacy disclosure + CSP shipped PI 14 Iter 1, BA verified Anthropic disclosure on PROD 2026-04-11; rate limit RPC + AI guidance toggle pending Stefan applying docs/sql/023; chat-specific hardening reserved for PI 15 Iter 1)
 **Feature name:** Tighten AI guidance guardrails
 **Business Value Hypothesis:** As a product owner, I want the AI help feature to strictly only help with the specific checklist item at hand, so users cannot abuse it for unrelated purposes.
 **Acceptance Criteria:** Input length capped (500 chars). System prompt hardened against indirect reasoning chains. Rate limiting moved from in-memory to persistent storage (Supabase table). Lightweight output filter.
@@ -357,7 +357,7 @@ Documents impacted:
 ---
 
 ## F-023
-**Status:** Developed (PI 14 Iter 1, commit b5ab8be — pending Vercel deploy)
+**Status:** Done (PI 14 Iter 1, BA verified on PROD 2026-04-11)
 **Feature name:** Add navigation to expired/error invite pages
 **Business Value Hypothesis:** As an invited user whose invite link has expired, I need a way to navigate back to the homepage or login page — currently the expired invite page has no header, logo, or links, leaving the user completely stranded.
 **Importance:** Medium — affects every user who clicks an expired or already-used invite link.
@@ -375,7 +375,7 @@ Documents impacted:
 ---
 
 ## F-024
-**Status:** Developed (PI 14 Iter 1, commit b5ab8be — pending Vercel deploy)
+**Status:** Done (PI 14 Iter 1, BA verified on PROD 2026-04-11)
 **Feature name:** Fix login page heading mismatch with "Sign up free" CTA
 **Business Value Hypothesis:** As a new user who clicked "Sign up free" on the landing page, I expect the login page to welcome me with signup-appropriate text — not "Log in", which makes me think I clicked the wrong thing.
 **Importance:** Medium — affects first impression for every new user.
@@ -392,7 +392,7 @@ Documents impacted:
 ---
 
 ## F-025
-**Status:** Developed (PI 14 Iter 1, commit b5ab8be — pending Vercel deploy)
+**Status:** Done (PI 14 Iter 1, BA verified on PROD 2026-04-11)
 **Feature name:** Minor UX copy inconsistencies from PI 12 BA review
 **Business Value Hypothesis:** As a user, I expect consistent naming and copy across all pages — small inconsistencies erode trust in a security product.
 **Importance:** Low.
@@ -538,7 +538,7 @@ Documents impacted:
 ---
 
 ## F-033
-**Status:** Developed (PI 14 Iter 3 — pending Vercel deploy + Stefan applies docs/sql/024)
+**Status:** Deployed (PI 14 Iter 3 — UI verified on PROD 2026-04-11; backend RPC pending Stefan applying docs/sql/024 — full BA Done after migration)
 **Feature name:** Owner can remove team member (GDPR member deletion)
 **Business Value Hypothesis:** As an SMB owner I must be able to remove a person (by email) from my team — regardless of whether they accepted the invite, regardless of whether they have responses on assessments — and that action must delete ALL their personal data so the org has no remaining GDPR concern about that person. Without this, the owner has no way to honour a person's right-to-erasure or to clean up after a leaver.
 **Importance:** High — GDPR-mandated. The current product cannot honour right-to-erasure for an employee unless that employee logs in and self-deletes.
@@ -562,7 +562,7 @@ Documents impacted:
 ---
 
 ## F-034
-**Status:** Developed (PI 14 Iter 1, commit b5ab8be — pending Vercel deploy)
+**Status:** Done (PI 14 Iter 1, BA verified on PROD 2026-04-11)
 **Feature name:** Remove "Start an assessment" CTA from the empty-state employee dashboard
 **Business Value Hypothesis:** As an employee viewing the dashboard before any assessment exists, I should not see "No assessments yet · Start an assessment" — employees cannot start assessments (access is already restricted in the API), and the link is misleading. Originally raised as PI 13 finding 014 and flagged again in Stefan's 2026-04-11 test as still present.
 **Importance:** Low — cosmetic but it confuses employees and makes the role model look broken.
@@ -580,7 +580,7 @@ Documents impacted:
 ---
 
 ## F-035
-**Status:** Developed (PI 14 Iter 2 — pending Vercel deploy)
+**Status:** Done (PI 14 Iter 2, BA verified on PROD 2026-04-11)
 **Feature name:** Dashboard team list must include invited-but-not-yet-joined employees
 **Business Value Hypothesis:** As an owner I need the Dashboard's "Team progress" list to show every employee I have invited — including those who haven't logged in yet — so I can see at a glance who hasn't responded without cross-checking the Team page. Currently the Dashboard only lists members who have accepted the invite, which makes the team look smaller than it is and forces double-checking.
 **Importance:** Medium — directly affects whether the owner trusts the dashboard as a single source of truth for team status.
@@ -601,7 +601,7 @@ Documents impacted:
 ---
 
 ## F-036
-**Status:** Developed (PI 14 Iter 3 — pending Vercel deploy)
+**Status:** Done (PI 14 Iter 3, BA verified on PROD 2026-04-11)
 **Feature name:** Add "Now your awareness items" banner before the awareness section in the IT Executor checklist
 **Business Value Hypothesis:** As an IT Executor opening "My checklist", the IT Baseline section is well-introduced by the existing blue banner ("Your admin has assigned you the IT Baseline track…"), but the Security Awareness section that follows has no equivalent intro — the IT Executor doesn't realise that the second half of the list is the same questions every Employee gets. A second banner just before the awareness section makes it clear that these are the personal awareness questions, not technical IT controls.
 **Importance:** Low-Medium — affects clarity for the most engaged user (the person handling IT).
@@ -622,7 +622,7 @@ Documents impacted:
 ---
 
 ## F-037
-**Status:** Developed (PI 14 Iter 1, commit b5ab8be — pending Vercel deploy + Stefan applies docs/sql/022)
+**Status:** Done (PI 14 Iter 1, BA verified on PROD 2026-04-11 — markdown template; DB row pending Stefan applying docs/sql/022)
 **Feature name:** Reword "1-page security rules" template, section 7 — keep digital + printed copies
 **Business Value Hypothesis:** As a security-conscious owner, I'm told to write a 1-page rules doc and "save a digital copy in the shared drive" — but a digital-only copy is impacted by ransomware/IT attacks. The template should explicitly tell owners to print the doc for use during an attack, not only store it digitally.
 **Importance:** Low — content fix.
@@ -640,7 +640,7 @@ Documents impacted:
 ---
 
 ## F-038
-**Status:** Developed (PI 14 Iter 2 — pending Vercel deploy)
+**Status:** Done (PI 14 Iter 2, BA verified on PROD 2026-04-11)
 **Feature name:** Fix dashboard math — track progress, denominators, "Resolved" semantics, denominator stability
 **Business Value Hypothesis:** As an owner reading the Dashboard, I expect the numbers to be coherent and to match how I think about progress. Today the numbers are mathematically inconsistent: the IT Baseline and Awareness progress bars treat "Unsure / Not yet" as "answered = done", which inflates the displayed percent; the top-line denominator changes mid-session (18 / 36 → 18 / 47 was observed); and the "Resolved" pill visually sits next to "Done", "Unsure", "Not applicable" without the relationship Resolved = Done + Not applicable being obvious. The fix is to align all numbers on a consistent definition of "Resolved" and a stable denominator semantics.
 **Importance:** High — data correctness in a security tool. Owners are making decisions based on these numbers.
@@ -664,7 +664,7 @@ Documents impacted:
 ---
 
 ## F-039
-**Status:** Developed (PI 14 Iter 2 — pending Vercel deploy)
+**Status:** Done (PI 14 Iter 2, BA verified on PROD 2026-04-11)
 **Feature name:** Workspace home "My checklist" progress bar must show OWN progress, not org aggregate
 **Business Value Hypothesis:** As an owner, the "My checklist" card on the workspace home page must show MY personal checklist progress — when an employee answers items their progress should not move my "My checklist" bar, because that bar represents the owner's own work to do. Today (2026-04-11) Stefan observed his "My checklist" progress bar move when an employee answered checklist items, because the bar is bound to `stats.percent` from `/api/dashboard` (org aggregate), not the caller's own responses. The Dashboard top-line correctly reflects org aggregate; that's a separate display.
 **Importance:** High — data-correctness bug in the user's primary dashboard widget.
@@ -684,7 +684,7 @@ Documents impacted:
 ---
 
 ## F-040
-**Status:** Developed (PI 14 Iter 2 — pending Vercel deploy)
+**Status:** Done (PI 14 Iter 2, BA verified on PROD 2026-04-11)
 **Feature name:** Security Report must use the same corrected dashboard math
 **Business Value Hypothesis:** As an owner sharing the security report with stakeholders, the report's per-track stats and overall posture numbers must match what the Dashboard shows after F-038 is fixed — otherwise the report and dashboard contradict each other and trust is lost.
 **Importance:** Medium-High — the report is a stakeholder-facing artefact.
@@ -704,7 +704,7 @@ Documents impacted:
 ---
 
 ## F-041
-**Status:** Developed (PI 14 Iter 3 — pending Vercel deploy + Stefan applies docs/sql/025)
+**Status:** Deployed (PI 14 Iter 3 — UI verified on PROD 2026-04-11; backend RPC pending Stefan applying docs/sql/025 — full BA Done after migration)
 **Feature name:** Define and implement IT Executor reassignment behaviour (data handover)
 **Business Value Hypothesis:** As an owner who handles IT today but later wants to delegate to someone else, I need the IT Executor reassignment to behave in a clearly-defined, non-data-losing way. Today (2026-04-11) it is unclear what happens to the previous IT Executor's IT Baseline responses, and whether the new IT Executor inherits an empty checklist, the existing responses, or accidentally a duplicated state.
 **Importance:** Medium — directly affects whether reassignment is safe to use.
@@ -726,7 +726,7 @@ Documents impacted:
 ---
 
 ## F-042
-**Status:** Developed (PI 14 Iter 1, commit b5ab8be — already removed in earlier work; regression test added)
+**Status:** Done (PI 14 Iter 1, BA verified on PROD 2026-04-11 — regression test guards against re-introduction)
 **Feature name:** Fix or remove the "contact us via the application" copy
 **Business Value Hypothesis:** As a user reading the privacy/help text that says "contact us via the application or at the email address provided in your organisation's settings", I look for an in-app contact mechanism — and there isn't one. This is a misleading/false claim. Either implement an in-app contact mechanism or remove the claim. (Linked to F-029 which fixed similar misleading claims on the privacy page.)
 **Importance:** Medium — accuracy in a privacy-sensitive product.
@@ -745,7 +745,25 @@ Documents impacted:
 ---
 
 ## F-043
-**Status:** Developed (PI 14 Iter 1, commit b5ab8be — pending Vercel deploy)
+**Status:** Done (PI 14 Iter 1, BA verified on PROD 2026-04-11)
+
+---
+
+## F-044
+**Status:** Created (deferred — Low priority, PI 14 BA D-01 finding 2026-04-11)
+**Feature name:** Security report per-track item count display label parity with dashboard
+**Business Value Hypothesis:** As an owner reading the security report, the per-track item count label should match what the dashboard shows, so the two views never look like they disagree even though they're computing the same thing. PI 14 BA test found: dashboard shows "7 / 22 items" for the Awareness track (per-member-sum semantics, the F-038 denominator); the security report shows "11 items" (raw unique-item count). Both numbers are technically correct but use different semantics for "items" and look like a contradiction. Top-level totals (resolved/denominator/percent) match correctly — this is a per-track display label issue only.
+**Importance:** Low — cosmetic; numeric correctness is intact.
+**Urgency:** Low — does not affect the math, just the label.
+**Acceptance Criteria:**
+- AC-1: The security report's per-track "X items" label uses the SAME denominator as the dashboard (`stats.by_track[track].denominator`).
+- AC-2: For Stefan's canonical fixture: dashboard Awareness track says `5 / 22 items`; report Awareness section also says `5 / 22 items` (or both consistently say `5 / 11 unique items`).
+- AC-3: A new test in `tests/dashboard-math.spec.ts` asserts dashboard ↔ report per-track item count parity (currently only top-level parity is tested).
+**Scope:** `frontend/app/workspace/report/page.tsx` track item count rendering. Reuse the same `stats.by_track[track].denominator` field already in the dashboard API.
+**Not in Scope:** Changing the math itself.
+**Dependencies:** F-040 (already shipped — uses the same shared helper).
+**Risk and amount of Test:** Chance: 1, Impact: 1.
+**Complexity estimate:** Small.
 **Feature name:** Reusable multi-user E2E test harness for owner+employee scenarios
 **Business Value Hypothesis:** As the development team, we keep finding regressions in cross-user dashboard math, "My checklist" isolation, and IT Executor reassignment. These bugs only appear when multiple users with different roles answer items concurrently — exactly the scenarios our current single-user E2E suite barely covers. A reusable harness that spins up an isolated org with N employees of configurable role/IT-executor flags lets us test findings 31, 32, 35a-d, 36, 37 (and any future cross-user scenario) repeatably without flakiness.
 **Importance:** High — prevents regression of a class of bugs that Stefan has flagged twice already.
