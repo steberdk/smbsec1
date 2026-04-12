@@ -144,7 +144,7 @@ See `feature_rules.md` for how to maintain this file.
 ---
 
 ## F-012
-**Status:** Partially Deployed (rate limit + privacy disclosure + CSP shipped PI 14 Iter 1, BA verified Anthropic disclosure on PROD 2026-04-11; rate limit RPC + AI guidance toggle pending Stefan applying docs/sql/023; chat-specific hardening reserved for PI 15 Iter 1)
+**Status:** Deployed (PI 14 Iter 1 + PI 15 Iter 1 — all code shipped. Pending Stefan applying docs/sql/023 + 026 to enable persistent rate limits + flag logging on PROD)
 **Feature name:** Tighten AI guidance guardrails
 **Business Value Hypothesis:** As a product owner, I want the AI help feature to strictly only help with the specific checklist item at hand, so users cannot abuse it for unrelated purposes.
 **Acceptance Criteria:** Input length capped (500 chars). System prompt hardened against indirect reasoning chains. Rate limiting moved from in-memory to persistent storage (Supabase table). Lightweight output filter.
