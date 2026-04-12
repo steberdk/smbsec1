@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
 
@@ -28,8 +29,14 @@ type InviteForm = {
   is_it_executor: boolean;
 };
 
+type RemoveTarget =
+  | { kind: "member"; member: OrgMember }
+  | { kind: "invite"; invite: Invite };
+
 export default function WorkspaceTeamPage() {
-  const { token, isAdmin } = useWorkspace();
+  const { token, orgData, isAdmin } = useWorkspace();
+  const router = useRouter();
+  const currentUserId = orgData.membership.user_id;
 
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -40,6 +47,13 @@ export default function WorkspaceTeamPage() {
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+
+  // F-033 — removal dialog state
+  const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null);
+  const [typedConfirm, setTypedConfirm] = useState("");
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   useEffect(() => { document.title = "Team | SMB Security Quick-Check"; }, []);
 
@@ -103,6 +117,96 @@ export default function WorkspaceTeamPage() {
     }
   }
 
+  // --- F-033 dialog lifecycle ---------------------------------------------
+
+  function openRemoveMember(member: OrgMember) {
+    setRemoveTarget({ kind: "member", member });
+    setTypedConfirm("");
+    setRemoveError(null);
+  }
+
+  function openRevokeInvite(invite: Invite) {
+    setRemoveTarget({ kind: "invite", invite });
+    setTypedConfirm("");
+    setRemoveError(null);
+  }
+
+  function closeRemoveDialog() {
+    if (removing) return;
+    setRemoveTarget(null);
+    setTypedConfirm("");
+    setRemoveError(null);
+  }
+
+  function targetEmail(t: RemoveTarget): string {
+    return t.kind === "member" ? (t.member.email ?? "") : t.invite.email;
+  }
+
+  function targetIsItExec(t: RemoveTarget): boolean {
+    return t.kind === "member"
+      ? t.member.is_it_executor
+      : t.invite.is_it_executor;
+  }
+
+  const canConfirmTyped = (() => {
+    if (!removeTarget) return false;
+    if (removeTarget.kind === "invite") return true; // pending invites: one-line confirm
+    return typedConfirm.trim().toLowerCase() === targetEmail(removeTarget).toLowerCase();
+  })();
+
+  async function handleConfirmRemove() {
+    if (!token || !removeTarget) return;
+    const email = targetEmail(removeTarget);
+    if (!email) {
+      setRemoveError("This member has no email address on record.");
+      return;
+    }
+    setRemoving(true);
+    setRemoveError(null);
+
+    try {
+      const res = await fetch(
+        `/api/orgs/members?email=${encodeURIComponent(email)}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 503 && body?.error === "migration_pending") {
+          throw new Error(
+            "Member deletion is not yet available — the admin needs to apply migration 024."
+          );
+        }
+        throw new Error(body?.error || `Failed (${res.status})`);
+      }
+
+      const wasItExec = targetIsItExec(removeTarget);
+      setActionSuccess(
+        removeTarget.kind === "invite"
+          ? `Invitation for ${email} revoked.`
+          : `${email} removed from the team.`
+      );
+      setRemoveTarget(null);
+      setTypedConfirm("");
+      loadData();
+
+      // If the removed member was the IT Executor, send owner back to the
+      // workspace home so the "Invite your IT Executor" guided step re-appears.
+      if (wasItExec) {
+        setTimeout(() => router.push("/workspace"), 400);
+      }
+    } catch (e) {
+      setRemoveError(e instanceof Error ? e.message : "Failed to remove.");
+    } finally {
+      setRemoving(false);
+    }
+  }
+
   if (!isAdmin) {
     return (
       <div className="text-center py-16 text-gray-500">
@@ -115,6 +219,12 @@ export default function WorkspaceTeamPage() {
   return (
     <>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Team</h1>
+
+      {actionSuccess && (
+        <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-3 py-2">
+          <p className="text-sm text-green-800">{actionSuccess}</p>
+        </div>
+      )}
 
       {/* Invite form */}
       <section className="mb-8">
@@ -171,25 +281,39 @@ export default function WorkspaceTeamPage() {
         <section className="mb-8">
           <h2 className="text-base font-semibold mb-3">Team members</h2>
           <div className="space-y-2">
-            {members.map((m) => (
-              <div
-                key={m.user_id}
-                className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
-              >
-                <div>
-                  <p className="text-sm font-medium">
-                    {m.display_name ?? m.email ?? `${m.user_id.slice(0, 8)}...`}
-                  </p>
-                  <p className="text-xs text-gray-500 capitalize">
-                    {m.role === "org_admin" ? "Owner" : m.role.replace("_", " ")}
-                    {m.is_it_executor && " · IT Executor"}
-                  </p>
+            {members.map((m) => {
+              const isSelf = m.user_id === currentUserId;
+              return (
+                <div
+                  key={m.user_id}
+                  className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      {m.display_name ?? m.email ?? `${m.user_id.slice(0, 8)}...`}
+                    </p>
+                    <p className="text-xs text-gray-500 capitalize">
+                      {m.role === "org_admin" ? "Owner" : m.role.replace("_", " ")}
+                      {m.is_it_executor && " · IT Executor"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className="text-xs text-gray-400">
+                      Joined {new Date(m.created_at).toLocaleDateString()}
+                    </p>
+                    {!isSelf && m.email && (
+                      <button
+                        onClick={() => openRemoveMember(m)}
+                        className="text-xs text-red-600 underline hover:text-red-700"
+                        data-testid={`remove-member-${m.user_id}`}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-gray-400">
-                  Joined {new Date(m.created_at).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
@@ -232,9 +356,16 @@ export default function WorkspaceTeamPage() {
                   <button
                     onClick={() => handleRevoke(invite.id)}
                     disabled={revoking === invite.id}
-                    className="text-xs text-red-600 underline disabled:opacity-50"
+                    className="text-xs text-gray-500 underline disabled:opacity-50"
                   >
                     {revoking === invite.id ? "Revoking..." : "Revoke"}
+                  </button>
+                  <button
+                    onClick={() => openRevokeInvite(invite)}
+                    className="text-xs text-red-600 underline"
+                    data-testid={`revoke-delete-invite-${invite.id}`}
+                  >
+                    Revoke + delete data
                   </button>
                 </div>
               </div>
@@ -242,6 +373,100 @@ export default function WorkspaceTeamPage() {
           </div>
         )}
       </section>
+
+      {/* F-033 — Remove member / Revoke invite dialog */}
+      {removeTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          data-testid="remove-member-dialog"
+        >
+          <div className="w-full max-w-md rounded-xl bg-white shadow-xl border border-gray-200">
+            <div className="p-5 border-b border-gray-200">
+              <h3 className="text-base font-semibold text-gray-900">
+                {removeTarget.kind === "invite"
+                  ? `Revoke invitation for ${targetEmail(removeTarget)}?`
+                  : `Remove ${targetEmail(removeTarget)} from the team?`}
+              </h3>
+            </div>
+            <div className="p-5 space-y-3 text-sm text-gray-700">
+              {removeTarget.kind === "invite" ? (
+                <p>
+                  This will permanently delete the pending invite and any audit
+                  log PII. The invitee will no longer be able to join using the
+                  existing link.
+                </p>
+              ) : (
+                <>
+                  <p className="font-medium text-red-700">
+                    This cannot be undone.
+                  </p>
+                  <p>The following data will be permanently deleted:</p>
+                  <ul className="list-disc list-inside text-xs text-gray-600 space-y-1">
+                    <li>All assessment responses</li>
+                    <li>All campaign records</li>
+                    <li>All invites for this email</li>
+                    <li>All audit log PII (entries anonymised)</li>
+                  </ul>
+                  {targetIsItExec(removeTarget) && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                      <p className="text-xs text-amber-800">
+                        Removing the IT Executor will require you to assign a
+                        new IT Executor afterwards.
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Type{" "}
+                      <span className="font-mono text-gray-900">
+                        {targetEmail(removeTarget)}
+                      </span>{" "}
+                      to confirm
+                    </label>
+                    <input
+                      type="text"
+                      value={typedConfirm}
+                      onChange={(e) => setTypedConfirm(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                      autoComplete="off"
+                      data-testid="remove-member-typed-confirm"
+                    />
+                  </div>
+                </>
+              )}
+
+              {removeError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                  <p className="text-xs text-red-800">{removeError}</p>
+                </div>
+              )}
+            </div>
+            <div className="p-5 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={closeRemoveDialog}
+                disabled={removing}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmRemove}
+                disabled={!canConfirmTyped || removing}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                data-testid="remove-member-confirm"
+              >
+                {removing
+                  ? "Working..."
+                  : removeTarget.kind === "invite"
+                  ? "Revoke"
+                  : "Delete permanently"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

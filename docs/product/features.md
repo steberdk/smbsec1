@@ -538,7 +538,7 @@ Documents impacted:
 ---
 
 ## F-033
-**Status:** Created
+**Status:** Developed (PI 14 Iter 3 — pending Vercel deploy + Stefan applies docs/sql/024)
 **Feature name:** Owner can remove team member (GDPR member deletion)
 **Business Value Hypothesis:** As an SMB owner I must be able to remove a person (by email) from my team — regardless of whether they accepted the invite, regardless of whether they have responses on assessments — and that action must delete ALL their personal data so the org has no remaining GDPR concern about that person. Without this, the owner has no way to honour a person's right-to-erasure or to clean up after a leaver.
 **Importance:** High — GDPR-mandated. The current product cannot honour right-to-erasure for an employee unless that employee logs in and self-deletes.
@@ -601,7 +601,7 @@ Documents impacted:
 ---
 
 ## F-036
-**Status:** Created
+**Status:** Developed (PI 14 Iter 3 — pending Vercel deploy)
 **Feature name:** Add "Now your awareness items" banner before the awareness section in the IT Executor checklist
 **Business Value Hypothesis:** As an IT Executor opening "My checklist", the IT Baseline section is well-introduced by the existing blue banner ("Your admin has assigned you the IT Baseline track…"), but the Security Awareness section that follows has no equivalent intro — the IT Executor doesn't realise that the second half of the list is the same questions every Employee gets. A second banner just before the awareness section makes it clear that these are the personal awareness questions, not technical IT controls.
 **Importance:** Low-Medium — affects clarity for the most engaged user (the person handling IT).
@@ -704,7 +704,7 @@ Documents impacted:
 ---
 
 ## F-041
-**Status:** Created
+**Status:** Developed (PI 14 Iter 3 — pending Vercel deploy + Stefan applies docs/sql/025)
 **Feature name:** Define and implement IT Executor reassignment behaviour (data handover)
 **Business Value Hypothesis:** As an owner who handles IT today but later wants to delegate to someone else, I need the IT Executor reassignment to behave in a clearly-defined, non-data-losing way. Today (2026-04-11) it is unclear what happens to the previous IT Executor's IT Baseline responses, and whether the new IT Executor inherits an empty checklist, the existing responses, or accidentally a duplicated state.
 **Importance:** Medium — directly affects whether reassignment is safe to use.

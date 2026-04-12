@@ -96,6 +96,7 @@ export default function WorkspaceChecklistPage() {
   const [isItExecutor, setIsItExecutor] = useState(false);
   const [orgName, setOrgName] = useState("");
   const [showExecutorBanner, setShowExecutorBanner] = useState(false);
+  const [showAwarenessIntroBanner, setShowAwarenessIntroBanner] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
 
   useEffect(() => { document.title = "My Checklist | SMB Security Quick-Check"; }, []);
@@ -112,6 +113,13 @@ export default function WorkspaceChecklistPage() {
         setOrgName(org.name);
         if (membership.is_it_executor && !localStorage.getItem("smbsec:executor-banner-dismissed")) {
           setShowExecutorBanner(true);
+        }
+        // F-036 — Awareness section intro banner, IT Executor only, dismissible.
+        if (
+          membership.is_it_executor &&
+          !localStorage.getItem("smbsec1.banner.awarenessIntro.dismissed")
+        ) {
+          setShowAwarenessIntroBanner(true);
         }
         const active = assessments.find((a) => a.status === "active");
         if (!active) {
@@ -431,6 +439,48 @@ export default function WorkspaceChecklistPage() {
         }
         return <ItemGroup title="IT Baseline" track="it_baseline" items={itItems} responses={responses} verifications={verifications} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />;
       })()}
+      {awarenessItems.length > 0 && isItExecutor && showAwarenessIntroBanner && (
+        <div
+          className="mb-6 rounded-xl border-l-4 border-teal-200 bg-teal-50 px-4 py-3 flex items-start justify-between gap-3"
+          data-testid="awareness-intro-banner"
+        >
+          <div className="flex items-start gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-5 h-5 text-teal-700 mt-0.5 flex-shrink-0"
+              aria-hidden="true"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <p className="text-sm text-teal-900">
+              <strong>Now your personal security habits.</strong> Every person
+              in your organisation — including you — answers the same awareness
+              questions.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setShowAwarenessIntroBanner(false);
+              localStorage.setItem(
+                "smbsec1.banner.awarenessIntro.dismissed",
+                "1"
+              );
+            }}
+            className="text-teal-400 hover:text-teal-700 text-lg leading-none flex-shrink-0"
+            aria-label="Dismiss awareness banner"
+            data-testid="awareness-intro-banner-dismiss"
+          >
+            &times;
+          </button>
+        </div>
+      )}
       {awarenessItems.length > 0 && (
         <ItemGroup title="Security Awareness" track="awareness" items={awarenessItems} responses={responses} verifications={verifications} saving={saving} token={token} onResponse={setResponse} onClear={clearResponse} />
       )}
