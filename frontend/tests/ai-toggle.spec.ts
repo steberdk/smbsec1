@@ -12,7 +12,7 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { createIsolatedOrg, getServiceClient, baseUrl } from "./helpers/fixtures";
+import { createIsolatedOrg, getServiceClient, baseUrl, startAssessment } from "./helpers/fixtures";
 
 /**
  * Pre-flight: skip both tests if migration 023 hasn't been applied yet (the
@@ -63,15 +63,28 @@ test("E2E-AI-01 (F-012): owner can disable AI guidance and /api/guidance returns
   try {
     const svc = getServiceClient();
 
+    // Start an assessment so the item lookup has something to find.
+    const assessmentId = await startAssessment(org.orgId, org.adminUser.id);
+
+    // Find the first IT-Baseline item for the request body.
+    const { data: items } = await svc
+      .from("assessment_items")
+      .select("id")
+      .eq("assessment_id", assessmentId)
+      .limit(1);
+    const itemId = (items as { id: string }[])?.[0]?.id;
+    expect(itemId).toBeTruthy();
+
     // Flip the toggle off directly via service-role.
     await svc.from("orgs").update({ ai_guidance_enabled: false }).eq("id", org.orgId);
 
     // Mint an access token for the admin user.
     const token = await adminAccessToken(org.adminUser.id, org.adminUser.email);
 
-    const res = await request.post(`${baseUrl()}/api/guidance`, {
+    // Use the chat endpoint (which checks ai_guidance_enabled before item lookup).
+    const res = await request.post(`${baseUrl()}/api/guidance/chat`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { item_title: "Enable MFA for all admins" },
+      data: { item_id: itemId, history: [], message: "How do I do this?" },
     });
 
     // Exact check: 503 with the disabled payload.
@@ -91,20 +104,30 @@ test("E2E-AI-02 (F-012): re-enabling the toggle stops the 503 disabled response"
   try {
     const svc = getServiceClient();
 
+    // Start an assessment so item lookup works.
+    const assessmentId = await startAssessment(org.orgId, org.adminUser.id);
+    const { data: items } = await svc
+      .from("assessment_items")
+      .select("id")
+      .eq("assessment_id", assessmentId)
+      .limit(1);
+    const itemId = (items as { id: string }[])?.[0]?.id;
+    expect(itemId).toBeTruthy();
+
     // Disable then re-enable.
     await svc.from("orgs").update({ ai_guidance_enabled: false }).eq("id", org.orgId);
     await svc.from("orgs").update({ ai_guidance_enabled: true }).eq("id", org.orgId);
 
     const token = await adminAccessToken(org.adminUser.id, org.adminUser.email);
 
-    const res = await request.post(`${baseUrl()}/api/guidance`, {
+    const res = await request.post(`${baseUrl()}/api/guidance/chat`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { item_title: "Enable MFA for all admins" },
+      data: { item_id: itemId, history: [], message: "How do I do this?" },
     });
 
-    // It may return 200 (happy path), 429 (rate limit), 500 (Anthropic key
-    // not configured in test), or 400 — but MUST NOT be 503 with the
-    // disabled-kill-switch payload.
+    // It may return 200 (happy path), 429 (rate limit), 503 (Anthropic key
+    // not configured), or 400 — but MUST NOT be 503 with the
+    // disabled-kill-switch payload specifically.
     if (res.status() === 503) {
       const body = await res.json().catch(() => ({}));
       expect(body.error).not.toBe("ai_guidance_disabled");

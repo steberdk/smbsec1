@@ -154,16 +154,14 @@ export type ChatHandlerSuccess = {
 export async function runChat(input: ChatHandlerInput): Promise<NextResponse> {
   const { req } = input;
 
-  // 1. Kill switches first (global env + API key presence).
+  // 1. Kill switch (global env — API key check is deferred to step 8 so
+  // body validation, item lookup, and rate limits work without Anthropic
+  // configured, which lets non-Anthropic tests pass in CI).
   if (isKillSwitchEnabled()) {
     return NextResponse.json(
       { error: "ai_guidance_disabled", scope: "global" },
       { status: 503 }
     );
-  }
-  const apiKey = process.env.ANTROPIC_API_KEY ?? process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return apiError("AI guidance is not configured", 503);
   }
 
   // 2. Auth + membership.
@@ -267,7 +265,12 @@ export async function runChat(input: ChatHandlerInput): Promise<NextResponse> {
   const systemPrompt = buildHardenedSystemPrompt(canonical, platform);
   const trimmedHistory = truncateHistory(history);
 
-  // 8. Call Anthropic.
+  // 8. Call Anthropic (API key check deferred from step 1 so body/item/rate-limit
+  // validation works without the key — needed for CI tests).
+  const apiKey = process.env.ANTROPIC_API_KEY ?? process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return apiError("AI guidance is not configured", 503);
+  }
   let replyText = "";
   try {
     const client = new Anthropic({ apiKey });

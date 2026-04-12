@@ -42,7 +42,12 @@ async function migration026Applied(): Promise<boolean> {
 }
 
 function anthropicDisabled(): boolean {
-  return process.env.ANTHROPIC_TEST_DISABLED === "true";
+  // Skip when explicitly disabled OR when the API key isn't available (e.g. CI
+  // without Anthropic configured). This prevents tests from failing with 503
+  // "AI guidance is not configured" on environments that only have Supabase.
+  if (process.env.ANTHROPIC_TEST_DISABLED === "true") return true;
+  const key = process.env.ANTROPIC_API_KEY ?? process.env.ANTHROPIC_API_KEY;
+  return !key;
 }
 
 /**
