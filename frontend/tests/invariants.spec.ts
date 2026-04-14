@@ -920,19 +920,23 @@ test.describe("F-048 Home invariants", () => {
 
       await p.goto(`${baseUrl()}/workspace/settings`);
       // The IT executor select is the last on the page (email platform,
-      // locale, IT executor). Wait for the members fetch to populate its
-      // options, then read the selected label.
+      // locale, IT executor). F-048 Settings extension (2026-04-14) adds a
+      // placeholder option `— not assigned —` at value="" that is the
+      // initial selection until the members+invites fetch resolves and
+      // `setExecutor(ownerId)` runs. Poll on the *selected* option's text
+      // rather than just option count, so the assertion waits for state
+      // to settle — not just for options to populate.
       const itSelect = p.locator("select").last();
       await expect
-        .poll(async () => itSelect.locator("option").count(), { timeout: 10_000 })
-        .toBeGreaterThan(0);
-      const selectedText = await itSelect.evaluate((el) => {
-        const sel = el as HTMLSelectElement;
-        return sel.options[sel.selectedIndex]?.textContent ?? "";
-      });
-      // O1's solo owner membership is the only option; its label ends with
-      // "(Owner)" per OrgSettingsPage line 257.
-      expect(selectedText).toMatch(/Owner/i);
+        .poll(
+          async () =>
+            itSelect.evaluate((el) => {
+              const sel = el as HTMLSelectElement;
+              return sel.options[sel.selectedIndex]?.textContent ?? "";
+            }),
+          { timeout: 10_000 },
+        )
+        .toMatch(/Owner/i);
     } finally {
       await org.cleanup();
     }
