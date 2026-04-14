@@ -461,10 +461,15 @@ test("E2E-DELMEM-05 (F-033): removing IT Executor flips dashboard 'Invite IT Exe
     expect(del.body.was_it_executor).toBe(true);
 
     // Reuse the owner's already-signed-in page — navigate to workspace and
-    // confirm the guided "Invite your IT Executor" step has re-appeared.
+    // confirm the guided step to re-assign the IT Executor has re-appeared.
+    // F-048 (PI 16) restructured Home from 3 steps to 4 and replaced "Invite
+    // your IT Executor" with "Assign or confirm your IT Executor" when no
+    // executor is assigned. See frontend/lib/selectors/ownerHomeState.ts.
     await org.owner.page.goto(`${baseUrl()}/workspace`);
     await expect(
-      org.owner.page.getByText(/invite your it executor/i).first(),
+      org.owner.page
+        .getByText(/assign or confirm your it executor/i)
+        .first(),
     ).toBeVisible({ timeout: 10_000 });
   } finally {
     await org.cleanup();

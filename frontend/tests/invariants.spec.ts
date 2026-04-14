@@ -336,10 +336,13 @@ test.describe("F-049 post-migration", () => {
       await page.getByTestId("remove-member-confirm").click();
 
       // Row disappears once the real RPC returns success. The team page
-      // re-fetches invites on delete success.
-      await expect(page.getByText(inviteEmail)).toHaveCount(0, {
-        timeout: 15_000,
-      });
+      // re-fetches invites on delete success. Target the Pending-invites
+      // row specifically — a success banner legitimately mentions the
+      // removed email ("Invitation for {email} revoked.") so a whole-page
+      // text match would false-positive.
+      await expect(
+        page.locator('[data-testid^="revoke-delete-invite-"]'),
+      ).toHaveCount(0, { timeout: 15_000 });
 
       // DB assertion: invite row actually gone.
       const svc = getServiceClient();
