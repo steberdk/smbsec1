@@ -6,19 +6,22 @@
  * existing IT Baseline response on its original user_id, and writes ONE
  * audit row with the response count transferred.
  *
+ * Migrated to the F-043 multi-user harness in F-057 (PI 17 Iter 1) — replaces
+ * the PKCE-incompatible `tokenFor()` helper with `createOrgWithMembers` +
+ * `extractTokenFromPage()`.
+ *
  * Tests skip cleanly until Stefan applies migration 025.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect, type Browser, type Page } from "@playwright/test";
 import {
-  createIsolatedOrg,
-  createTempUser,
-  addOrgMember,
   startAssessment,
   getServiceClient,
   baseUrl,
-  loginWithEmail,
+  createTempUser,
+  type TempUser,
 } from "./helpers/fixtures";
+import { createOrgWithMembers, type MultiUserOrg } from "./helpers/multiUser";
 
 // ---------------------------------------------------------------------------
 // Pre-flight — skip until migration 025 applied.
@@ -43,25 +46,29 @@ async function migration025Applied(): Promise<boolean> {
   return true;
 }
 
-async function tokenFor(email: string): Promise<string> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const res = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-    },
-    body: JSON.stringify({ type: "magiclink", email }),
+/**
+ * Pull the Supabase access token out of a signed-in page's localStorage.
+ * PKCE-safe replacement for the old URL-borne `tokenFor()` helper.
+ */
+async function extractTokenFromPage(page: Page): Promise<string> {
+  const token = await page.evaluate(() => {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("sb-") && k.endsWith("-auth-token")) {
+        try {
+          const val = JSON.parse(localStorage.getItem(k) ?? "{}");
+          return (val?.access_token as string | undefined) ?? null;
+        } catch {
+          return null;
+        }
+      }
+    }
+    return null;
   });
-  if (!res.ok) throw new Error(`generate_link failed: ${await res.text()}`);
-  const data = await res.json();
-  const redirect = await fetch(data.action_link, { redirect: "manual" });
-  const loc = redirect.headers.get("location") ?? "";
-  const m = loc.match(/access_token=([^&]+)/);
-  if (!m) throw new Error(`no access_token in redirect: ${loc.slice(0, 200)}`);
-  return decodeURIComponent(m[1]);
+  if (!token) {
+    throw new Error("extractTokenFromPage: no Supabase access_token in localStorage");
+  }
+  return token;
 }
 
 async function reassign(
@@ -105,32 +112,35 @@ async function fetchDashboard(token: string): Promise<{
 }
 
 // ---------------------------------------------------------------------------
-// Build a 2-member org: owner is IT Exec, employee is non-IT-exec employee.
-// Owner has 5 IT Baseline `done` responses seeded.
+// Build a 2-member org using the F-043 multi-user harness: owner is IT Exec,
+// employee is non-IT-exec employee. Owner has 5 IT Baseline `done` responses
+// seeded directly via service-role.
 // ---------------------------------------------------------------------------
 
-async function seedOrgWithFiveResponses(): Promise<{
-  orgId: string;
+type ReassignFixture = {
+  org: MultiUserOrg;
   assessmentId: string;
   ownerId: string;
   ownerEmail: string;
+  ownerPage: Page;
   empId: string;
   empEmail: string;
-  cleanup: () => Promise<void>;
-}> {
-  const iso = await createIsolatedOrg("REASSIGN Org");
-  const employee = await createTempUser("e2e-reassign-emp");
+  empPage: Page;
+};
+
+async function seedOrgWithFiveResponses(browser: Browser): Promise<ReassignFixture> {
+  const org = await createOrgWithMembers(browser, {
+    ownerName: "Reassign Owner",
+    ownerIsItExecutor: true,
+    employees: [{ displayName: "Employee", isItExecutor: false }],
+  });
+
+  const ownerUser = org.owner.user;
+  const employee = org.employees[0].user;
+
+  const assessmentId = await startAssessment(org.orgId, ownerUser.id);
 
   const svc = getServiceClient();
-  await addOrgMember(iso.orgId, employee, "employee", { isItExecutor: false });
-  await svc
-    .from("org_members")
-    .update({ email: employee.email })
-    .eq("org_id", iso.orgId)
-    .eq("user_id", employee.id);
-
-  const assessmentId = await startAssessment(iso.orgId, iso.adminUser.id);
-
   // Seed 5 IT Baseline "done" responses by the owner (the current IT exec).
   const { data: items } = await svc
     .from("assessment_items")
@@ -140,6 +150,7 @@ async function seedOrgWithFiveResponses(): Promise<{
     .order("order_index", { ascending: true });
   const itItems = (items ?? []) as Array<{ id: string }>;
   if (itItems.length < 5) {
+    await org.cleanup();
     throw new Error(
       `seedOrgWithFiveResponses: need >=5 IT Baseline items, got ${itItems.length}`,
     );
@@ -147,27 +158,24 @@ async function seedOrgWithFiveResponses(): Promise<{
   const rows = itItems.slice(0, 5).map((i) => ({
     assessment_id: assessmentId,
     assessment_item_id: i.id,
-    user_id: iso.adminUser.id,
+    user_id: ownerUser.id,
     status: "done" as const,
   }));
   const { error: insErr } = await svc.from("assessment_responses").insert(rows);
-  expect(insErr).toBeNull();
+  if (insErr) {
+    await org.cleanup();
+    throw new Error(`seedOrgWithFiveResponses: insert failed: ${insErr.message}`);
+  }
 
   return {
-    orgId: iso.orgId,
+    org,
     assessmentId,
-    ownerId: iso.adminUser.id,
-    ownerEmail: iso.adminUser.email,
+    ownerId: ownerUser.id,
+    ownerEmail: ownerUser.email,
+    ownerPage: org.owner.page,
     empId: employee.id,
     empEmail: employee.email,
-    cleanup: async () => {
-      try {
-        await employee.delete();
-      } catch {
-        /* ignore */
-      }
-      await iso.cleanup();
-    },
+    empPage: org.employees[0].page,
   };
 }
 
@@ -175,17 +183,20 @@ async function seedOrgWithFiveResponses(): Promise<{
 // E2E-REASSIGN-01
 // ---------------------------------------------------------------------------
 
-test("E2E-REASSIGN-01 (F-041): reassign preserves existing IT Baseline answers", async () => {
+test("E2E-REASSIGN-01 (F-041): reassign preserves existing IT Baseline answers", async ({
+  browser,
+}, testInfo) => {
   test.skip(
     !(await migration025Applied()),
     "migration 025 (reassign_it_executor) not applied yet",
   );
+  testInfo.setTimeout(180_000);
 
-  const fx = await seedOrgWithFiveResponses();
+  const fx = await seedOrgWithFiveResponses(browser);
   try {
     const svc = getServiceClient();
 
-    const ownerToken = await tokenFor(fx.ownerEmail);
+    const ownerToken = await extractTokenFromPage(fx.ownerPage);
     const before = await fetchDashboard(ownerToken);
 
     const res = await reassign(ownerToken, fx.empId);
@@ -205,7 +216,7 @@ test("E2E-REASSIGN-01 (F-041): reassign preserves existing IT Baseline answers",
     const { data: flagsAfter } = await svc
       .from("org_members")
       .select("user_id, is_it_executor")
-      .eq("org_id", fx.orgId);
+      .eq("org_id", fx.org.orgId);
     const flags = Object.fromEntries(
       (flagsAfter ?? []).map(
         (r: { user_id: string; is_it_executor: boolean }) => [
@@ -221,7 +232,7 @@ test("E2E-REASSIGN-01 (F-041): reassign preserves existing IT Baseline answers",
     const { data: audits } = await svc
       .from("audit_logs")
       .select("event_type, details")
-      .eq("org_id", fx.orgId)
+      .eq("org_id", fx.org.orgId)
       .eq("event_type", "it_executor_reassigned");
     expect((audits ?? []).length).toBe(1);
     const details = (audits![0] as { details: Record<string, unknown> }).details;
@@ -230,13 +241,13 @@ test("E2E-REASSIGN-01 (F-041): reassign preserves existing IT Baseline answers",
     expect(details.new_it_executor_user_id).toBe(fx.empId);
 
     // New executor's dashboard shows the same IT Baseline resolved count.
-    const newExecToken = await tokenFor(fx.empEmail);
+    const newExecToken = await extractTokenFromPage(fx.empPage);
     const after = await fetchDashboard(newExecToken);
     expect(after.stats.by_track.it_baseline.resolved).toBe(
       before.stats.by_track.it_baseline.resolved,
     );
   } finally {
-    await fx.cleanup();
+    await fx.org.cleanup();
   }
 });
 
@@ -244,27 +255,39 @@ test("E2E-REASSIGN-01 (F-041): reassign preserves existing IT Baseline answers",
 // E2E-REASSIGN-02 — pending invitee is rejected.
 // ---------------------------------------------------------------------------
 
-test("E2E-REASSIGN-02 (F-041): reassignment to pending invitee is rejected", async () => {
+test("E2E-REASSIGN-02 (F-041): reassignment to pending invitee is rejected", async ({
+  browser,
+}, testInfo) => {
   test.skip(
     !(await migration025Applied()),
     "migration 025 (reassign_it_executor) not applied yet",
   );
+  testInfo.setTimeout(120_000);
 
-  const iso = await createIsolatedOrg("REASSIGN02 Org");
+  const org = await createOrgWithMembers(browser, {
+    ownerName: "Reassign02 Owner",
+    ownerIsItExecutor: true,
+  });
+
+  let stranger: TempUser | null = null;
   try {
     // A user that is NOT a member of this org — simulates "pending invitee"
     // from the RPC's perspective (pending invitees don't live in org_members).
-    const stranger = await createTempUser("e2e-stranger");
-    try {
-      const ownerToken = await tokenFor(iso.adminUser.email);
-      const res = await reassign(ownerToken, stranger.id);
-      expect(res.status).toBe(400);
-      expect(res.body.error).toBe("new_assignee_not_in_org");
-    } finally {
-      await stranger.delete();
-    }
+    stranger = await createTempUser("e2e-stranger-reassign");
+
+    const ownerToken = await extractTokenFromPage(org.owner.page);
+    const res = await reassign(ownerToken, stranger.id);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("new_assignee_not_in_org");
   } finally {
-    await iso.cleanup();
+    if (stranger) {
+      try {
+        await stranger.delete();
+      } catch {
+        /* ignore */
+      }
+    }
+    await org.cleanup();
   }
 });
 
@@ -272,15 +295,18 @@ test("E2E-REASSIGN-02 (F-041): reassignment to pending invitee is rejected", asy
 // E2E-REASSIGN-03 — dashboard math unchanged pre/post reassignment.
 // ---------------------------------------------------------------------------
 
-test("E2E-REASSIGN-03 (F-041): dashboard math unchanged pre/post reassignment", async () => {
+test("E2E-REASSIGN-03 (F-041): dashboard math unchanged pre/post reassignment", async ({
+  browser,
+}, testInfo) => {
   test.skip(
     !(await migration025Applied()),
     "migration 025 (reassign_it_executor) not applied yet",
   );
+  testInfo.setTimeout(180_000);
 
-  const fx = await seedOrgWithFiveResponses();
+  const fx = await seedOrgWithFiveResponses(browser);
   try {
-    const ownerToken = await tokenFor(fx.ownerEmail);
+    const ownerToken = await extractTokenFromPage(fx.ownerPage);
     const before = await fetchDashboard(ownerToken);
 
     const res = await reassign(ownerToken, fx.empId);
@@ -298,7 +324,7 @@ test("E2E-REASSIGN-03 (F-041): dashboard math unchanged pre/post reassignment", 
       before.stats.by_track.it_baseline.percent,
     );
   } finally {
-    await fx.cleanup();
+    await fx.org.cleanup();
   }
 });
 
@@ -307,34 +333,33 @@ test("E2E-REASSIGN-03 (F-041): dashboard math unchanged pre/post reassignment", 
 // ---------------------------------------------------------------------------
 
 test("E2E-REASSIGN-04 (F-041): old IT exec no longer sees IT Baseline section", async ({
-  page,
-}) => {
+  browser,
+}, testInfo) => {
   test.skip(
     !(await migration025Applied()),
     "migration 025 (reassign_it_executor) not applied yet",
   );
+  testInfo.setTimeout(180_000);
 
-  const fx = await seedOrgWithFiveResponses();
+  const fx = await seedOrgWithFiveResponses(browser);
   try {
-    const ownerToken = await tokenFor(fx.ownerEmail);
+    const ownerToken = await extractTokenFromPage(fx.ownerPage);
     const res = await reassign(ownerToken, fx.empId);
     expect(res.status).toBe(200);
 
-    // Log in as the old IT Exec (owner) and navigate to /workspace/checklist.
-    await loginWithEmail(page, fx.ownerEmail);
-    await page.waitForURL(/\/workspace/);
-    await page.goto("/workspace/checklist");
+    // Reuse the old IT Exec's (owner) signed-in page to visit /workspace/checklist.
+    await fx.ownerPage.goto(`${baseUrl()}/workspace/checklist`);
 
     await expect(
-      page.getByRole("heading", { name: /security awareness/i }),
+      fx.ownerPage.getByRole("heading", { name: /security awareness/i }),
     ).toBeVisible({ timeout: 10_000 });
 
     // IT Baseline section heading must NOT be present.
     await expect(
-      page.getByRole("heading", { name: /^it baseline$/i }),
+      fx.ownerPage.getByRole("heading", { name: /^it baseline$/i }),
     ).toHaveCount(0);
   } finally {
-    await fx.cleanup();
+    await fx.org.cleanup();
   }
 });
 
@@ -343,33 +368,34 @@ test("E2E-REASSIGN-04 (F-041): old IT exec no longer sees IT Baseline section", 
 // ---------------------------------------------------------------------------
 
 test("E2E-REASSIGN-05 (F-041): new IT exec sees existing answers", async ({
-  page,
-}) => {
+  browser,
+}, testInfo) => {
   test.skip(
     !(await migration025Applied()),
     "migration 025 (reassign_it_executor) not applied yet",
   );
+  testInfo.setTimeout(180_000);
 
-  const fx = await seedOrgWithFiveResponses();
+  const fx = await seedOrgWithFiveResponses(browser);
   try {
-    const ownerToken = await tokenFor(fx.ownerEmail);
+    const ownerToken = await extractTokenFromPage(fx.ownerPage);
     const res = await reassign(ownerToken, fx.empId);
     expect(res.status).toBe(200);
 
     // New IT exec: their dashboard API confirms the 5 IT responses are
     // visible and `by_track.it_baseline.resolved` is > 0 (since done = resolved).
-    const newExecToken = await tokenFor(fx.empEmail);
+    const newExecToken = await extractTokenFromPage(fx.empPage);
     const dash = await fetchDashboard(newExecToken);
     expect(dash.stats.by_track.it_baseline.resolved).toBeGreaterThanOrEqual(5);
 
-    // And the checklist page itself renders the IT Baseline section.
-    await loginWithEmail(page, fx.empEmail);
-    await page.waitForURL(/\/workspace/);
-    await page.goto("/workspace/checklist");
+    // And the checklist page itself renders the IT Baseline section for the
+    // new IT Exec. Reuse the already-signed-in employee page.
+    await fx.empPage.goto(`${baseUrl()}/workspace/checklist`);
     await expect(
-      page.getByRole("heading", { name: /it baseline/i }).first(),
+      fx.empPage.getByRole("heading", { name: /it baseline/i }).first(),
     ).toBeVisible({ timeout: 10_000 });
   } finally {
-    await fx.cleanup();
+    await fx.org.cleanup();
   }
 });
+

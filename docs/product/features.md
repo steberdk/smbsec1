@@ -1006,3 +1006,88 @@ Documents impacted:
 **Risk and amount of Test:** Chance: 2, Impact: 2.
 **Complexity estimate:** Small-Medium.
 
+---
+
+## F-057
+**Status:** Developed (PI 17 Iter 1 — `member-deletion.spec.ts` + `it-executor-reassign.spec.ts` migrated to `createOrgWithMembers` + `extractTokenFromPage()`; no `tokenFor()` references remain; specs now execute end-to-end rather than hanging in auth. AC-1, AC-2, AC-5 complete. AC-3 partial: specs that only depend on auth wiring pass (DELMEM-02, REASSIGN-04); specs that depend on migrations 024/025 real behavior fail due to PRODUCT DEFECTS surfaced for the first time by this migration — tracked in F-060. AC-4 pending CI run.)
+**Feature name:** Migrate member-deletion + it-executor-reassign specs off PKCE-incompatible tokenFor helper
+**Business Value Hypothesis:** CI has been Red since the PI-11 PKCE migration because `frontend/tests/helpers/fixtures.ts` `tokenFor()` extracts `access_token=` from a redirect URL that PKCE no longer populates. 9 tests across `member-deletion.spec.ts` + `it-executor-reassign.spec.ts` consume `tokenFor()`. Not caused by any product defect — a pure test-infrastructure artefact that obscures real CI signal and hides any new regressions in the noise. Migrating these specs to the F-043 `createOrgWithMembers` multi-user harness (which does not use access-token URLs) makes CI actually green and earns back CI as a trustworthy gate.
+**Importance:** High — obscures CI signal and makes PI 16 quality-gates harder to reason about.
+**Urgency:** High — cheap fix, immediate dividend.
+**Acceptance Criteria:**
+- AC-1: `member-deletion.spec.ts` (5 tests) refactored to use `createOrgWithMembers` + cleanup pattern from F-043. No references to `tokenFor()` remain.
+- AC-2: `it-executor-reassign.spec.ts` (4 tests) same.
+- AC-3: Both specs pass against local DB with migrations 022–026 applied.
+- AC-4: Full CI run on main goes green (except any explicitly skipped tests which each name their follow-up feature).
+- AC-5: `tokenFor()` helper is either removed (if no remaining consumers) or marked `@deprecated` with a JSDoc pointing at `createOrgWithMembers`.
+**Scope:** `frontend/tests/member-deletion.spec.ts`, `frontend/tests/it-executor-reassign.spec.ts`, `frontend/tests/helpers/fixtures.ts`.
+**Not in Scope:** Rewriting the F-043 harness. New coverage.
+**Dependencies:** F-043 multi-user harness (already shipped).
+**Risk and amount of Test:** Chance: 1, Impact: 2.
+**Complexity estimate:** Small.
+
+---
+
+## F-058
+**Status:** Created
+**Feature name:** Close F-046 invariant-suite gaps — unskip stubs + add cheap CI probes
+**Business Value Hypothesis:** F-046 shipped in PI 16 with 9 invariant tests running and 10 either stubbed (`test.skip` with TODO) or absent. With migrations 022–026 now applied, the stubbed tests can execute, and the cheap CI probes (auth-boundary, RLS, service-role-in-bundle, public-checklist-readonly, audit-log-pii-hashed) close most of the remaining gap. The coverage delta moves F-046 from Developed (partial) to Done.
+**Importance:** Medium.
+**Urgency:** Medium.
+**Acceptance Criteria:**
+- AC-1: Unskip `INV-email-case-normalised-on-delete` in `invariants.spec.ts` — seed `Mixed@Case.com`, delete with `mixed@case.com`, assert row gone. Relies on migration 024.
+- AC-2: Unskip `INV-gdpr-delete-coherent` — delete a member via Team, assert absent from Dashboard + Report + any `audit_logs` email redacted to `[deleted]`.
+- AC-3: Add `INV-workspace-auth-boundary` — loop every `/workspace/*` route, fetch with no cookie, assert redirect or empty body of seeded data.
+- AC-4: Add `INV-no-service-role-in-client-bundle` — CI build-step grep `frontend/.next/static/**` for `SUPABASE_SERVICE_ROLE_KEY` string + the JWT prefix of the current service-role key. Non-zero match fails CI.
+- AC-5: Add `INV-rls-on-every-smbsec1-table` — test probes `pg_tables` via service-role, asserts every `schemaname=smbsec1` row has `rowsecurity=true` and ≥ 1 policy.
+- AC-6: Add `INV-public-checklist-readonly` — as ANON, render `/checklist`, assert zero response-button selectors; then sign in, assert > 0.
+- AC-7: Explicitly note invariants NOT covered this PI (dashboard-report-parity already tested via F-040; checklist-track-visibility deferred; role-page-access already covered by F-018 access tests) in `docs/quality/invariants.md` with a "coverage map" block.
+**Scope:** `frontend/tests/invariants.spec.ts`, `frontend/tests/smoke/personas.spec.ts`, `docs/quality/invariants.md`, `.github/workflows/*` for AC-4.
+**Not in Scope:** The heavier invariants (privacy-copy-claim-backed-by-code, terminology-single-source) that belong with F-053 / F-054.
+**Dependencies:** Migrations 022–026 applied (they are, per Stefan 2026-04-14). F-057 (tokenFor fix) so CI is green before adding more.
+**Risk and amount of Test:** Chance: 1, Impact: 2.
+**Complexity estimate:** Small.
+
+---
+
+## F-059
+**Status:** Developed (PI 17 Iter 1 — AC-4 green: `rate-limit.spec.ts` passes against live `smbsec1.check_and_increment_rate_limit`. AC-1, AC-2, AC-3 BLOCKED by two product defects discovered when the real RPC paths were finally exercised — see F-060. AC-5 (AI flagging) deferred as out-of-scope — needs a live Anthropic call + a curated prompt-injection corpus; noted as a backlog gap. AC-6 partially applied: F-057 / F-059 updated; F-033/F-041/F-049 held at Deployed pending F-060.)
+**Feature name:** Post-migration verification — F-033, F-041, F-049 happy paths + F-012 persistent rate-limit + AI flagging
+**Business Value Hypothesis:** Migrations 022–026 were applied by Stefan 2026-04-14. Each of them enables a happy path that has so far run only in the "graceful fallback" mode. Running the real paths end-to-end and updating feature statuses to Done closes the books on PI 14 + PI 15 + PI 16 AC-1 items that depended on the migrations.
+**Importance:** Medium.
+**Urgency:** Medium.
+**Acceptance Criteria:**
+- AC-1: F-049 AC-1 green — Revoke + delete data on a pending invite returns success (no migration_pending fallback), row disappears, `audit_logs` email redacted.
+- AC-2: F-033 member-deletion specs green (after F-057 fix unblocks them).
+- AC-3: F-041 it-executor-reassign specs green.
+- AC-4: F-012 rate-limit spec (if present) green against `smbsec1.rate_limits` table.
+- AC-5: F-012 AI flagging — one canonical corpus item that should trigger the guardrail actually appears in `smbsec1.ai_flags` (or whatever 026 named it) as a hashed row.
+- AC-6: Feature statuses updated to Done / Deployed per CLAUDE.md feature lifecycle.
+**Scope:** Existing specs in `frontend/tests/`. May require small tweaks if assumptions changed.
+**Not in Scope:** New feature work.
+**Dependencies:** F-057 (unblocks F-033 + F-041 specs). Migrations 022–026 applied.
+**Risk and amount of Test:** Chance: 2, Impact: 2.
+**Complexity estimate:** Small.
+
+---
+
+## F-060
+**Status:** Created
+**Feature name:** Fix post-migration RPC defects surfaced by F-057 spec migration (pgcrypto + reassign_it_executor)
+**Business Value Hypothesis:** F-057 migrated the 9 member-deletion + reassign specs onto the F-043 harness and the tests finally reached the real RPC paths (migrations 024 + 025). Running them revealed two product/migration defects that were previously hidden behind the PKCE auth failure:
+  1. **`smbsec1.delete_member_with_data` (migration 024) fails with `function digest(text, unknown) does not exist`.** The migration declares `CREATE EXTENSION IF NOT EXISTS pgcrypto` at the top, but Supabase hosts `pgcrypto` in the `extensions` schema, not on the search_path of `smbsec1` functions, so `digest(...)` inside the SECURITY DEFINER function cannot resolve it. Effect: EVERY real member-deletion + pending-invite revoke+delete returns 500. The UI's `migration_pending` 503 branch does NOT fire because the RPC catches the error internally and returns `{"success": false, "error": "function digest(text, unknown) does not exist"}`. Confirmed by direct REST probe to `/rest/v1/rpc/delete_member_with_data` against PROD DB on 2026-04-14.
+  2. **`smbsec1.reassign_it_executor` (migration 025) misbehaves in two ways.** (a) It accepts a `p_new_user_id` that is NOT a member of the org — the RPC returns `{"success": true, "response_count_transferred": 0}` for a random stranger UUID; E2E-REASSIGN-02 expects `{"error": "new_assignee_not_in_org"}` + 400. (b) For REASSIGN-01 + 03 + 05 it reports `response_count_transferred: 5` but the owner's 5 IT Baseline responses are GONE afterwards — either the RPC is deleting them or transferring them off the owner's `user_id`. Spec expects them preserved on the original `user_id` per migration 025 contract.
+**Importance:** High — #1 blocks GDPR member-delete on PROD (F-033 AC-1, F-049 AC-1); #2 blocks IT Executor reassignment (F-041 AC-1) and can lose assessment data.
+**Urgency:** High — both are live PROD-affecting bugs.
+**Acceptance Criteria:**
+- AC-1: `smbsec1.delete_member_with_data` succeeds end-to-end. Fix approaches: qualify as `extensions.digest(...)`, or `CREATE EXTENSION pgcrypto WITH SCHEMA smbsec1`, or switch to `encode(sha256(...)::bytea, 'hex')` (PG 14+ native). E2E-DELMEM-01/03/04/05 + F-049 AC-1 post-migration test green.
+- AC-2: `/api/orgs/members` DELETE 500 path maps the `{"success": false, "error": "function ... does not exist"}` payload to the 503 `migration_pending` branch too (defense-in-depth so we never 500 on a known-missing-extension).
+- AC-3: `smbsec1.reassign_it_executor` rejects non-members with `{"success": false, "error": "new_assignee_not_in_org"}`. E2E-REASSIGN-02 green.
+- AC-4: `smbsec1.reassign_it_executor` preserves existing IT Baseline responses on the original user_id. E2E-REASSIGN-01/03/05 green.
+- AC-5: After fixes, F-033, F-041, F-049 flip to Done (BA-verified).
+**Scope:** `docs/sql/024_pi14_member_deletion_rpc.sql` (or a new `027_*` migration that patches it), `docs/sql/025_pi14_reassign_it_executor.sql` (or patch migration), `frontend/app/api/orgs/members/route.ts`.
+**Not in Scope:** Rewriting the F-043 harness.
+**Dependencies:** F-057 (delivered) — without it these defects remained hidden.
+**Risk and amount of Test:** Chance: 2, Impact: 3.
+**Complexity estimate:** Small-Medium (mostly SQL + one route.ts tweak).
+

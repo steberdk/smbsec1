@@ -289,6 +289,42 @@ Mechanical-test idea conventions:
 
 ---
 
+## Coverage map (2026-04-14)
+
+Status legend:
+- **Tested** — at least one automated test in the suite asserts the invariant.
+- **Stubbed** — a `test.skip(...)` exists in the spec with a named follow-up.
+- **Deferred** — deliberately not automated this PI; named reason below.
+
+Updated by F-058 (PI 17 Iter 1). Every row names the spec file (and, where
+useful, the test title) that exercises the invariant.
+
+| Invariant ID | Status | Tested by | Notes |
+|---|---|---|---|
+| INV-home-exec-parity | Tested | `invariants.spec.ts` → `F-048 Home invariants` (O1 + O3 tests) | Covers O1 (owner-is-exec) + O3 (pending invite). F-048. |
+| INV-home-steps-deterministic | Tested | `invariants.spec.ts` → `INV-home-steps-deterministic (O3)` | F-048. |
+| INV-home-step-text-coherent | Tested | `invariants.spec.ts` → `INV-home-step-text-coherent (O1)` + `(O3)` | F-048. |
+| INV-no-raw-db-errors | Tested | `invariants.spec.ts` → `INV-no-raw-db-errors (team revoke+delete)` | Covers the PDF #46 `digest()` leak class on the Team page. Other mutation screens rely on the shared `apiFetch` wrapper — extension is a follow-up. |
+| INV-no-not-set-when-derivable | Tested | `invariants.spec.ts` → `INV-no-not-set-when-derivable (O3)` | Scoped to Settings IT-Executor field; broader admin-screen sweep is a follow-up. |
+| INV-state-pure-of-navigation | Tested (partial) | `invariants.spec.ts` → `INV-home-steps-deterministic (O3)` | Covered for Home; extending to every page is a follow-up. |
+| INV-team-pending-invite-actions-safe | Tested | `invariants.spec.ts` → `INV-team-pending-invite-actions-safe` | Asserts error-path + row preservation. |
+| INV-gdpr-delete-coherent | Tested | `invariants.spec.ts` → `INV-gdpr-delete-coherent` | F-058 AC-2. Asserts absence from Team API, Dashboard + Report DOM, and audit_logs redaction. |
+| INV-dashboard-report-parity | Deferred (covered elsewhere) | `dashboard-math.spec.ts` (F-038 + F-040) | Parity math has its own dedicated spec; duplicating here adds cost without coverage. |
+| INV-checklist-track-visibility | Deferred | — | Overlaps F-018 role-track tests; a dedicated assertion remains a follow-up feature candidate. |
+| INV-role-page-access | Deferred (covered elsewhere) | `roles.spec.ts` (F-018) | F-018 access tests already enforce this per restricted route. |
+| INV-public-checklist-readonly | Tested | `invariants.spec.ts` → `INV-public-checklist-readonly` | F-058 AC-6. Asserts 0 response-buttons as ANON, > 0 after sign-in. |
+| INV-advertised-deletion-actually-deletes | Tested (partial) | `member-deletion.spec.ts` E2E-DELMEM-01..05; `gdpr.spec.ts` | Direct-DB assertion after DELETE. Broader sweep across all delete-labelled buttons is a follow-up. |
+| INV-audit-log-pii-hashed | Tested | `member-deletion.spec.ts` E2E-DELMEM-01 + F-058 `INV-gdpr-delete-coherent` + F-049-post-migration | SHA-256 sentinel asserted; plaintext absence asserted. |
+| INV-workspace-auth-boundary | Tested | `invariants.spec.ts` → `INV-workspace-auth-boundary` | F-058 AC-3. Loops every `/workspace/*` route as anon. |
+| INV-no-service-role-in-client-bundle | Tested | `invariants.spec.ts` → `INV-no-service-role-in-client-bundle` | F-058 AC-4. Requires `npm run build` + `SUPABASE_SERVICE_ROLE_KEY` in env; skips otherwise. |
+| INV-rls-on-every-smbsec1-table | Tested (env-gated) | `invariants.spec.ts` → `INV-rls-on-every-smbsec1-table` | F-058 AC-5. Requires `POSTGRES_URL` / `SUPABASE_DB_URL` / `DATABASE_URL` (direct Postgres connection — PostgREST does not expose `pg_catalog`). Skips otherwise. |
+| INV-destructive-action-double-confirm | Tested | `invariants.spec.ts` → two `INV-destructive-action-double-confirm` tests | Team revoke+delete + member remove branches. |
+| INV-email-case-normalised-on-delete | Tested | `invariants.spec.ts` → `INV-email-case-normalised-on-delete` | F-058 AC-1. Relies on migration 024. |
+
+Action item for Stefan (feeds AC-5 readiness in CI): add `SUPABASE_DB_URL`
+(direct Postgres connection string, `?sslmode=require`) to the CI env so the
+RLS probe runs on every push instead of skipping.
+
 ## How to add a new invariant
 
 1. Trigger: a defect that touches more than one page, OR a state matrix cell that is "true everywhere" but not enforced anywhere.

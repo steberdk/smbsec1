@@ -120,11 +120,35 @@ export async function DELETE(req: Request): Promise<NextResponse> {
 
   if (!result.success) {
     const errCode = result.error ?? "unknown_error";
+    // F-060 AC-2 defense-in-depth: the RPC catches its own errors via
+    // `EXCEPTION WHEN OTHERS` and returns { success:false, error: SQLERRM }.
+    // If SQLERRM references a missing function (typical cause: pgcrypto not
+    // on the function's search_path → `digest(text, unknown) does not exist`),
+    // map to the same 503 `migration_pending` branch as the outer
+    // supabase-js error path. Apply migration 027 to fix permanently.
+    if (
+      /function .* does not exist/i.test(errCode) ||
+      /SQLSTATE 42883/i.test(errCode)
+    ) {
+      return NextResponse.json(
+        {
+          error: "migration_pending",
+          detail: "apply docs/sql/027_pi17_fix_pgcrypto_on_supabase.sql",
+        },
+        { status: 503 }
+      );
+    }
     const status =
       errCode === "cannot_remove_self" || errCode === "cannot_remove_last_owner"
         ? 400
         : 500;
-    return apiError(errCode, status);
+    // INV-no-raw-db-errors: never leak raw Postgres text. Map unknown
+    // internal RPC errors to a non-raw response.
+    const safeErr =
+      /function |SQLSTATE|relation |column /i.test(errCode)
+        ? "Member deletion failed — please retry or contact support."
+        : errCode;
+    return apiError(safeErr, status);
   }
 
   return NextResponse.json({

@@ -6,20 +6,22 @@
  * residual audit_logs entries authored by the target, and appends ONE new
  * `member_removed` audit row with SHA-256 hashed identifiers (no plain PII).
  *
+ * Migrated to the F-043 multi-user harness in F-057 (PI 17 Iter 1) — replaces
+ * the PKCE-incompatible `tokenFor()` helper with `createOrgWithMembers` +
+ * `extractTokenFromPage()`, matching the pattern already in ai-chat.spec.ts
+ * and dashboard-math.spec.ts.
+ *
  * Tests skip cleanly until Stefan applies migration 024.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { createHash } from "node:crypto";
 import {
-  loginWithEmail,
-  startAssessment,
-  createIsolatedOrg,
-  createTempUser,
-  addOrgMember,
   getServiceClient,
   baseUrl,
+  startAssessment,
 } from "./helpers/fixtures";
+import { createOrgWithMembers } from "./helpers/multiUser";
 
 // ---------------------------------------------------------------------------
 // Pre-flight — skip all tests if migration 024 (the RPC) is not yet applied.
@@ -51,26 +53,31 @@ async function migration024Applied(): Promise<boolean> {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Mint an access token for a temp user via the admin API. */
-async function tokenFor(email: string): Promise<string> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const res = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-    },
-    body: JSON.stringify({ type: "magiclink", email }),
+/**
+ * Pull the Supabase access token out of a signed-in page's localStorage.
+ * Matches the pattern in ai-chat.spec.ts and dashboard-math.spec.ts — PKCE-
+ * safe replacement for the old `tokenFor()` helper that relied on URL-borne
+ * `access_token=` query params.
+ */
+async function extractTokenFromPage(page: Page): Promise<string> {
+  const token = await page.evaluate(() => {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("sb-") && k.endsWith("-auth-token")) {
+        try {
+          const val = JSON.parse(localStorage.getItem(k) ?? "{}");
+          return (val?.access_token as string | undefined) ?? null;
+        } catch {
+          return null;
+        }
+      }
+    }
+    return null;
   });
-  if (!res.ok) throw new Error(`generate_link failed: ${await res.text()}`);
-  const data = await res.json();
-  const redirect = await fetch(data.action_link, { redirect: "manual" });
-  const loc = redirect.headers.get("location") ?? "";
-  const m = loc.match(/access_token=([^&]+)/);
-  if (!m) throw new Error(`no access_token in redirect: ${loc.slice(0, 200)}`);
-  return decodeURIComponent(m[1]);
+  if (!token) {
+    throw new Error("extractTokenFromPage: no Supabase access_token in localStorage");
+  }
+  return token;
 }
 
 function sha256Hex(s: string): string {
@@ -95,35 +102,56 @@ async function deleteMember(
   return { status: res.status, body: body as Record<string, unknown> };
 }
 
+/**
+ * Ensure the `email` column on org_members mirrors the user's auth email so
+ * the RPC can match by email. The F-043 harness creates the row without
+ * populating `email`.
+ */
+async function setMemberEmail(
+  orgId: string,
+  userId: string,
+  email: string,
+): Promise<void> {
+  const svc = getServiceClient();
+  await svc
+    .from("org_members")
+    .update({ email })
+    .eq("org_id", orgId)
+    .eq("user_id", userId);
+}
+
 // ---------------------------------------------------------------------------
 // E2E-DELMEM-01 — Owner removes joined employee; full cascade verified.
 // ---------------------------------------------------------------------------
 
-test("E2E-DELMEM-01 (F-033): owner removes a joined employee — full cascade verified", async () => {
+test("E2E-DELMEM-01 (F-033): owner removes a joined employee — full cascade verified", async ({
+  browser,
+}, testInfo) => {
   test.skip(
     !(await migration024Applied()),
     "migration 024 (delete_member_with_data) not applied yet",
   );
+  testInfo.setTimeout(120_000);
 
-  const iso = await createIsolatedOrg("DELMEM01 Org");
-  const employee = await createTempUser("e2e-emp-del");
+  const org = await createOrgWithMembers(browser, {
+    ownerName: "DelMem01 Owner",
+    ownerIsItExecutor: true,
+    employees: [{ displayName: "Employee", isItExecutor: false }],
+  });
 
   try {
     const svc = getServiceClient();
+    const ownerUser = org.owner.user;
+    const employee = org.employees[0].user;
 
-    // Add employee with an email on the org_members row (RPC matches by email).
-    await addOrgMember(iso.orgId, employee, "employee", {
-      isItExecutor: false,
-    });
-    await svc
-      .from("org_members")
-      .update({ email: employee.email })
-      .eq("org_id", iso.orgId)
-      .eq("user_id", employee.id);
+    // The harness does not populate the email column on org_members; the
+    // delete_member_with_data RPC looks up by email, so set it explicitly.
+    await setMemberEmail(org.orgId, ownerUser.id, ownerUser.email);
+    await setMemberEmail(org.orgId, employee.id, employee.email);
 
     // Start an assessment, then write a couple of responses for the employee
     // directly via service-role so we can assert they cascade-delete.
-    const assessmentId = await startAssessment(iso.orgId, iso.adminUser.id);
+    const assessmentId = await startAssessment(org.orgId, ownerUser.id);
     const { data: items } = await svc
       .from("assessment_items")
       .select("id, track")
@@ -150,8 +178,8 @@ test("E2E-DELMEM-01 (F-033): owner removes a joined employee — full cascade ve
     const insRes = await svc.from("assessment_responses").insert(empResponses);
     expect(insRes.error).toBeNull();
 
-    // Call DELETE /api/orgs/members as owner.
-    const token = await tokenFor(iso.adminUser.email);
+    // Call DELETE /api/orgs/members as owner using the PKCE-safe token.
+    const token = await extractTokenFromPage(org.owner.page);
     const del = await deleteMember(token, employee.email);
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
@@ -161,7 +189,7 @@ test("E2E-DELMEM-01 (F-033): owner removes a joined employee — full cascade ve
     const { data: after } = await svc
       .from("org_members")
       .select("user_id")
-      .eq("org_id", iso.orgId)
+      .eq("org_id", org.orgId)
       .eq("user_id", employee.id);
     expect(after ?? []).toHaveLength(0);
 
@@ -178,7 +206,7 @@ test("E2E-DELMEM-01 (F-033): owner removes a joined employee — full cascade ve
     const { data: audits } = await svc
       .from("audit_logs")
       .select("event_type, details, actor_user_id")
-      .eq("org_id", iso.orgId)
+      .eq("org_id", org.orgId)
       .eq("event_type", "member_removed");
     expect(audits ?? []).toHaveLength(1);
     const details = (audits![0] as { details: Record<string, unknown> })
@@ -193,15 +221,7 @@ test("E2E-DELMEM-01 (F-033): owner removes a joined employee — full cascade ve
     expect(dump).not.toContain(employee.email.toLowerCase());
     expect(dump).not.toContain(employee.id.toLowerCase());
   } finally {
-    // Employee row + assessment_responses already deleted by RPC; cleanup will
-    // handle the rest of the org. Delete the auth user manually since the
-    // org teardown path skips users whose org_members row was already removed.
-    try {
-      await employee.delete();
-    } catch {
-      /* ignore */
-    }
-    await iso.cleanup();
+    await org.cleanup();
   }
 });
 
@@ -209,24 +229,29 @@ test("E2E-DELMEM-01 (F-033): owner removes a joined employee — full cascade ve
 // E2E-DELMEM-02 — Owner cannot remove themselves via this RPC.
 // ---------------------------------------------------------------------------
 
-test("E2E-DELMEM-02 (F-033): owner cannot remove themselves via this RPC", async () => {
+test("E2E-DELMEM-02 (F-033): owner cannot remove themselves via this RPC", async ({
+  browser,
+}, testInfo) => {
   test.skip(
     !(await migration024Applied()),
     "migration 024 (delete_member_with_data) not applied yet",
   );
+  testInfo.setTimeout(120_000);
 
-  const iso = await createIsolatedOrg("DELMEM02 Org");
+  const org = await createOrgWithMembers(browser, {
+    ownerName: "DelMem02 Owner",
+    ownerIsItExecutor: true,
+  });
+
   try {
     const svc = getServiceClient();
-    // Ensure the admin row has a matching email for RPC lookup.
-    await svc
-      .from("org_members")
-      .update({ email: iso.adminUser.email })
-      .eq("org_id", iso.orgId)
-      .eq("user_id", iso.adminUser.id);
+    const ownerUser = org.owner.user;
 
-    const token = await tokenFor(iso.adminUser.email);
-    const del = await deleteMember(token, iso.adminUser.email);
+    // Ensure the admin row has a matching email for RPC lookup.
+    await setMemberEmail(org.orgId, ownerUser.id, ownerUser.email);
+
+    const token = await extractTokenFromPage(org.owner.page);
+    const del = await deleteMember(token, ownerUser.email);
     expect(del.status).toBe(400);
     expect(del.body.error).toBe("cannot_remove_self");
 
@@ -234,11 +259,11 @@ test("E2E-DELMEM-02 (F-033): owner cannot remove themselves via this RPC", async
     const { data: stillThere } = await svc
       .from("org_members")
       .select("user_id")
-      .eq("org_id", iso.orgId)
-      .eq("user_id", iso.adminUser.id);
+      .eq("org_id", org.orgId)
+      .eq("user_id", ownerUser.id);
     expect(stillThere ?? []).toHaveLength(1);
   } finally {
-    await iso.cleanup();
+    await org.cleanup();
   }
 });
 
@@ -246,13 +271,19 @@ test("E2E-DELMEM-02 (F-033): owner cannot remove themselves via this RPC", async
 // E2E-DELMEM-03 — Owner revokes a pending invite.
 // ---------------------------------------------------------------------------
 
-test("E2E-DELMEM-03 (F-033): owner removes a pending invite (no joined user)", async () => {
+test("E2E-DELMEM-03 (F-033): owner removes a pending invite (no joined user)", async ({
+  browser,
+}, testInfo) => {
   test.skip(
     !(await migration024Applied()),
     "migration 024 (delete_member_with_data) not applied yet",
   );
+  testInfo.setTimeout(120_000);
 
-  const iso = await createIsolatedOrg("DELMEM03 Org");
+  const org = await createOrgWithMembers(browser, {
+    ownerName: "DelMem03 Owner",
+    ownerIsItExecutor: true,
+  });
   const inviteEmail = `alice-${Date.now()}@example.invalid`;
 
   try {
@@ -261,17 +292,17 @@ test("E2E-DELMEM-03 (F-033): owner removes a pending invite (no joined user)", a
     // Seed a pending invite row directly — no joined user behind it.
     const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
     const { error: inviteErr } = await svc.from("invites").insert({
-      org_id: iso.orgId,
+      org_id: org.orgId,
       email: inviteEmail,
       role: "employee",
       is_it_executor: false,
       token: `tok-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      invited_by: iso.adminUser.id,
+      invited_by: org.owner.user.id,
       expires_at: expiresAt,
     });
     expect(inviteErr).toBeNull();
 
-    const token = await tokenFor(iso.adminUser.email);
+    const token = await extractTokenFromPage(org.owner.page);
     const del = await deleteMember(token, inviteEmail);
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
@@ -281,7 +312,7 @@ test("E2E-DELMEM-03 (F-033): owner removes a pending invite (no joined user)", a
     const { data: remaining } = await svc
       .from("invites")
       .select("id")
-      .eq("org_id", iso.orgId)
+      .eq("org_id", org.orgId)
       .eq("email", inviteEmail);
     expect(remaining ?? []).toHaveLength(0);
 
@@ -289,7 +320,7 @@ test("E2E-DELMEM-03 (F-033): owner removes a pending invite (no joined user)", a
     const { data: audits } = await svc
       .from("audit_logs")
       .select("event_type, details")
-      .eq("org_id", iso.orgId)
+      .eq("org_id", org.orgId)
       .eq("event_type", "member_removed");
     expect(audits ?? []).toHaveLength(1);
     const details = (audits![0] as { details: Record<string, unknown> })
@@ -301,7 +332,7 @@ test("E2E-DELMEM-03 (F-033): owner removes a pending invite (no joined user)", a
     const dump = JSON.stringify(details).toLowerCase();
     expect(dump).not.toContain(inviteEmail.toLowerCase());
   } finally {
-    await iso.cleanup();
+    await org.cleanup();
   }
 });
 
@@ -309,27 +340,30 @@ test("E2E-DELMEM-03 (F-033): owner removes a pending invite (no joined user)", a
 // E2E-DELMEM-04 — Cascade scan: no residual rows anywhere in smbsec1.
 // ---------------------------------------------------------------------------
 
-test("E2E-DELMEM-04 (F-033): cascade scan — no residual rows", async () => {
+test("E2E-DELMEM-04 (F-033): cascade scan — no residual rows", async ({
+  browser,
+}, testInfo) => {
   test.skip(
     !(await migration024Applied()),
     "migration 024 (delete_member_with_data) not applied yet",
   );
+  testInfo.setTimeout(120_000);
 
-  const iso = await createIsolatedOrg("DELMEM04 Org");
-  const employee = await createTempUser("e2e-emp-del04");
+  const org = await createOrgWithMembers(browser, {
+    ownerName: "DelMem04 Owner",
+    ownerIsItExecutor: true,
+    employees: [{ displayName: "Employee", isItExecutor: false }],
+  });
 
   try {
     const svc = getServiceClient();
-    await addOrgMember(iso.orgId, employee, "employee", {
-      isItExecutor: false,
-    });
-    await svc
-      .from("org_members")
-      .update({ email: employee.email })
-      .eq("org_id", iso.orgId)
-      .eq("user_id", employee.id);
+    const ownerUser = org.owner.user;
+    const employee = org.employees[0].user;
 
-    const assessmentId = await startAssessment(iso.orgId, iso.adminUser.id);
+    await setMemberEmail(org.orgId, ownerUser.id, ownerUser.email);
+    await setMemberEmail(org.orgId, employee.id, employee.email);
+
+    const assessmentId = await startAssessment(org.orgId, ownerUser.id);
     const { data: items } = await svc
       .from("assessment_items")
       .select("id")
@@ -345,7 +379,7 @@ test("E2E-DELMEM-04 (F-033): cascade scan — no residual rows", async () => {
       });
     }
 
-    const token = await tokenFor(iso.adminUser.email);
+    const token = await extractTokenFromPage(org.owner.page);
     const del = await deleteMember(token, employee.email);
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
@@ -383,12 +417,7 @@ test("E2E-DELMEM-04 (F-033): cascade scan — no residual rows", async () => {
       ).toBe(0);
     }
   } finally {
-    try {
-      await employee.delete();
-    } catch {
-      /* ignore */
-    }
-    await iso.cleanup();
+    await org.cleanup();
   }
 });
 
@@ -397,57 +426,47 @@ test("E2E-DELMEM-04 (F-033): cascade scan — no residual rows", async () => {
 // ---------------------------------------------------------------------------
 
 test("E2E-DELMEM-05 (F-033): removing IT Executor flips dashboard 'Invite IT Executor' step back to active", async ({
-  page,
-}) => {
+  browser,
+}, testInfo) => {
   test.skip(
     !(await migration024Applied()),
     "migration 024 (delete_member_with_data) not applied yet",
   );
+  testInfo.setTimeout(120_000);
 
-  const iso = await createIsolatedOrg("DELMEM05 Org");
-  const itExec = await createTempUser("e2e-itexec-del");
+  // Owner is NOT IT Executor; the one employee IS. Removing the employee
+  // leaves the org with no IT Executor, which re-opens the guided setup step.
+  const org = await createOrgWithMembers(browser, {
+    ownerName: "DelMem05 Owner",
+    ownerIsItExecutor: false,
+    employees: [{ displayName: "ItExec", isItExecutor: true }],
+  });
 
   try {
-    const svc = getServiceClient();
+    const ownerUser = org.owner.user;
+    const itExec = org.employees[0].user;
 
-    // Owner becomes non-IT-executor; a separate employee is the IT executor.
-    await svc
-      .from("org_members")
-      .update({ is_it_executor: false })
-      .eq("org_id", iso.orgId)
-      .eq("user_id", iso.adminUser.id);
-    await addOrgMember(iso.orgId, itExec, "employee", { isItExecutor: true });
-    await svc
-      .from("org_members")
-      .update({ email: itExec.email })
-      .eq("org_id", iso.orgId)
-      .eq("user_id", itExec.id);
+    await setMemberEmail(org.orgId, ownerUser.id, ownerUser.email);
+    await setMemberEmail(org.orgId, itExec.id, itExec.email);
 
     // Do NOT start an assessment — the guided first-run block is only shown
     // when hasActiveAssessment === false, which is where the "Invite your IT
     // Executor" step lives.
 
     // Call DELETE via API as owner.
-    const apiToken = await tokenFor(iso.adminUser.email);
+    const apiToken = await extractTokenFromPage(org.owner.page);
     const del = await deleteMember(apiToken, itExec.email);
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
     expect(del.body.was_it_executor).toBe(true);
 
-    // Now log in as owner via the browser and confirm the guided "Invite your
-    // IT Executor" step has re-appeared (not marked done).
-    await loginWithEmail(page, iso.adminUser.email);
-    await page.waitForURL(/\/workspace/);
-    await page.goto("/workspace");
+    // Reuse the owner's already-signed-in page — navigate to workspace and
+    // confirm the guided "Invite your IT Executor" step has re-appeared.
+    await org.owner.page.goto(`${baseUrl()}/workspace`);
     await expect(
-      page.getByText(/invite your it executor/i).first(),
+      org.owner.page.getByText(/invite your it executor/i).first(),
     ).toBeVisible({ timeout: 10_000 });
   } finally {
-    try {
-      await itExec.delete();
-    } catch {
-      /* ignore */
-    }
-    await iso.cleanup();
+    await org.cleanup();
   }
 });

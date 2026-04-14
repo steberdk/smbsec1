@@ -414,7 +414,18 @@ Each team proposed one rule refinement based on PI 16 experience:
 
 Features below are defined in `features.md` with full detail. Listed here by feature number for roadmap visibility.
 
-### Deferred from PI 16 matrix retrofit (2026-04-14) — candidates for PI 17
+### PI 17 Iter 1 — "Close PI 16 tails" (locked 2026-04-14)
+**Theme:** Earn back green CI and close the F-046 invariant-coverage + post-migration gaps from PI 16. Light PI, focused on gates, not product features.
+
+**Based on:** Stefan 2026-04-14 applied migrations 022–026 + asked to close the remaining PI 16 items.
+
+**Features:**
+- F-057: Migrate member-deletion + it-executor-reassign specs off PKCE-incompatible `tokenFor()` helper → green CI
+- F-058: Close F-046 invariant-suite gaps — unskip stubs + add cheap CI probes (auth-boundary, RLS, service-role-bundle-scan, public-checklist-readonly, audit-log PII hashed)
+- F-059: Post-migration verification — F-033 / F-041 / F-049 happy paths + F-012 rate-limit + AI flagging end-to-end
+- F-060: **NEW (discovered PI 17 Iter 1 by F-057)** — fix post-migration RPC defects: `delete_member_with_data` pgcrypto/digest() missing on PROD, and `reassign_it_executor` accepts non-members + drops IT Baseline responses. Blocks F-033 / F-041 / F-049 from going Done.
+
+### Deferred from PI 16 matrix retrofit (2026-04-14) — candidates for PI 18+
 Matrix retrofit under F-045 surfaced defects beyond PDF #42–47. Logged here to preserve the quality-baseline signal (we want to observe whether the matrix/invariant process catches more next round) without expanding PI 16 scope.
 - F-050: Auth-boundary coherence — login + onboarding redirect and copy context
 - F-051: Public `/checklist` — redirect signed-in users + retire legacy dual-progress state
