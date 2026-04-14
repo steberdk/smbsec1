@@ -1,78 +1,179 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
+import {
+  getOwnerHomeState,
+  type AssessmentInput,
+  type HomeState,
+  type HomeStep,
+  type MemberInput,
+  type PendingInviteInput,
+} from "@/lib/selectors/ownerHomeState";
+
+type FetchedPayload = {
+  assessments: AssessmentInput[];
+  members: MemberInput[];
+  pendingInvites: PendingInviteInput[];
+  cadence: { status: string; last_completed_at: string | null } | null;
+  checklist: {
+    percent: number | null;
+    denominator: number | null;
+    resolved: number | null;
+  };
+};
+
+const EMPTY_PAYLOAD: FetchedPayload = {
+  assessments: [],
+  members: [],
+  pendingInvites: [],
+  cadence: null,
+  checklist: { percent: null, denominator: null, resolved: null },
+};
 
 export default function WorkspacePage() {
   const { token, orgData, isAdmin } = useWorkspace();
   const { membership } = orgData;
 
-  const [hasActiveAssessment, setHasActiveAssessment] = useState<boolean | null>(null);
-  const [hasItExecutor, setHasItExecutor] = useState(false);
-  const [cadence, setCadence] = useState<{ status: string; last_completed_at: string | null } | null>(null);
-  const [checklistPercent, setChecklistPercent] = useState<number | null>(null);
-  const [checklistDenominator, setChecklistDenominator] = useState<number | null>(null);
-  const [checklistResolved, setChecklistResolved] = useState<number | null>(null);
+  const [payload, setPayload] = useState<FetchedPayload>(EMPTY_PAYLOAD);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     document.title = "Workspace | SMB Security Quick-Check";
   }, []);
 
-  // Load assessment + invite status + dashboard summary
+  // F-048: fetch every dependency in ONE effect via Promise.all, then hand the
+  // full payload to the canonical selector. This is what makes
+  // INV-state-pure-of-navigation and INV-home-steps-deterministic hold — no
+  // per-component re-derivation, no split-fetch ordering races.
   useEffect(() => {
     if (!token) return;
-    const fetches: Promise<void>[] = [
-      apiFetch<{ assessments: { status: string }[] }>("/api/assessments", token)
-        .then(({ assessments }) => {
-          setHasActiveAssessment(assessments.some((a) => a.status === "active"));
-        }),
-      // F-039 — "My checklist" card binds to stats.me.percent (caller-only),
-      // not stats.percent (org-wide). Cross-user isolation test in
-      // tests/dashboard-math.spec.ts proves the fix.
-      apiFetch<{
-        stats: { percent: number; me?: { percent: number; denominator?: number; resolved?: number } };
-        cadence: { status: string; last_completed_at: string | null };
-      }>("/api/dashboard", token)
-        .then(({ stats, cadence: c }) => {
-          setCadence(c);
-          setChecklistPercent(stats.me?.percent ?? stats.percent);
-          if (stats.me?.denominator != null) {
-            setChecklistDenominator(stats.me.denominator);
-            setChecklistResolved(stats.me.resolved ?? 0);
-          }
-        })
-        .catch(() => {}),
-    ];
-    if (isAdmin) {
-      fetches.push(
-        apiFetch<{ members: { is_it_executor: boolean }[] }>("/api/orgs/members", token)
-          .then(({ members }) => setHasItExecutor(members.some((m) => m.is_it_executor)))
-          .catch(() => {}),
-      );
-    }
-    Promise.all(fetches).catch(() => {});
-  }, [token, isAdmin]);
 
-  // Guided first-run: show step-by-step when admin has no assessment yet
-  const showGuidedSetup = isAdmin && hasActiveAssessment === false;
+    let cancelled = false;
+
+    const assessmentsFetch = apiFetch<{ assessments: { status: string }[] }>(
+      "/api/assessments",
+      token,
+    )
+      .then(({ assessments }) => assessments)
+      .catch(() => [] as { status: string }[]);
+
+    const dashboardFetch = apiFetch<{
+      stats: {
+        percent: number;
+        me?: { percent: number; denominator?: number; resolved?: number };
+      };
+      cadence: { status: string; last_completed_at: string | null };
+    }>("/api/dashboard", token).catch(() => null);
+
+    const membersFetch = isAdmin
+      ? apiFetch<{ members: MemberInput[] }>("/api/orgs/members", token)
+          .then(({ members }) => members)
+          .catch(() => [] as MemberInput[])
+      : Promise.resolve<MemberInput[]>([]);
+
+    const invitesFetch = isAdmin
+      ? apiFetch<{ invites: PendingInviteInput[] }>("/api/invites", token)
+          .then(({ invites }) => invites)
+          .catch(() => [] as PendingInviteInput[])
+      : Promise.resolve<PendingInviteInput[]>([]);
+
+    Promise.all([assessmentsFetch, dashboardFetch, membersFetch, invitesFetch])
+      .then(([assessments, dashboard, members, invites]) => {
+        if (cancelled) return;
+
+        // If the viewer is an admin but the members API returned nothing,
+        // fall back to at least the viewer's own membership row so the
+        // selector's memberCount is never 0 for a valid org. This matters
+        // for INV-home-steps-deterministic: identical org state must
+        // produce identical step states regardless of transient API gaps.
+        const adminMembers: MemberInput[] =
+          members.length > 0
+            ? members
+            : [
+                {
+                  user_id: membership.user_id,
+                  email: null,
+                  display_name: null,
+                  role: membership.role,
+                  is_it_executor: membership.is_it_executor,
+                },
+              ];
+
+        const viewerMembers: MemberInput[] = isAdmin
+          ? adminMembers
+          : [
+              {
+                user_id: membership.user_id,
+                email: null,
+                display_name: null,
+                role: membership.role,
+                is_it_executor: membership.is_it_executor,
+              },
+            ];
+
+        const nextPayload: FetchedPayload = {
+          assessments,
+          members: viewerMembers,
+          pendingInvites: invites,
+          cadence: dashboard?.cadence ?? null,
+          checklist: {
+            percent: dashboard?.stats.me?.percent ?? dashboard?.stats.percent ?? null,
+            denominator: dashboard?.stats.me?.denominator ?? null,
+            resolved: dashboard?.stats.me?.resolved ?? null,
+          },
+        };
+        setPayload(nextPayload);
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, isAdmin, membership.user_id, membership.role, membership.is_it_executor]);
+
+  // Canonical state — ONE source of truth for header subtitle + Get-started steps.
+  const home: HomeState = useMemo(
+    () =>
+      getOwnerHomeState({
+        org: orgData.org,
+        membership,
+        members: payload.members,
+        pendingInvites: payload.pendingInvites,
+        assessments: payload.assessments,
+      }),
+    [orgData.org, membership, payload.members, payload.pendingInvites, payload.assessments],
+  );
+
+  const { cadence, checklist } = payload;
+
+  // Guided first-run block: only for owners who have not yet kicked off an
+  // assessment. Employees / IT1 never see this block. Do not render until
+  // the first load resolves so INV-home-steps-deterministic holds on
+  // direct URL vs. nav-and-back.
+  const showGuidedSetup = isAdmin && loaded && !home.hasActiveAssessment;
 
   return (
     <>
       <h1 className="text-2xl font-bold text-gray-900">{orgData.org.name}</h1>
-      <p className="mt-1 text-sm text-gray-500 capitalize mb-6">
-        {membership.role === "org_admin" ? "Owner" : membership.role.replace("_", " ")}
-        {membership.is_it_executor && " · IT Executor"}
+      <p className="mt-1 text-sm text-gray-500 mb-6" data-testid="home-subtitle">
+        {home.subtitle}
       </p>
 
       {/* Cadence warning banner (amber/red) */}
       {cadence && (cadence.status === "amber" || cadence.status === "red") && (
-        <div className={`mb-6 rounded-xl border px-4 py-3 ${
-          cadence.status === "red"
-            ? "border-red-200 bg-red-50 text-red-800"
-            : "border-amber-200 bg-amber-50 text-amber-800"
-        }`}>
+        <div
+          className={`mb-6 rounded-xl border px-4 py-3 ${
+            cadence.status === "red"
+              ? "border-red-200 bg-red-50 text-red-800"
+              : "border-amber-200 bg-amber-50 text-amber-800"
+          }`}
+        >
           <p className="text-sm font-medium">
             {cadence.status === "red" ? "Security review overdue" : "Security review due soon"}
           </p>
@@ -89,35 +190,17 @@ export default function WorkspacePage() {
 
       {/* Guided first-run for org_admin */}
       {showGuidedSetup && (
-        <div className="mb-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div
+          className="mb-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+          data-testid="home-get-started"
+        >
           <p className="text-sm font-semibold text-gray-800 mb-4">
-            Get started in 3 steps
+            Get started in {home.steps.length} steps
           </p>
           <ol className="space-y-3">
-            <GuidedStep
-              number={1}
-              title={membership.is_it_executor ? "IT checklist assigned to you" : "Invite your IT Executor"}
-              description={membership.is_it_executor ? "You chose to handle IT yourself — the IT Baseline checklist is on your list." : "Assign someone to handle the technical security checklist."}
-              href="/workspace/team"
-              done={hasItExecutor}
-              cta="Invite team member"
-            />
-            <GuidedStep
-              number={2}
-              title="Start your first assessment"
-              description="Kick off a security review so your team can begin."
-              href="/workspace/assessments"
-              done={false}
-              cta="Start assessment"
-            />
-            <GuidedStep
-              number={3}
-              title="Share the summary"
-              description="Once your team has responded, review progress on the dashboard."
-              href="/workspace/dashboard"
-              done={false}
-              cta="View dashboard"
-            />
+            {home.steps.map((step) => (
+              <GuidedStep key={step.id} step={step} />
+            ))}
           </ol>
         </div>
       )}
@@ -128,10 +211,10 @@ export default function WorkspacePage() {
           href="/workspace/checklist"
           title="My checklist"
           description="Work through your assigned security items."
-          progress={checklistPercent}
+          progress={checklist.percent}
           progressLabel={
-            checklistDenominator != null && checklistResolved != null
-              ? `${checklistResolved} / ${checklistDenominator}`
+            checklist.denominator != null && checklist.resolved != null
+              ? `${checklist.resolved} / ${checklist.denominator}`
               : null
           }
         />
@@ -175,41 +258,32 @@ export default function WorkspacePage() {
   );
 }
 
-function GuidedStep({
-  number,
-  title,
-  description,
-  href,
-  done,
-  cta,
-}: {
-  number: number;
-  title: string;
-  description: string;
-  href: string;
-  done: boolean;
-  cta: string;
-}) {
+function GuidedStep({ step }: { step: HomeStep }) {
   return (
-    <li className="flex items-start gap-3">
+    <li className="flex items-start gap-3" data-testid={`home-step-${step.id}`}>
       <span
         className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-          done ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"
+          step.done ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"
         }`}
       >
-        {done ? "\u2713" : number}
+        {step.done ? "\u2713" : step.number}
       </span>
       <div className="flex-1">
-        <p className={`text-sm font-medium ${done ? "text-green-700 line-through" : "text-gray-800"}`}>
-          {title}
+        <p
+          className={`text-sm font-medium ${
+            step.done ? "text-green-700 line-through" : "text-gray-800"
+          }`}
+          data-testid={`home-step-${step.id}-title`}
+        >
+          {step.title}
         </p>
-        <p className="text-xs text-gray-500 mt-0.5">{description}</p>
-        {!done && (
+        <p className="text-xs text-gray-500 mt-0.5">{step.description}</p>
+        {!step.done && (
           <Link
-            href={href}
+            href={step.href}
             className="mt-1.5 inline-block text-xs font-medium text-gray-700 underline hover:text-gray-900"
           >
-            {cta} &rarr;
+            {step.cta} &rarr;
           </Link>
         )}
       </div>
@@ -244,7 +318,10 @@ function WorkspaceCard({
       )}
       {progress != null && progress > 0 && (
         <div className="mt-1 w-full bg-gray-100 rounded-full h-1.5">
-          <div className="progress-gradient h-1.5 rounded-full" style={{ width: `${progress}%` }} />
+          <div
+            className="progress-gradient h-1.5 rounded-full"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       )}
     </Link>

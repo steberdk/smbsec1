@@ -59,6 +59,13 @@ Risk and amount of Test
 - Before feature is Ready, exact test cases to be created are defined, and if they should be invluded in the sub set of regression test cases. In local DEV environment, for tests done with Github push, for tests done with Vercel deploy.
 Complexity estimate
 - Example: Large – as budget system. Summarize detailed SP from Features.
+Pages touched
+- List of page matrices under `docs/quality/matrices/` that the feature modifies. The feature's PR must update every listed matrix in the same commit (matches `team_rules_product_team.md` Rule 4 and `team_rules_it_dev_team.md` Rule 2).
+- Accepted values: a list like `home.md, team.md` OR the literal string `N/A — backend/infra only` with a one-line justification (e.g. "test harness; no user-visible page affected").
+- Populated by Business Analyst at step 2b. If left blank, refinement is not complete.
+Invariants touched
+- List of invariant IDs from `docs/quality/invariants.md` that the feature must preserve or extend. Use the existing IDs; propose new ones (to be added by BA) if a defect class spans more than one page.
+- Accepted values: a list like `INV-home-exec-parity, INV-state-pure-of-navigation` OR `N/A` with justification.
 Description/Details
 - Info PO/Team would typically include, attachments, refined information, how-to – if available or added along the way.
 

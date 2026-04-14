@@ -362,14 +362,39 @@ Stefan 2026-04-11: deliver all PDF findings (low + medium + high) plus F-009, F-
 - Prompt-injection corpus run, token-cost observation, mobile regression sweep
 - Vercel deploy + Business Test Team full walkthrough
 
-### PI 16 (contingent)
-Only materialises if PI 15 Business Test finds High/Medium defects, per CLAUDE.md §3d.
+### PI 16 — "Quality baseline + Stefan's 2026-04-14 findings" (locked 2026-04-14)
+**Theme:** Stop the cross-feature inconsistency leak that forces Stefan to manually integration-test every PI. Introduce a per-page state-matrix model, encode it as automated invariant + persona-smoke suites, reframe BA testing as persona-journey driven, AND fix the findings (PDF 2026-04-14, items 42–47) in one combined PI.
+
+**Based on:** Stefan's test report `20260414a_Stefan_test.pdf` (findings 42–47) + quality-baseline plan `C:/Users/AI1/.claude/plans/wondrous-gathering-mccarthy.md` (approved 2026-04-14).
+
+**Features:**
+- F-045: Quality baseline — personas, invariants, per-page state matrices
+- F-046: Quality baseline — automated invariant + persona-smoke test suites
+- F-047: Quality baseline — process doc updates (roles, rules, CLAUDE.md, test strategy)
+- F-048: Home "Get started" state coherence (PDF #42, #43, #44, #47)
+- F-049: Team invite "Revoke + delete data" — fix `digest()` error + clarify copy (PDF #45, #46)
+
+**Phases (mapped to CLAUDE.md dev process):**
+- Phase A (2b): Product Team seeds F-045/F-046 artefacts (personas, invariants, template), authors all ~13 page matrices by walking running app, drafts F-047 doc diffs.
+- Phase B (2g/2k): IT Dev Team implements F-046 test suites, fixes F-048/F-049. Each fix updates the affected matrix. Push → CI green → Vercel deploy.
+- Phase C (3): Business Test Team pilots the persona-journey approach using matrices as test scripts. Gaps feed back into invariants.md.
+- Phase D (2n/3e): Retrospectives; each team proposes one rule refinement.
 
 ---
 
 ## Not yet prioritized
 
 Features below are defined in `features.md` with full detail. Listed here by feature number for roadmap visibility.
+
+### Deferred from PI 16 matrix retrofit (2026-04-14) — candidates for PI 17
+Matrix retrofit under F-045 surfaced defects beyond PDF #42–47. Logged here to preserve the quality-baseline signal (we want to observe whether the matrix/invariant process catches more next round) without expanding PI 16 scope.
+- F-050: Auth-boundary coherence — login + onboarding redirect and copy context
+- F-051: Public `/checklist` — redirect signed-in users + retire legacy dual-progress state
+- F-052: Graceful missing-integration UX — Stripe, AI, SMTP
+- F-053: Privacy page claim realignment — §4 / §8 copy vs code
+- F-054: Cross-page label + terminology consistency (Role labels, response labels)
+- F-055: Onboarding completeness — locale, platform-at-setup, drop company_size, invite-team decision
+- F-056: Summary page (`/summary`) — teaser/signed-in parity + cadence + empty state
 
 ### Platform Expansion
 - F-001: Full UI internationalisation (i18n)

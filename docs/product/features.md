@@ -764,3 +764,245 @@ Documents impacted:
 **Dependencies:** F-040 (already shipped — uses the same shared helper).
 **Risk and amount of Test:** Chance: 1, Impact: 1.
 **Complexity estimate:** Small.
+
+---
+
+## F-045
+**Status:** Developed (all artefacts authored — personas, invariants, 13 page matrices, state-matrix-template; awaiting BA verification in Phase C)
+**Feature name:** Quality baseline — personas, invariants, per-page state matrices
+**Business Value Hypothesis:** As the product owner, I need a canonical set of user personas, cross-page invariants, and one state matrix per user-facing page, so that cross-feature inconsistencies (like PDF #42–47: Home/Settings/Team showing contradictory IT-Executor state) are forced to the surface at spec time instead of being found by Stefan weeks later. Without this, every new feature silently risks breaking neighbours.
+**Importance:** High — root cause of Stefan's recurring manual-test burden.
+**Urgency:** High — blocks quality-efficient shipping.
+**Acceptance Criteria:**
+- AC-1: `docs/quality/personas.md` lists canonical personas (ANON, O1 owner-IT-self, O2 owner-delegates-IT, O3 owner-with-pending-IT-invite, E1 employee-invited-not-accepted, E2 employee-accepted, IT1 IT-executor-not-owner) each with setup data (email, org state, role, reachable pages).
+- AC-2: `docs/quality/invariants.md` lists cross-page invariants with IDs (starting from findings PDF #42–47: header↔Settings IT-executor parity; Home "Get started" deterministic from org state; no "Not set" when value is derivable).
+- AC-3: `docs/quality/state-matrix-template.md` defines the matrix template (rows = personas, columns = page regions, cells = expected content/behavior, N/A conventions, invariant-ID linking).
+- AC-4: `docs/quality/matrices/` contains one matrix per user-facing page. Initial set (finalised during authoring): home, checklist, checklist-public, dashboard, team, settings, report, campaigns, billing, privacy, login, onboarding, summary.
+- AC-5: Each matrix records *intended* behaviour. Where current reality diverges (e.g. PDF #44 Home-step-1 strikethrough flicker), the matrix flags the cell as defect → feeds F-048/F-049 fix scope.
+**Scope:** Docs only — no code changes. Walk the running app via Playwright MCP for accuracy.
+**Not in Scope:** Fixing defects found during authoring (handled by F-048/F-049). Not per-feature matrices.
+**Dependencies:** None — starts PI-16.
+**Risk and amount of Test:** Chance: 1, Impact: 1. Correctness verified by F-046 test suites referencing these artefacts.
+**Complexity estimate:** Medium (13 pages × 7 personas = ~91 cells to author, but parallelisable).
+
+---
+
+## F-046
+**Status:** Developed (partial — `invariants.spec.ts` + `smoke/personas.spec.ts` + `personaHelpers.ts` shipped with F-048/F-049 coverage; remaining invariants stubbed with `test.skip` + explicit follow-up features named)
+**Feature name:** Quality baseline — automated invariant + persona-smoke test suites
+**Business Value Hypothesis:** As the IT Dev team, we need Playwright suites that encode `invariants.md` as assertions and walk each persona across every page, so regressions (like PDF #46 `digest()` missing because migration 024 was never applied) are caught by CI/post-deploy instead of by a user clicking the broken button. Compounds with F-045 by turning the documentation into executable tests.
+**Importance:** High.
+**Urgency:** High.
+**Acceptance Criteria:**
+- AC-1: `frontend/tests/invariants.spec.ts` encodes every invariant ID from `docs/quality/invariants.md` as a Playwright assertion. Runs in CI on every PR; fails hard if an invariant is violated.
+- AC-2: `frontend/tests/smoke/personas.spec.ts` walks each persona from `personas.md` across every reachable page. Asserts: no error banner visible, no unhandled server error in console, no "Not set" where a stored value exists, page renders its defined regions.
+- AC-3: Persona smoke runs against local dev AND can be re-run against production with env flag (`SMOKE_BASE_URL`). One successful production run after Phase B deploy.
+- AC-4: At least two invariants explicitly cover PDF #42–47 (e.g. "Home subtitle IT-executor status == Settings.IT_executor", "Home 'Get started' step state is deterministic across navigation").
+- AC-5: Test failures point back to `invariants.md` IDs so a failing run is self-documenting.
+**Scope:** New test files under `frontend/tests/` and `frontend/tests/smoke/`. Reuse `createOrgWithMembers()` + fixture seeding from F-043 harness.
+**Not in Scope:** Retrofitting existing spec files. Performance benchmarking.
+**Dependencies:** F-045 (personas + invariants must exist first). F-043 multi-user harness (already shipped).
+**Risk and amount of Test:** Chance: 2, Impact: 2. Flaky-test risk mitigated by deterministic fixtures.
+**Complexity estimate:** Medium.
+
+---
+
+## F-047
+**Status:** Developed (roles.md, feature_rules.md, test-strategy.md, CLAUDE.md, 3 team rules files updated in same commit as F-045/F-046/F-048/F-049)
+**Feature name:** Quality baseline — process doc updates (roles, rules, CLAUDE.md, test strategy)
+**Business Value Hypothesis:** As the coordinating process, every team rule and role description must point at the new quality artefacts (F-045) and test suites (F-046), so the four-layer model persists across PIs without Stefan re-explaining it. A process change that lives only in a plan file erodes; one encoded in CLAUDE.md + team rules + roles.md persists.
+**Importance:** High.
+**Urgency:** High — must ship with F-045/F-046 or drift begins immediately.
+**Acceptance Criteria:**
+- AC-1: `docs/agents/roles.md` — UX Designer explicitly owns cross-page visual+flow consistency (reviews matrices). BA owns state-matrix artefact + invariants list. Architect signs off state-transition implementability. No new roles added.
+- AC-2: `docs/product/feature_rules.md` — new required fields: **Pages touched** (list of `docs/quality/matrices/*.md` files; feature's PR must update each), **Invariants touched** (list of `docs/quality/invariants.md` IDs), or **N/A — backend/infra only** with justification.
+- AC-3: `docs/test-strategy.md` — new sections *Persona smoke suite* (layer 3) and *Invariant suite* (layer 2) with file pointers + matrix-maintenance rule.
+- AC-4: `docs/team_rules_product_team.md` — new rule: any PI touching a user-facing page must review/update that page's matrix at step 2b. With Why + How-to-apply.
+- AC-5: `docs/team_rules_it_dev_team.md` — new rule: post-deploy persona smoke + invariants suites must be green before Business Test begins. With Why (PDF #46 case).
+- AC-6: `docs/team_rules_test_team.md` — new rule: BA testing is persona-journey driven, not feature-list driven. With Why + How-to-apply.
+- AC-7: `CLAUDE.md` — small additions to §2b (matrix as refinement artefact) and §3 (persona-journey framing).
+**Scope:** Doc updates only. No code.
+**Not in Scope:** Rewriting history of prior PIs or team rules content unrelated to quality.
+**Dependencies:** F-045 (must reference real paths). F-046 (must reference real spec files).
+**Risk and amount of Test:** Chance: 1, Impact: 2. Verified by the fact that subsequent PI Product Team consumes these docs without asking for clarification.
+**Complexity estimate:** Small.
+
+---
+
+## F-048
+**Status:** Developed (local)
+**Feature name:** Home "Get started" state coherence (PDF #42, #43, #44, #47)
+**Business Value Hypothesis:** As an owner, the Home page's "Get started in 3 steps" block, the `O1 Owner · IT Executor` subtitle, Settings, and Team must agree on a single source of truth for "who is IT Executor" and "what has been done". Today (PDF 2026-04-14): (#42) the 3 steps never prompt an owner to invite the team; (#43) Home subtitle says "IT Executor" while Settings > Email platform says "Not set"; (#44) first-visit step-1 strikethrough disappears after navigation — two different Home renderings of the same state; (#47) after owner reassigns IT Executor to an employee, Home still says "Invite your IT Executor" in step 1. The four findings share one root cause: the "Get started" block derives its state from ad-hoc sources rather than a canonical org-state selector. Fix that once; all four symptoms go away.
+**Importance:** High — first-impression trust damage on every owner's first visit.
+**Urgency:** High — visible in production now.
+**Acceptance Criteria:**
+- AC-1: Introduce a canonical `getOwnerHomeState(org, membership)` selector returning a deterministic object: `{ steps: [...], itExecutor: { id, name, isSelf }, pendingItInvite: bool }`. Every Home render consumes this selector; no other component re-derives these values.
+- AC-2: (#42) The "Get started" step list includes an Invite-team step positioned before "Start your first assessment". Product Team confirms placement during 2b refinement and the page matrix reflects it.
+- AC-3: (#43) Home subtitle ("Owner · IT Executor") derives from the same selector — if `itExecutor.id === membership.user_id` then subtitle is "Owner · IT Executor"; else "Owner". Settings page reads from the same source. Subtitle and Settings can never disagree.
+- AC-4: (#44) Step-1 strikethrough state is pure-function of `getOwnerHomeState()` output and does not depend on client-side session cache or first-visit flag. Navigating to Checklist and back leaves the strikethrough identical.
+- AC-5: (#47) If `itExecutor.id !== current_user` and `pendingItInvite === false`, step 1 renders as "IT Executor: {name}" with a green tick; it never says "Invite your IT Executor" when an executor is assigned.
+- AC-6: Invariants added to `docs/quality/invariants.md`: (INV-home-exec-parity) Home subtitle == Settings IT-executor resolution; (INV-home-steps-deterministic) "Get started" step states unchanged by navigation.
+- AC-7: Home page matrix `docs/quality/matrices/home.md` has cells for every persona × every region reflecting the fix.
+- AC-8: Playwright tests in `invariants.spec.ts` assert AC-3 and AC-4 across O1/O2/O3.
+**Scope:** `frontend/app/workspace/page.tsx` (Home) refactor to canonical selector; Settings page read alignment; update `home.md` matrix; extend invariants.
+**Not in Scope:** Redesigning the Home layout beyond the `Get started` block. Adding onboarding for non-owner roles.
+**Dependencies:** F-045 (matrices), F-046 (test suite).
+**Risk and amount of Test:** Chance: 2, Impact: 2. Cross-user and cross-navigation E2E required.
+**Complexity estimate:** Medium.
+
+---
+
+## F-049
+**Status:** Developed (AC-2 / AC-3 / AC-5 / AC-6 green locally — AC-1 awaits Stefan applying migration 024 in Supabase; AC-4 partial, tracked in F-046 stubs)
+**Feature name:** Team invite "Revoke + delete data" — fix `digest()` error + clarify copy (PDF #45, #46)
+**Business Value Hypothesis:** As an owner revoking a pending invite with full PII deletion, the red "Revoke + delete data" button must work. Today it errors with `function digest(text, unknown) does not exist` because migration 024 (`024_pi14_member_deletion_rpc.sql`) ships referenced by code but was never applied in Supabase (PDF #46). Also the confirmation wording "permanently delete the pending invite and any audit log PII" is opaque to users (PDF #45). Fix both.
+**Importance:** High — advertised GDPR feature is broken in PROD.
+**Urgency:** High.
+**Acceptance Criteria:**
+- AC-1: Migration 024 is applied in Supabase (Stefan action; verified by RPC call returning success instead of `digest()` error).
+- AC-2: If the RPC is missing, the client surfaces a clear error ("Data deletion is temporarily unavailable — contact support") instead of leaking the Postgres error string. (Defence in depth.)
+- AC-3: Confirmation dialog text is rewritten: "This will permanently delete the pending invite AND every record the invitee's email appears in (audit log entries, any partial assessment responses). The invitee cannot join using the existing link." No jargon "audit log PII".
+- AC-4: Persona smoke suite (F-046) covers O1 → Team → Pending Invites → Revoke+Delete path for every persona that reaches Team.
+- AC-5: Playwright invariant asserts that pressing Revoke+Delete either succeeds or shows a non-leaky error (never raw DB error text).
+- AC-6: Team page matrix `docs/quality/matrices/team.md` cell for "Pending invites row > Revoke + delete data" documents expected behavior per persona.
+**Scope:** `frontend/app/workspace/team/page.tsx` (confirmation copy), RPC wrapper (error handling). Apply migration 024 via Stefan.
+**Not in Scope:** Redesigning the invite lifecycle. Changing gray "Revoke" behaviour (works today).
+**Dependencies:** Migration 024 must be applied in Supabase before AC-1 passes.
+**Risk and amount of Test:** Chance: 2, Impact: 2. GDPR path — must verify data really is gone, not just that UI says so.
+**Complexity estimate:** Small.
+
+---
+
+## F-050
+**Status:** Created
+**Feature name:** Auth-boundary coherence — login + onboarding redirect and copy context (PI-16 matrix finding)
+**Business Value Hypothesis:** Signed-in users who revisit `/login` today see a "Welcome back" magic-link form with no redirect (defect L-AUTH-SIGNED-IN); first-time visitors see the same "Welcome back" copy (L-WELCOMEBACK-FIRSTVISIT); `/onboarding` briefly renders the form for users who already have an org before the guard fires (O-GUARD-FLICKER); the pending-invite client guard on `/onboarding` is bypassable cross-browser (O-INVITE-FALLTHROUGH). All four are auth-state coherence issues on the same boundary as F-048 Home state. Fix once, as a pair.
+**Importance:** High — first-contact trust + a minor security/data-integrity concern.
+**Urgency:** Medium — none are visible in the PDF Stefan provided, but all are one-step-off-path discoveries any owner could hit.
+**Acceptance Criteria (to be refined by Product Team at PI-17 2b):**
+- Login: signed-in persona reaching `/login` redirects to `/workspace` (or `/onboarding` if no org) server-side.
+- Login: H1 and side info-card share a context class (fresh / signup / invite).
+- Onboarding: server-side guard precedes any render for already-onboarded users.
+- Onboarding: pending-invite check runs server-side, not client-only.
+- New invariant `INV-login-page-no-authed-users`.
+**Scope:** `frontend/app/login/page.tsx`, `frontend/app/onboarding/page.tsx`, associated middleware/server-component guards.
+**Not in Scope:** OAuth flows, password-based auth.
+**Dependencies:** F-048 (selector pattern may be reusable), F-046 (smoke suite validates redirects).
+**Risk and amount of Test:** Chance: 2, Impact: 2.
+**Complexity estimate:** Small.
+
+---
+
+## F-051
+**Status:** Created
+**Feature name:** Public `/checklist` — redirect signed-in users + retire legacy dual-progress state (PI-16 matrix finding)
+**Business Value Hypothesis:** Signed-in users who land on the public `/checklist` currently fall into an interactive view that writes to the legacy `user_checklists` table (per `checklist-public.md` R9 defect). This creates a parallel progress state that never reaches Dashboard/Report — a silent data-integrity issue that undermines every invariant tied to dashboard parity. Redirect signed-in users to `/workspace/checklist` and retire the legacy write path.
+**Importance:** High — causes silent data divergence that BA testing would not easily catch.
+**Urgency:** Medium.
+**Acceptance Criteria (refine at PI-17 2b):**
+- Signed-in persona on `/checklist` redirects to `/workspace/checklist`.
+- ANON on `/checklist` continues to see read-only view (`INV-public-checklist-readonly`).
+- Legacy `user_checklists` table writes removed from the signed-in code path; table itself may remain for backfill/read-only. Note CLAUDE.md: "Legacy localStorage sync — do not extend" already applies.
+- Data-migration plan for existing `user_checklists` rows (if any) written before code changes land.
+- New invariant `INV-single-progress-source-per-user`.
+**Scope:** `frontend/app/checklist/page.tsx`, any API touched by the legacy write path.
+**Not in Scope:** Schema drop of `user_checklists` table (that's a later cleanup).
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 2, Impact: 3 (silent data risk).
+**Complexity estimate:** Small-Medium.
+
+---
+
+## F-052
+**Status:** Created
+**Feature name:** Graceful missing-integration UX — Stripe, AI, SMTP (PI-16 matrix finding)
+**Business Value Hypothesis:** When third-party integrations are absent or misconfigured the UI currently fails opaquely: Billing's "Upgrade to Campaign Pro" button silently swallows a 501 when `STRIPE_SECRET_KEY` is missing (billing.md R5); checklist error copy references a Settings AI-disable toggle that does not exist (checklist.md R13); other similar paths likely exist. Users see spinners-to-nothing or copy that points at non-existent controls. Codify a pattern: detect missing config → disable the affordance + show a non-jargon message, never surface raw 501s.
+**Importance:** Medium.
+**Urgency:** Medium — Stripe is currently intentionally absent (MEMORY.md action item).
+**Acceptance Criteria (refine at PI-17 2b):**
+- Missing `STRIPE_SECRET_KEY` → upgrade button disabled + clear "Payments not yet enabled — join the waitlist" copy that matches the R6 waitlist card.
+- Missing `ANTROPIC_API_KEY` → AI chat hidden entirely, not "disabled mid-chat".
+- New invariant `INV-missing-integration-graceful`.
+- Existing invariant `INV-no-raw-db-errors` extended to "no raw integration errors" (or its sibling added).
+**Scope:** `frontend/app/workspace/billing/page.tsx`, `frontend/app/workspace/checklist/**`, integration-detection helper.
+**Not in Scope:** Actually enabling Stripe/Anthropic.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 2.
+**Complexity estimate:** Small.
+
+---
+
+## F-053
+**Status:** Created
+**Feature name:** Privacy page claim realignment — §4/§8 copy vs code (PI-16 matrix finding)
+**Business Value Hypothesis:** The privacy page contains copy that does not match shipped code: §8 "Right of access" implies full data access for every user (privacy.md D1) but employees only get self-delete + "contact owner"; §8 "Right to object" (phishing awareness) promises opt-out with no in-app control (D2); §4 "Vercel EU edge network" is narrowly incorrect (D4). Privacy-page overstatements in a GDPR-positioned product are a reputational and compliance risk.
+**Importance:** Medium.
+**Urgency:** Medium.
+**Acceptance Criteria (refine at PI-17 2b):**
+- Each overstated claim is either backed by new code or softened to accurate copy ("contact your organisation owner" / "awaiting implementation — contact us to request").
+- An audit (manual for now; mechanical when `INV-privacy-claim-backed-by-code` exists) maps each privacy claim to a code anchor or a delegated human process.
+- Covers Security agent's Phase A finding on §8 AI-guidance opt-out.
+**Scope:** `frontend/app/privacy/page.tsx` + any supporting translations in `lib/i18n/`.
+**Not in Scope:** Full GDPR legal review (Stefan scope).
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 2.
+**Complexity estimate:** Small.
+
+---
+
+## F-054
+**Status:** Created
+**Feature name:** Cross-page label + terminology consistency (PI-16 matrix finding)
+**Business Value Hypothesis:** Matrix retrofit surfaced several same-concept-different-word drifts: Role column shows `"Org admin"` on Report vs `"Owner"` on Team (report.md R10); the response value "Skipped" is shown alongside "Not applicable" in the same page (checklist.md R14, dashboard.md R7); en-dash glyph is a third spelling for the same concept. A single `formatRoleLabel()` + `formatResponseLabel()` helper removes the drift and earns a cheap invariant.
+**Importance:** Low-Medium — cosmetic but accumulates distrust.
+**Urgency:** Low.
+**Acceptance Criteria (refine at PI-17 2b):**
+- Shared helpers `formatRoleLabel(role, locale)` and `formatResponseLabel(value, locale)` introduced in `frontend/lib/i18n/` or `frontend/lib/labels/`.
+- All call sites migrated; grep-based test asserts no raw `role.replace` / `"Org admin"` / bare `"Skipped"` in JSX.
+- New invariant `INV-terminology-single-source`.
+**Scope:** All pages rendering role or response labels.
+**Not in Scope:** Changing the canonical values in DB.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 1, Impact: 1.
+**Complexity estimate:** Small.
+
+---
+
+## F-055
+**Status:** Created
+**Feature name:** Onboarding completeness — locale, platform-at-setup, drop company_size, invite-team decision (PI-16 matrix finding)
+**Business Value Hypothesis:** Onboarding today (`frontend/app/onboarding/page.tsx`) has several gaps: no locale selector despite PI-10 i18n (O-NO-LOCALE); no email-platform collection at setup, which leaves Settings showing "Not set" and cross-feeds PDF #43 confusion (O-NO-PLATFORM); a `company_size` input is collected but never used (O-COMPANY-SIZE-ORPHAN); the "I'm not sure who handles IT" branch silently assigns the owner as IT executor (O-NOTSURE-SILENT-ASSIGN). Product Team deliberately chose NOT to add an invite-team step to onboarding (F-048 owns that on Home); the decision is documented, but onboarding's finish-state should reinforce it ("Your team is still on your to-do list → Home").
+**Importance:** Medium.
+**Urgency:** Medium.
+**Acceptance Criteria (refine at PI-17 2b):**
+- Locale selector added.
+- Email-platform field added at setup (same values as Settings `email_platform`).
+- `company_size` collection removed (unless a use case is found by PI-17 refinement).
+- "I'm not sure" branch explicit: never silently assigns; either asks again or stores null with Settings CTA.
+- Onboarding success state deep-links to Home's first step.
+- Addresses/closes onboarding-related new invariants `INV-no-orphan-form-fields`, `INV-onboarding-no-post-setup-render`, `INV-invite-prompt-exists-somewhere`.
+**Scope:** `frontend/app/onboarding/page.tsx` + schema migration if any new column needed for platform-at-setup (it already exists — `orgs.email_platform`).
+**Not in Scope:** Reworking the form into a multi-step wizard.
+**Dependencies:** F-048 (Home's invite-team step must land first).
+**Risk and amount of Test:** Chance: 2, Impact: 2.
+**Complexity estimate:** Small-Medium.
+
+---
+
+## F-056
+**Status:** Created
+**Feature name:** Summary page (`/summary`) — teaser/signed-in parity + cadence + empty state (PI-16 matrix finding)
+**Business Value Hypothesis:** Matrix retrofit on `/summary` surfaced that the ANON teaser promises features not rendered on the signed-in view (S-TEASER-PROMISE-MISMATCH, S-TEASER-PRINTABLE-PROMISE, S-NEXT-STEPS-GENERIC); the empty state for users with no assessment incorrectly renders 0% progress and misroutes owners to "Set up your workspace" on a silent API error (S-ZERO-ASSESSMENT-EMPTY, S-NO-ORG-FALLBACK-WRONG); cadence and export affordances promised on the page are not implemented (S-NO-CADENCE, S-NO-EXPORT). The page is a public trust artefact: broken teaser promises hurt conversion.
+**Importance:** Medium.
+**Urgency:** Medium.
+**Acceptance Criteria (refine at PI-17 2b):**
+- Every teaser bullet has a matching signed-in region or is softened.
+- Empty state distinguishes "no assessment yet" vs "API error" (no silent misroute).
+- Cadence + export affordances delivered or removed from copy.
+- New invariant `INV-teaser-promises-kept`. Extend `INV-dashboard-report-parity` or add `INV-summary-dashboard-parity`.
+**Scope:** `frontend/app/summary/page.tsx`, i18n copy, possibly an export endpoint.
+**Not in Scope:** Full report redesign.
+**Dependencies:** None.
+**Risk and amount of Test:** Chance: 2, Impact: 2.
+**Complexity estimate:** Small-Medium.
+

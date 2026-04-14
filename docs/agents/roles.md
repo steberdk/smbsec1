@@ -26,6 +26,8 @@ Owns:
 - Microcopy, tooltips, labels, button text
 - Interaction patterns and progressive disclosure
 - Consistency checks — naming, layout, terminology across pages
+- **Cross-page visual and flow consistency.** When a PI touches any user-facing page, the UX Designer reviews that page's matrix in `docs/quality/matrices/<page>.md` for coherence — does the same org state produce consistent UI everywhere it's shown? Flags mismatches as defect cells.
+- Maintains `docs/user-flows.md` when page inventory or role visibility changes.
 
 Rules:
 - One primary action per screen
@@ -56,6 +58,7 @@ Owns:
 - Database schema implications (migrations, RLS, indexes)
 - Integration design (Supabase, Resend, Stripe, Anthropic)
 - Performance and scalability considerations
+- **State-transition implementability** — signs off that state transitions enumerated in a page matrix are implementable without introducing new shared state or client-side caches that violate `INV-state-pure-of-navigation`.
 
 Rules:
 - Prefer simple structures over complex frameworks
@@ -69,6 +72,8 @@ Owns:
 - User journey mapping — how does this feature fit into existing flows
 - Test scenario identification — what should be tested, at what priority
 - Cross-feature consistency — does this contradict or overlap with existing features
+- **State-matrix artefact** (`docs/quality/matrices/<page>.md`) — authors or updates the relevant page matrix at step 2b for any feature touching a user-facing page. Cells flagged ⚠ DEFECT become fix scope for the same PI or feed deferred features.
+- **Invariants list** (`docs/quality/invariants.md`) — curates cross-page invariants. Adds new invariants when a defect class spans more than one page or when a matrix cell cannot be linked to an existing invariant.
 
 Rules:
 - Acceptance criteria must be verifiable (testable, not subjective)
@@ -105,7 +110,8 @@ Started at end of PI after Vercel deployment. Multiple BA/test agents doing full
 
 ### BA Test Agent
 Owns:
-- Full browser walkthrough of deployed app using Playwright MCP
+- Full browser walkthrough of deployed app using Playwright MCP — **persona-journey driven**, not feature-list driven. For each persona from `docs/quality/personas.md`, walk every reachable page and verify the `docs/quality/matrices/<page>.md` cell matches reality.
+- Consistency checklist application on every screen (from the matrix; flag cells that disagree with code)
 - Testing all user types, all pages, all forms, all navigation paths
 - Checking naming/description consistency across pages
 - Verifying that features match their acceptance criteria

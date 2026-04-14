@@ -177,12 +177,33 @@ export default function WorkspaceTeamPage() {
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        // F-049 AC-2: migration/extension missing → non-jargon, retry-on-fix copy.
         if (res.status === 503 && body?.error === "migration_pending") {
           throw new Error(
-            "Member deletion is not yet available — the admin needs to apply migration 024."
+            removeTarget.kind === "invite"
+              ? "Revoke + delete data is temporarily unavailable — an administrator must apply a pending database migration. The invite is unchanged; retry once the migration is applied."
+              : "Member deletion is temporarily unavailable — an administrator must apply a pending database migration. The member is unchanged; retry once the migration is applied."
           );
         }
-        throw new Error(body?.error || `Failed (${res.status})`);
+        // F-049 AC-5 + INV-no-raw-db-errors: map unknown / 5xx / raw PG error
+        // bodies to a safe user message. Never display raw Postgres strings
+        // like "function digest(text, unknown) does not exist" or SQLSTATE
+        // codes. Known app error codes (400s) are passed through verbatim
+        // because they are app-defined ("cannot_remove_self" etc.).
+        const raw = String(body?.error ?? "");
+        const looksLikeRawDbError =
+          /function\s+\S+\s*\(.*\)\s*does not exist/i.test(raw) ||
+          /SQLSTATE/i.test(raw) ||
+          /\brelation "/.test(raw) ||
+          /column ".+" does not exist/i.test(raw);
+        if (res.status >= 500 || looksLikeRawDbError || !raw) {
+          throw new Error(
+            removeTarget.kind === "invite"
+              ? "Revoke + delete data failed — please retry. If the problem persists contact support. The invite is unchanged."
+              : "Member deletion failed — please retry. If the problem persists contact support. The member is unchanged."
+          );
+        }
+        throw new Error(raw);
       }
 
       const wasItExec = targetIsItExec(removeTarget);
@@ -392,22 +413,31 @@ export default function WorkspaceTeamPage() {
             </div>
             <div className="p-5 space-y-3 text-sm text-gray-700">
               {removeTarget.kind === "invite" ? (
-                <p>
-                  This will permanently delete the pending invite and any audit
-                  log PII. The invitee will no longer be able to join using the
-                  existing link.
-                </p>
+                <>
+                  <p className="font-medium text-red-700">
+                    This cannot be undone.
+                  </p>
+                  <p>
+                    This will permanently delete the pending invite AND every
+                    record the invitee&apos;s email appears in (audit log
+                    entries, any partial assessment responses). The invitee
+                    cannot join using the existing link.
+                  </p>
+                </>
               ) : (
                 <>
                   <p className="font-medium text-red-700">
                     This cannot be undone.
                   </p>
-                  <p>The following data will be permanently deleted:</p>
+                  <p>The following will be permanently deleted:</p>
                   <ul className="list-disc list-inside text-xs text-gray-600 space-y-1">
-                    <li>All assessment responses</li>
-                    <li>All campaign records</li>
-                    <li>All invites for this email</li>
-                    <li>All audit log PII (entries anonymised)</li>
+                    <li>All assessment responses this person submitted</li>
+                    <li>All campaign records referencing this person</li>
+                    <li>All invites sent to this email</li>
+                    <li>
+                      All references to this person in the audit log (name and
+                      email are replaced with an anonymous identifier)
+                    </li>
                   </ul>
                   {targetIsItExec(removeTarget) && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">

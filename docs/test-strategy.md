@@ -144,6 +144,36 @@ When a new feature is built:
 
 ---
 
+## Invariant suite (F-046 — added PI 16)
+
+**Source of truth.** `docs/quality/invariants.md` lists every cross-page invariant with a stable ID. Each invariant has a mechanical test idea in its own entry.
+
+**Spec file.** `frontend/tests/invariants.spec.ts`. One `test(...)` per invariant ID. Test name MUST include the invariant ID (e.g. `INV-home-exec-parity: Home subtitle matches Settings IT executor`). Failing test points directly back to the invariant entry.
+
+**When it runs.** On every CI run (Pull Request + main push) — part of `npm run test:e2e`. Never skipped by feature scope — the whole suite is always expected green.
+
+**When to add a test.** Every new invariant in `invariants.md` ships together with its test (`team_rules_it_dev_team.md` Rule 2 same-commit gate). A new invariant without a test is a documentation decoration, not a contract.
+
+**Scope boundary.** The invariants suite asserts app-wide truths that span pages. It is not a replacement for page-specific E2E tests under `frontend/tests/*.spec.ts` — those continue to exist and cover per-feature happy paths. The invariants suite is the layer that guards against cross-feature drift.
+
+---
+
+## Persona smoke suite (F-046 — added PI 16)
+
+**Source of truth.** `docs/quality/personas.md` lists 7 canonical personas (ANON, O1, O2, O3, IT1, E1, E2) with setup steps. `docs/quality/matrices/<page>.md` records the intended content per persona per page region.
+
+**Spec file.** `frontend/tests/smoke/personas.spec.ts`. Loops every persona across every reachable page. For each page, asserts: (a) no error banner visible, (b) no raw DB error in the DOM (`INV-no-raw-db-errors`), (c) no "Not set" for a value that is derivable (`INV-no-not-set-when-derivable`), (d) the page's required regions render.
+
+**When it runs.** After every Vercel deploy — *not* on every CI run. Matrix math: 7 personas × 13 pages ≈ 91 page loads per run; at ~2 s/page that is ~3 min serial. Acceptable as a post-deploy gate; too slow for every PR.
+
+**Configuration.** `SMOKE_BASE_URL` env var points at the preview/production URL. Default is local dev (`http://localhost:3000`). Uses `bertramconsulting.dk` test accounts from `docs/test_user_emails.md` — never `@example.invalid` (these accounts need real mailboxes for the OTP fallback when testing login).
+
+**Gate.** A Red persona smoke post-deploy blocks the PI from advancing to §3 Business Test (see `team_rules_it_dev_team.md` Rule 2).
+
+**Matrix maintenance rule.** Any PR modifying a user-facing page MUST update the corresponding `docs/quality/matrices/<page>.md` file in the same commit. This is enforced at code review by the coordinator (Claude).
+
+---
+
 ## Multi-user E2E harness (F-043)
 
 Landed PI 14 Iter 1 as the anti-phantom-Done insurance for every dashboard-math feature that follows (F-034, F-038, F-039, F-040, F-041, F-033). Before F-043 the only way to test a cross-user scenario was to reuse the shared admin user, which made parallel runs conflict and hid real bugs; the harness fixes that by spinning up a fresh isolated org with one owner + N employees, each signed in through their own `BrowserContext`, in a single call.

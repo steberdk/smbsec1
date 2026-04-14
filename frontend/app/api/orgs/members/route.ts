@@ -65,25 +65,46 @@ export async function DELETE(req: Request): Promise<NextResponse> {
     return apiError("email must be a valid email address", 400);
   }
 
-  const { data, error } = await supabase.rpc("delete_member_with_data", {
-    p_org_id: membership.org_id,
-    p_target_email: email,
-    p_actor_user_id: user.id,
-  });
+  let data: unknown;
+  let error: { message?: string; code?: string } | null = null;
+  try {
+    const rpc = await supabase.rpc("delete_member_with_data", {
+      p_org_id: membership.org_id,
+      p_target_email: email,
+      p_actor_user_id: user.id,
+    });
+    data = rpc.data;
+    error = rpc.error as { message?: string; code?: string } | null;
+  } catch (e) {
+    // Network/transport or unexpected throw from the client.
+    error = { message: e instanceof Error ? e.message : String(e) };
+  }
 
   if (error) {
     const msg = error.message ?? "";
-    // Migration not applied yet — function doesn't exist.
-    if (
-      /function .*delete_member_with_data.* does not exist/i.test(msg) ||
-      /could not find the function/i.test(msg)
-    ) {
+    const code = error.code ?? "";
+    // F-049 AC-2: classify "any missing function in the RPC chain" (incl. the
+    // RPC itself, and pgcrypto's digest() called from inside the RPC when the
+    // extension is absent) as `migration_pending` so the client's 503 branch
+    // fires. SQLSTATE 42883 = undefined_function.
+    const missingFunction =
+      code === "42883" ||
+      /function .* does not exist/i.test(msg) ||
+      /could not find the function/i.test(msg);
+    if (missingFunction) {
       return NextResponse.json(
-        { error: "migration_pending", detail: "apply docs/sql/024_pi14_member_deletion_rpc.sql" },
+        {
+          error: "migration_pending",
+          detail:
+            "apply docs/sql/024_pi14_member_deletion_rpc.sql + ensure pgcrypto extension is enabled",
+        },
         { status: 503 }
       );
     }
-    return apiError(msg || "RPC call failed", 500);
+    // INV-no-raw-db-errors: never let a raw Postgres error body reach the
+    // client. Log the detail server-side; respond with a generic message.
+    console.error("[DELETE /api/orgs/members] RPC error:", { code, msg });
+    return apiError("Member deletion failed — please retry or contact support.", 500);
   }
 
   // The RPC returns jsonb — supabase-js returns it as a JS object.
