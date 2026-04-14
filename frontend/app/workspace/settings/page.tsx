@@ -4,12 +4,19 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useWorkspace } from "@/lib/hooks/useWorkspace";
 import { apiFetch } from "@/lib/api/client";
+import { resolveItExecutor } from "@/lib/selectors/ownerHomeState";
 
 type MemberInfo = {
   user_id: string;
   email: string | null;
   display_name: string | null;
   role: string;
+  is_it_executor: boolean;
+};
+
+type PendingInvite = {
+  id: string;
+  email: string;
   is_it_executor: boolean;
 };
 
@@ -31,6 +38,7 @@ export default function OrgSettingsPage() {
   const { token, orgData, isAdmin, refresh } = useWorkspace();
 
   const [members, setMembers] = useState<MemberInfo[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [platform, setPlatform] = useState(orgData.org.email_platform ?? "");
   const [locale, setLocale] = useState(orgData.org.locale ?? "en");
   const [aiGuidanceEnabled, setAiGuidanceEnabled] = useState<boolean>(
@@ -51,13 +59,32 @@ export default function OrgSettingsPage() {
 
   useEffect(() => {
     if (!token) return;
-    apiFetch<{ members: MemberInfo[] }>("/api/orgs/members", token)
-      .then(({ members: list }) => {
-        const currentExecutor = list.find((m) => m.is_it_executor);
-        const initial = currentExecutor?.user_id ?? orgData.membership.user_id ?? "";
+    // F-048 AC-3 completion: Settings must read IT-executor state from the
+    // same source as Home (`resolveItExecutor` in lib/selectors/ownerHomeState).
+    // Fetch members + pending invites together so the dropdown reflects the
+    // real state — including the "pending invite, no accepted member" case
+    // that previously defaulted silently to the owner (PI-16 BA defect #1).
+    Promise.all([
+      apiFetch<{ members: MemberInfo[] }>("/api/orgs/members", token),
+      apiFetch<{ invites: PendingInvite[] }>("/api/invites", token).catch(
+        () => ({ invites: [] as PendingInvite[] })
+      ),
+    ])
+      .then(([{ members: list }, { invites }]) => {
+        const resolved = resolveItExecutor(
+          list,
+          invites,
+          orgData.membership.user_id ?? ""
+        );
+        // Dropdown value semantics:
+        //   - accepted-member exec → member's user_id
+        //   - pending-invite exec  → "" (no member selection; banner shows pending)
+        //   - no exec              → "" (no member selection; banner shows "not assigned")
+        const initial = resolved.source === "member" ? (resolved.id ?? "") : "";
         setExecutor(initial);
         setInitialExecutor(initial);
         setMembers(list);
+        setPendingInvites(invites);
       })
       .catch((e: unknown) => {
         setLoadError(e instanceof Error ? e.message : "Failed to load settings.");
@@ -247,11 +274,27 @@ export default function OrgSettingsPage() {
           <p className="text-xs text-gray-500 mb-2">
             The person responsible for the IT Baseline checklist. Only one per organisation.
           </p>
+          {pendingInvites.some((i) => i.is_it_executor) &&
+            !members.some((m) => m.is_it_executor) && (
+              <div
+                data-testid="settings-it-exec-pending-banner"
+                className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+              >
+                IT Executor invite sent to{" "}
+                {pendingInvites.find((i) => i.is_it_executor)?.email ?? "the invitee"}
+                . Waiting for acceptance. Pick a different member to reassign, or revoke the invite from the Team page.
+              </div>
+            )}
           <select
             value={executor}
             onChange={(e) => setExecutor(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
           >
+            <option value="">
+              {pendingInvites.some((i) => i.is_it_executor)
+                ? "— pending invite, not yet assigned —"
+                : "— not assigned —"}
+            </option>
             {members.map((m) => (
               <option key={m.user_id} value={m.user_id}>
                 {m.display_name ?? m.email ?? m.user_id.slice(0, 8) + "..."} ({m.role === "org_admin" ? "Owner" : m.role.replace("_", " ")})

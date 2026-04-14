@@ -198,7 +198,7 @@ Neither option is blocking for Phase A's matrix delivery — flagging per task b
 
 | Cell | PDF # | One-liner | Fix AC |
 |---|---|---|---|
-| R7 × O3 | #43 | IT executor dropdown falls back to owner when only a pending invite exists; Settings disagrees with Home/Team about who the exec is. | F-048 extension — share `resolveItExecutor(members, invites)` between Home and Settings. Promote to new AC in F-048 or open as F-050. |
+| R7 × O3 | #43 | ✓ Fixed in F-048 extension (2026-04-14): Settings now calls `resolveItExecutor` from `lib/selectors/ownerHomeState`. When `source === "pending-invite"` an amber banner renders ("IT Executor invite sent to {email}. Waiting for acceptance.") and the dropdown defaults to "— pending invite, not yet assigned —" instead of silently selecting the owner. Verification: PI-16 BA report defect #1 re-test after next deploy. |
 | R7 × all | — | No "unassign / owner handles IT" option in the dropdown. | Backlog candidate, not a PDF finding. |
 | Privacy page × Settings | — | Privacy policy claims employee self-delete exists; no UI implements it. | F-049 copy amendment **or** new backlog feature. |
 
@@ -206,7 +206,7 @@ Neither option is blocking for Phase A's matrix delivery — flagging per task b
 
 ## Notes / dependencies
 
-- F-048 today only touches Home. The R7 × O3 defect shows the selector must be broadened. Recommend the F-048 refinement adds AC-6 "Settings IT-executor dropdown consumes the same `resolveItExecutor` output as Home subtitle".
+- F-048 extension (2026-04-14): Settings page now consumes the same `resolveItExecutor` output as Home subtitle, closing AC-3's cross-page parity requirement end-to-end.
 - Test data: O3 persona is the sharpest reproducer — do NOT use O1 or O2 to verify this region.
 
 ## Invariant gaps (this matrix wants an invariant that does not exist yet)
