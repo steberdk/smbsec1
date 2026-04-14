@@ -48,3 +48,15 @@ UX Designer reviews for cross-page visual/flow coherence. Architect signs off th
 - On PI-start (§2b refinement): for each feature's "Pages touched" list, open the matrix. Read every cell. Update any cell the feature changes. Flag ⚠ DEFECT for any cell whose intended behavior now differs from deployed reality and feed those into the same PI's fix scope (High/Medium) or a deferred feature (Low).
 - On feature completion: the PR that ships the code includes the matrix diff in the same commit (matches IT Dev Rule 2).
 - When adding a new invariant, reference it in every affected matrix cell's `Linked invariants:` row.
+
+---
+
+## Rule 5 (PI 16 retrospective, 2026-04-14)
+
+**Normalise sub-state axes across `personas.md` and every affected matrix in the same PI.**
+
+When introducing or refining a persona sub-state axis (e.g. `memberCount`, `hasActiveAssessment`), the BA MUST use the same spelling and value convention in `docs/quality/personas.md` and in every `docs/quality/matrices/*.md` file that references the axis. Axis values (e.g. `memberCount=0` vs `memberCount=1` for "solo owner") must be defined once and linked from matrices, not re-invented per matrix.
+
+**Why:** PI-16 BA pilot feedback: `personas.md` used `memberCount=0` for solo owner while the Home matrix used `memberCount=1` (the owner is counted as a member in that matrix). The BA could resolve it from context, but the spelling mismatch added friction and is exactly the kind of drift the matrix process is supposed to kill. Left unchecked, the first mismatch becomes the template for later ones.
+
+**How to apply.** When authoring or editing a matrix that uses a sub-state, open `personas.md` first and copy the canonical spelling. If the matrix's natural idiom disagrees (e.g. "counts the owner" vs "excludes the owner"), fix one side in the same PI — do not paper over with a comment.

@@ -39,3 +39,20 @@ Rules agreed by the IT Dev Team (or installed by ROADMAP session) through retros
 **Who enforces.** The dev opens the PR. The coordinator (Claude) refuses to merge unless invariants suite is green AND the matrix diff is present. Post-deploy smoke is a separate check before PI advances to Business Test.
 
 **What happens on Red.** Same reopen/retro mechanic as Rule 1.
+
+---
+
+## Rule 3 — Selector introduction must check every consumer (added 2026-04-14, PI 16 retro)
+
+**Problem this solves.** In PI 16 Phase B, F-048 introduced `frontend/lib/selectors/ownerHomeState.ts` exposing `resolveItExecutor(members, pendingInvites, viewer)` — the canonical IT-executor source-of-truth. The Home page was wired to it. The Settings page was NOT — it kept its own ad-hoc fallback-to-owner logic. Phase C BA pilot on PROD caught this as a cross-page parity gap (F-048 AC-3 not fully satisfied). The gap is the class "I added a selector but didn't grep for every consumer of the data it encapsulates."
+
+**Rule.** When a PI introduces (or renames) a selector / derivation helper / shared formatter in `frontend/lib/`, the dev MUST:
+
+1. Grep the codebase for every page/component that consumes the same underlying data (members, org, assessments, roles, etc.).
+2. Wire each consumer to the new selector in the same PR, OR explicitly document why a consumer is left out (e.g. "API response is already canonical — no selector needed").
+3. Add an entry in `docs/quality/matrices/*.md` invariants for every page whose rendering is now governed by the shared selector.
+4. Add an invariant-test (or extend an existing one) that asserts every consumer renders consistent output from the same inputs.
+
+**Why.** Selectors only produce cross-page parity if every page uses them. One consumer that sidesteps the selector re-creates the exact class of defect the selector was introduced to kill — silently — until the BA pilot catches it.
+
+**Scope.** Applies to selectors, derivation helpers, label formatters, and any shared "resolve X from raw data" functions. Does NOT apply to one-off page-local helpers.

@@ -380,6 +380,34 @@ Stefan 2026-04-11: deliver all PDF findings (low + medium + high) plus F-009, F-
 - Phase C (3): Business Test Team pilots the persona-journey approach using matrices as test scripts. Gaps feed back into invariants.md.
 - Phase D (2n/3e): Retrospectives; each team proposes one rule refinement.
 
+### PI 16 BA Test Results (2026-04-14)
+
+**Verdict:** CONDITIONAL PASS — all 6 PDF findings (#42–#47) verified fixed on PROD for O1 and O3 personas. BA report: `docs/product/pi16/ba_test_report.md` + screenshot evidence under `docs/product/pi16/screenshots/`.
+
+- BA pilot surfaced one F-048 AC-3 gap: Settings IT-executor dropdown still defaulted to owner on pending-invite. **Fixed in same PI** (commit `f538d12`) — Settings page now consumes `resolveItExecutor` selector, same as Home. F-048 AC-3 now green end-to-end.
+- F-049 AC-1 still awaits Stefan applying migration 024 in Supabase. Client + API correctly handle the missing case with plain language (PDF #46 fix verified).
+
+### PI 16 Retrospective rules (2026-04-14)
+
+Each team proposed one rule refinement based on PI 16 experience:
+
+- `team_rules_product_team.md` Rule 5 — normalise persona sub-state axis spelling across `personas.md` and every affected matrix in the same PI.
+- `team_rules_it_dev_team.md` Rule 3 — when introducing a selector/helper, grep for every consumer and wire them all in the same PR, or document exclusions.
+- `team_rules_test_team.md` Rule 4 — when a matrix cell is ambiguous, log the ambiguity; do not guess the intended behavior.
+
+### PI 16 Process feedback (from Phase C BA pilot)
+
+**Matrix-driven BA approach: kept and scaled.** BA caught all 6 PDF findings in 20 minutes with zero guessing AND surfaced the Settings R7 × O3 gap unprompted via the 5-point consistency checklist (specifically check #2: source-of-truth cross-check across Home↔Team↔Settings). This is exactly the defect class Stefan's repeated manual-test cycles were catching.
+
+### PI 16 Features by status at handover
+- F-045 Done — 7 personas + 19 invariants + 13 page matrices + template shipped and actively used in Phase C BA.
+- F-046 Developed (partial) — Home + Team invariant tests in CI; remaining invariants stubbed with follow-up features named.
+- F-047 Done — roles, feature_rules, test-strategy, CLAUDE.md §2b/§3, all 3 team rules files shipped and consumed.
+- F-048 Developed — code + BA-verified fixes for PDF #42/#43/#44/#47 plus Settings extension. Status moves to Done after next Vercel deploy + BA re-test confirms Settings R7 × O3 green.
+- F-049 Developed — code + BA-verified safe fallback for PDF #45/#46. AC-1 (migration 024 applied) remains Stefan action.
+
+
+
 ---
 
 ## Not yet prioritized

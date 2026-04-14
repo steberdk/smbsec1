@@ -44,3 +44,15 @@ Any cell that does not match reality is a defect. Log with severity (High / Medi
 - For each persona, prepare fresh test data (Rule 1) and walk every reachable page. Open the matrix file; check each cell.
 - Run the 5-point consistency checklist on each page regardless of whether the PI changed it — regression surface expands as the app grows.
 - Report deviations with severity. Use the page matrix as the single source of truth for "what the page should show." If the matrix is wrong, flag that too — the matrix is a working artefact, not scripture.
+
+---
+
+## Rule 4 (PI 16 Phase C retrospective, 2026-04-14)
+
+**When a matrix cell is ambiguous, log the ambiguity — do NOT guess the intended behavior.**
+
+If during testing a matrix cell could plausibly mean two or more behaviors (e.g. Team R8b × O3 "amber IT Executor removal warning" — does it apply to pending-invite revocation or only accepted-member removal?), the BA MUST log the ambiguity as a finding against the matrix itself, not against the code. Propose a clarifying wording. Do NOT silently pick one interpretation and pass/fail the code against that guess.
+
+**Why.** The matrix is the spec. A BA who guesses becomes the decision-maker on spec ambiguity — defeating the purpose of the persona-journey approach, which is that intended behavior is authoritative *before* the BA starts. PI-16 Phase C surfaced exactly this case (amber-banner conditional in Team R8b) and the BA correctly logged it as a matrix-ambiguity defect rather than resolving it ad hoc.
+
+**How to apply.** When reading a matrix cell for the persona you are walking, if the cell's statement leaves two implementations both reasonable, stop the walk, document the ambiguity (matrix file + cell coordinate + the two readings), and continue with other cells. The PI refinement BA owns clarifying the matrix before the next PI touches that page.
