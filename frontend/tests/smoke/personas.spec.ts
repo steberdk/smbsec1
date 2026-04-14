@@ -74,13 +74,20 @@ async function assertPageHealth(
     ).not.toMatch(/\bNot set\b/);
   }
 
-  // Some heading must render — proves the page actually mounted, not a
-  // blank-on-error.
-  const heading = page.locator("h1, h2").first();
-  await expect(
-    heading,
-    `persona=${persona} path=${path} — no heading rendered`,
-  ).toBeVisible({ timeout: 10_000 });
+  // The page must have mounted — not a blank-on-error. Accept any of:
+  // (a) a heading h1/h2/h3/h4, (b) an element with role=heading, (c) a
+  // <main> with non-trivial text content. Different pages use different
+  // structures (checklist items are lists with no h1; dashboard is cards;
+  // the public summary starts with a hero banner).
+  const heading = page.locator('h1, h2, h3, h4, [role="heading"]').first();
+  const main = page.locator("main").first();
+  const headingVisible = await heading.isVisible().catch(() => false);
+  const mainVisible = await main.isVisible().catch(() => false);
+  const mounted = headingVisible || (mainVisible && bodyText.trim().length > 100);
+  expect(
+    mounted,
+    `persona=${persona} path=${path} — page did not mount (no heading, no <main> with content). bodyText len=${bodyText.length}`,
+  ).toBe(true);
 }
 
 test("persona ANON — reachable pages render cleanly", async ({ browser }, testInfo) => {
